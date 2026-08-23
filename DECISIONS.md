@@ -572,3 +572,49 @@ explicitly, what has and has not been executed:
 The bottom four rows are code-as-design. Anyone presenting this must say so.
 Claiming a cloud deployment that was never applied would be precisely the
 unverifiable claim that D-007, D-010 and D-014 were each written to prevent.
+
+---
+
+## D-018 — 3D/WebGL command centre: an authorised override of LOGIC.md §14 — DISCLOSED
+
+**User-authorised override of a LOCKED section**, recorded here rather than
+applied silently, following the precedent set by D-015.
+
+**What §14 says.** Clause 3 bans "distributed cloud bloat"; the companion
+strategy document's DO-NOT-BUILD list bans "a custom map renderer". The §U
+quality gate currently *passes* on "Is not merely a dashboard — core is a
+calibrated meta-model; map is a view." A 3D front end pushes against all three.
+
+**What is suspended.** Only the custom-renderer clause. Explicitly **not**
+suspended, and still enforced in this build:
+
+* **§13 air-gap guarantee.** three.js r128 is vendored to `web/vendor/`
+  (589 KB) exactly as Leaflet was. Zero CDN, zero external fetch.
+* **§14.4 no direct public alerting.** The 3D view is read-only.
+* **The 2D Leaflet dashboard is untouched.** It remains the air-gap-verified
+  primary at `/`. The 3D view is additive at `/command.html`, so a rendering
+  failure on venue hardware degrades to a working dashboard rather than to
+  nothing.
+
+**What it costs.** The honest answer to "why did you not build a fancy 3D
+front end?" — previously *"because §14 forbids scope that adds no scientific
+defensibility"* — is no longer available. That answer was worth something with
+a technical judge.
+
+**What it buys, and why this is not pure decoration.** The 2D choropleth can
+only show **one lead day at a time**; a forecaster must click through ten
+views to see how risk evolves with lead time. Problem-statement deliverable 3
+is *"error-prone area detection — which regions **and lead-times** are
+unreliable"*, which is intrinsically a 2-D field (space × lead) that a flat
+choropleth cannot display at once.
+
+The command centre renders that field directly: subdivisions on the ground
+plane, lead day on the vertical axis, bust probability as colour up each
+column. A ten-day risk profile for all 34 subdivisions becomes one glance.
+That is a genuine analytical gain over the 2D view, and it is the only reason
+this override was accepted rather than refused.
+
+**Verification boundary.** Rendering is verified in a real browser against the
+running service, screenshot captured. It is *not* verified on other GPUs or
+on venue hardware; the 2D fallback exists precisely because that cannot be
+verified here.

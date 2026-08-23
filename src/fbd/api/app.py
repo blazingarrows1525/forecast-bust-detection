@@ -434,6 +434,105 @@ def prometheus_metrics() -> str:
     return REGISTRY.render()
 
 
+_CENTROIDS: dict[str, tuple[float, float]] | None = None
+
+
+def _centroids() -> dict[str, tuple[float, float]]:
+    """Representative interior point per subdivision, for placing 3-D columns.
+
+    ``representative_point`` rather than ``centroid``: a centroid can fall
+    outside a concave polygon, which would float Konkan & Goa's risk column out
+    over the Arabian Sea.
+    """
+    global _CENTROIDS
+    if _CENTROIDS is None:
+        import geopandas as gpd
+
+        g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
+        pts = g.geometry.representative_point()
+        _CENTROIDS = {
+            sid: (float(p.x), float(p.y))
+            for sid, p in zip(g.subdivision_id, pts)
+        }
+    return _CENTROIDS
+
+
+@app.get("/api/risk-cube")
+def risk_cube(
+    init_date: str = Query(..., description="YYYY-MM-DD"),
+    mode: str = Query("replay", pattern="^(replay|live)$"),
+) -> dict:
+    """The space x lead-day risk field, in one compact payload.
+
+    Exists because the 2-D choropleth can only show one lead day at a time,
+    while problem-statement deliverable 3 asks which regions *and lead times*
+    are unreliable -- a two-dimensional field.  The 3-D command centre renders
+    it as colour up a vertical column per subdivision (D-018).
+
+    Deliberately lean: probabilities as parallel arrays indexed by lead day, no
+    reason strings or regime vectors.  Those are fetched per region on click,
+    so the whole-country view stays a single small request.
+    """
+    dq, age_h, banner = _quality(init_date, mode)
+    con = _con()
+    rows = con.execute(
+        "SELECT region_id, region, lead_day, status, bust_probability,"
+        " baseline_probability, actual_bust, forecast_rain_mm, observed_rain_mm,"
+        " ood_distance, valid_date"
+        " FROM bulletins WHERE init_date = ? ORDER BY region_id, lead_day",
+        (init_date,),
+    ).fetchall()
+    con.close()
+    if not rows:
+        raise HTTPException(404, f"no bulletin for init_date={init_date}")
+
+    leads = list(config.LEAD_DAYS)
+    slot = {L: i for i, L in enumerate(leads)}
+    cents = _centroids()
+
+    regions: dict[str, dict] = {}
+    for r in rows:
+        rid = r["region_id"]
+        reg = regions.get(rid)
+        if reg is None:
+            lon, lat = cents.get(rid, (float("nan"), float("nan")))
+            n = len(leads)
+            reg = regions[rid] = {
+                "region_id": rid,
+                "region": r["region"],
+                "lon": lon,
+                "lat": lat,
+                "p": [None] * n,
+                "baseline": [None] * n,
+                "status": ["UNAVAILABLE"] * n,
+                "actual": [None] * n,
+                "fcst_mm": [None] * n,
+                "obs_mm": [None] * n,
+                "valid_date": [None] * n,
+            }
+        i = slot.get(r["lead_day"])
+        if i is None:
+            continue
+        reg["p"][i] = r["bust_probability"]
+        reg["baseline"][i] = r["baseline_probability"]
+        reg["status"][i] = r["status"]
+        reg["actual"][i] = r["actual_bust"]
+        reg["fcst_mm"][i] = r["forecast_rain_mm"]
+        reg["obs_mm"][i] = r["observed_rain_mm"]
+        reg["valid_date"][i] = r["valid_date"]
+
+    return {
+        "init_date": init_date,
+        "lead_days": leads,
+        "decision_band": list(config.DECISION_BAND),
+        "n_regions": len(regions),
+        "data_quality": dq.value,
+        "input_age_hours": age_h,
+        "banner": banner,
+        "regions": sorted(regions.values(), key=lambda d: d["region"]),
+    }
+
+
 try:
     from fbd.api import genai_routes
 

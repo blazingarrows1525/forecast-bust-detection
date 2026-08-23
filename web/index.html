@@ -29,6 +29,9 @@
         border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit;font-size:13px}
   button{cursor:pointer}
   button.active{background:var(--accent);border-color:var(--accent);color:#08121f;font-weight:600}
+  a.btn3d{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;
+          padding:5px 9px;font-size:13px;text-decoration:none;display:inline-block}
+  a.btn3d:hover{border-color:var(--accent);color:var(--accent)}
   input[type=range]{padding:0;width:240px}
   .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
         padding:12px;margin-bottom:12px}
@@ -65,6 +68,7 @@
       <button id="btnModel" class="active">Model</button>
       <button id="btnBaseline">Spread baseline</button>
       <button id="btnTruth">Show truth</button>
+      <a class="btn3d" href="/command.html" title="Show all 10 lead days at once in 3D">3D command centre ↗</a>
     </div>
     <div class="sub" id="status"></div>
   </header>
