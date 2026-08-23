@@ -1,0 +1,104 @@
+"""Feature flags and model configuration for the GenAI layer.
+
+Everything here is **default OFF**.  D-015 makes that binding: the air-gapped
+serving path is the default and must keep passing its tests with no network,
+so every switch below starts disabled and has to be turned on deliberately.
+
+Nothing in this module imports boto3 or the anthropic SDK.  Importing
+``fbd.genai.settings`` must stay free of network side effects and must not
+fail on a machine with no AWS credentials -- which is exactly the machine this
+was written on (see the verification boundary in D-015).
+"""
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+
+
+def _flag(name: str, default: bool = False) -> bool:
+    """Read a boolean environment flag.  Absent means OFF."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# --------------------------------------------------------------------------
+# Model identifiers
+# --------------------------------------------------------------------------
+# First-party Claude API id.  Bedrock takes the same id with an "anthropic."
+# prefix, which BedrockSettings.model_id applies -- do not hardcode the
+# prefixed form in two places.
+CLAUDE_MODEL = "claude-opus-5"
+
+# Cheap model for the narration path, where the job is rewriting a fixed set of
+# TreeSHAP reasons into a sentence and frontier reasoning is not needed.
+CLAUDE_MODEL_CHEAP = "claude-haiku-4-5"
+
+DEFAULT_REGION = "us-east-1"
+
+
+@dataclass(frozen=True)
+class BedrockSettings:
+    """How to reach Claude on Amazon Bedrock.
+
+    Uses the Mantle client (the Messages-API Bedrock endpoint), not the legacy
+    bedrock-runtime InvokeModel path.
+    """
+
+    region: str = field(default_factory=lambda: os.environ.get("AWS_REGION", DEFAULT_REGION))
+    model: str = CLAUDE_MODEL
+    max_tokens: int = 4096
+    # "low" is deliberate: the LLM's job here is narration and routing over
+    # numbers the model already computed, not open-ended reasoning.  Effort
+    # buys nothing on that task and costs latency inside a 45-minute
+    # forecaster window.
+    effort: str = "low"
+
+    @property
+    def model_id(self) -> str:
+        """Bedrock model ids carry an ``anthropic.`` prefix."""
+        return f"anthropic.{self.model}"
+
+
+@dataclass(frozen=True)
+class GenAISettings:
+    """Master switchboard.  Every capability is opt-in."""
+
+    # Master kill switch.  With this OFF nothing in fbd.genai will attempt a
+    # network call, and the API exposes no GenAI routes.
+    enabled: bool = field(default_factory=lambda: _flag("FBD_GENAI_ENABLED"))
+    # Narrate existing TreeSHAP reasons into prose.  Never generates numbers.
+    narration: bool = field(default_factory=lambda: _flag("FBD_GENAI_NARRATION"))
+    # Let the model call read-only tools over the bulletin store.
+    tool_calling: bool = field(default_factory=lambda: _flag("FBD_GENAI_TOOLS"))
+    # Retrieval over the project's own documentation.  Local index, no network.
+    rag: bool = field(default_factory=lambda: _flag("FBD_GENAI_RAG"))
+    # Refuse to run at all unless guardrails are active.  Defaults to True and
+    # should never be set False outside a guardrail unit test.
+    require_guardrails: bool = True
+
+    bedrock: BedrockSettings = field(default_factory=BedrockSettings)
+
+    def active(self) -> bool:
+        """True only if the master switch and at least one capability are on."""
+        return self.enabled and (self.narration or self.tool_calling or self.rag)
+
+    def describe(self) -> dict:
+        """Serialisable summary for /api/health, so the operator can see what
+        is live without reading environment variables off the host."""
+        return {
+            "enabled": self.enabled,
+            "narration": self.narration,
+            "tool_calling": self.tool_calling,
+            "rag": self.rag,
+            "guardrails_required": self.require_guardrails,
+            "model": self.bedrock.model if self.enabled else None,
+            "region": self.bedrock.region if self.enabled else None,
+            "offline_default": not self.enabled,
+        }
+
+
+def load() -> GenAISettings:
+    """Build settings from the environment.  Cheap; call it per request."""
+    return GenAISettings()
