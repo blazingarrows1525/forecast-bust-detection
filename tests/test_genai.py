@@ -254,3 +254,82 @@ def test_dispatch_collects_numbers_from_nested_results():
     if "error" in result:
         pytest.skip("results.json not present; run scripts/train_model.py")
     assert len(numbers) > 10
+
+
+# --------------------------------------------------------------------------
+# API surface: the default-off contract (D-015)
+# --------------------------------------------------------------------------
+def _client(monkeypatch, **env):
+    """Reimport the app with a given environment.
+
+    The GenAI routes are attached at import time, so the module cache has to be
+    dropped for the flag to take effect.
+    """
+    import importlib
+    import sys
+
+    for var in ("FBD_GENAI_ENABLED", "FBD_GENAI_NARRATION", "FBD_GENAI_TOOLS", "FBD_GENAI_RAG"):
+        monkeypatch.delenv(var, raising=False)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+
+    for mod in ("fbd.api.app", "fbd.api.genai_routes"):
+        sys.modules.pop(mod, None)
+    app_mod = importlib.import_module("fbd.api.app")
+
+    from fastapi.testclient import TestClient
+
+    return TestClient(app_mod.app), app_mod
+
+
+def test_assistant_endpoints_do_not_exist_when_disabled(monkeypatch):
+    """Not 'declines to answer' -- the route must not be registered at all."""
+    client, app_mod = _client(monkeypatch)
+    assert app_mod._GENAI_MOUNTED is False
+    # With no route registered these paths fall through to the static-file
+    # mount at "/", which answers 404 for GET and 405 for POST. Either way the
+    # endpoint does not exist, which is the property under test -- as opposed
+    # to existing and declining, which would still be an egress surface.
+    assert client.get("/api/assistant/status").status_code == 404
+    assert client.post("/api/assistant/ask", json={"question": "hello there"}).status_code in (404, 405)
+
+
+def test_offline_serving_is_unaffected_when_disabled(monkeypatch):
+    client, _ = _client(monkeypatch)
+    assert client.get("/api/health").status_code == 200
+    assert client.get("/api/bulletin?init_date=2022-06-14&lead_day=4").status_code == 200
+
+
+def test_health_states_the_genai_posture(monkeypatch):
+    client, _ = _client(monkeypatch)
+    notes = " ".join(client.get("/api/health").json()["notes"])
+    assert "disabled" in notes and "offline" in notes
+
+
+def test_assistant_mounts_when_enabled(monkeypatch):
+    client, app_mod = _client(monkeypatch, FBD_GENAI_ENABLED="1", FBD_GENAI_RAG="1")
+    assert app_mod._GENAI_MOUNTED is True
+    assert client.get("/api/assistant/status").status_code == 200
+
+
+def test_retrieval_endpoint_works_without_any_cloud_credentials(monkeypatch):
+    """The RAG surface is useful on its own: no model call, no network."""
+    client, _ = _client(monkeypatch, FBD_GENAI_ENABLED="1", FBD_GENAI_RAG="1")
+    body = client.get("/api/assistant/search", params={"q": "day 10 spread baseline"}).json()
+    assert body["hits"]
+    assert any("D-011" in h["citation"] for h in body["hits"])
+
+
+def test_ask_reports_missing_backend_as_503_not_a_stack_trace(monkeypatch):
+    client, _ = _client(monkeypatch, FBD_GENAI_ENABLED="1", FBD_GENAI_TOOLS="1")
+    resp = client.post("/api/assistant/ask", json={"question": "what should I review?"})
+    assert resp.status_code == 503
+    assert "Bedrock unavailable" in resp.json()["detail"]
+
+
+def test_prometheus_metrics_are_exposed(monkeypatch):
+    client, _ = _client(monkeypatch)
+    client.get("/api/health")
+    text = client.get("/metrics").text
+    assert "fbd_http_requests_total" in text
+    assert "fbd_bulletin_rows" in text
