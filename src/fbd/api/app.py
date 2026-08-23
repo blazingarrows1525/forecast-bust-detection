@@ -160,6 +160,15 @@ def health() -> HealthResponse:
         "This build serves a 2016-2022 reanalysis archive, so live mode reports "
         "STALE by design. Use mode=replay for the historical demo."
     )
+    try:
+        from fbd.genai.settings import load as _genai_load
+
+        if _genai_load().enabled:
+            notes.append("GenAI assistant ENABLED (see /api/assistant/status).")
+        else:
+            notes.append("GenAI assistant disabled; serving fully offline (default).")
+    except Exception:  # noqa: BLE001
+        pass
     return HealthResponse(
         status="ok" if n else "degraded",
         model_version=meta.get("model_version", "0.1.0"),
@@ -348,6 +357,72 @@ def list_overrides(limit: int = Query(100, ge=1, le=1000)) -> dict:
     ).fetchall()
     con.close()
     return {"overrides": [dict(r) for r in rows]}
+
+
+# --------------------------------------------------------------------------
+# Observability and the optional GenAI layer.
+#
+# Both are mounted BEFORE the static files handler, because that handler is
+# mounted at "/" and would otherwise swallow every path below it.
+# --------------------------------------------------------------------------
+from fastapi import Request                                    # noqa: E402
+from fastapi.responses import PlainTextResponse                # noqa: E402
+
+from fbd.obs.metrics import REGISTRY, get_logger, log_event    # noqa: E402
+
+_LOG = get_logger("fbd.api")
+
+
+@app.middleware("http")
+async def _observe(request: Request, call_next):
+    """Count and time every request, and never let telemetry break serving."""
+    import time as _time
+
+    start = _time.perf_counter()
+    response = await call_next(request)
+    elapsed = _time.perf_counter() - start
+    route = request.url.path
+    # Collapse high-cardinality paths so the metric does not explode into one
+    # series per region id.
+    if route.startswith("/api/bulletin/"):
+        route = "/api/bulletin/{region_id}"
+    try:
+        REGISTRY.counter(
+            "fbd_http_requests_total", "HTTP requests served",
+            labels={"route": route, "status": response.status_code},
+        )
+        REGISTRY.observe(
+            "fbd_http_latency_seconds", elapsed, "HTTP request latency",
+            labels={"route": route},
+        )
+    except Exception:  # noqa: BLE001 - telemetry must never break the request
+        pass
+    return response
+
+
+@app.get("/metrics", response_class=PlainTextResponse, include_in_schema=False)
+def prometheus_metrics() -> str:
+    """Prometheus exposition. Note: /api/metrics is the model benchmark table;
+    this is operational telemetry, which is a different thing."""
+    try:
+        con = _con()
+        n = con.execute("SELECT COUNT(*) AS c FROM bulletins").fetchone()["c"]
+        con.close()
+        REGISTRY.gauge("fbd_bulletin_rows", n, "Rows in the bulletin store")
+    except HTTPException:
+        REGISTRY.gauge("fbd_bulletin_rows", 0, "Rows in the bulletin store")
+    return REGISTRY.render()
+
+
+try:
+    from fbd.api import genai_routes
+
+    _GENAI_MOUNTED = genai_routes.attach(app)
+except Exception as exc:  # noqa: BLE001 - the optional layer must never
+    # prevent the offline serving path from starting. That is the whole point
+    # of the default-off contract in D-015.
+    _GENAI_MOUNTED = False
+    log_event(_LOG, "genai_mount_failed", error=str(exc))
 
 
 if WEB_DIR.exists():
