@@ -1,0 +1,56 @@
+{
+  "verdict": "RETRAIN",
+  "reasons": [
+    "2 feature(s) with PSI > 0.25: india_shear_z, india_tcwv_z"
+  ],
+  "n_reference": 100300,
+  "n_current": 20060,
+  "prediction_psi": 0.005545051049695597,
+  "calibration_ratio": 0.7803738264379712,
+  "observed_rate": 0.03305084745762712,
+  "predicted_rate": 0.0423525832593441,
+  "ood_rate": null,
+  "top_drifting_features": [
+    {
+      "feature": "india_shear_z",
+      "psi": 2.6427
+    },
+    {
+      "feature": "india_tcwv_z",
+      "psi": 0.4059
+    },
+    {
+      "feature": "nw_z500_z",
+      "psi": 0.2016
+    },
+    {
+      "feature": "india_q850_z",
+      "psi": 0.1916
+    },
+    {
+      "feature": "somali_jet_z",
+      "psi": 0.1641
+    },
+    {
+      "feature": "regime_monsoon_depression",
+      "psi": 0.1354
+    },
+    {
+      "feature": "regime_western_disturbance",
+      "psi": 0.1287
+    },
+    {
+      "feature": "regime_active_monsoon",
+      "psi": 0.1264
+    }
+  ],
+  "reference_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020
+  ],
+  "current_year": 2022,
+  "decision_band_only": true
+}

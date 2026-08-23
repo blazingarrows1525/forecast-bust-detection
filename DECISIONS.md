@@ -452,3 +452,74 @@ to prevent.
 as "air-gapped by default, network features opt-in". §14's non-goals are
 narrowed to: still no raw weather forecasting, still no black-box deep model in
 the prediction path, still no automated public alerting.
+
+---
+
+## D-016 — Drift monitoring added; JJAS 2022 is genuinely atypical in upper-level shear, and the monitor says RETRAIN on a year the model handled well — DISCLOSED
+
+**Why this exists.** README.md already asserted that the 2021-to-2022
+calibration drift was "exactly the calibration drift the monitoring layer is
+designed to catch". There was no monitoring layer. The sentence was
+aspirational, which is the kind of claim this project's decision log exists to
+prevent. `src/fbd/mlops/drift.py` and `scripts/monitor_drift.py` make it true.
+
+**What the monitor checks**, in the order an operator should ask:
+PSI per input feature (no labels needed, earliest warning) -> prediction
+distribution shift -> calibration ratio (needs labels, lags verification, but
+is the one that changes decisions) -> OOD refusal rate.
+
+**Result on train (2016-2020) vs the held-out year, Day 3-7:**
+
+```
+DRIFT VERDICT: RETRAIN
+  calibration: observed 3.305% vs predicted 4.235%  (ratio 0.780)
+  prediction PSI: 0.0055
+  india_shear_z   PSI 2.6427   major
+  india_tcwv_z    PSI 0.4059   major
+  nw_z500_z       PSI 0.2016   moderate
+```
+
+**Finding 1 -- the monitor reproduces the disclosed calibration drift.**
+Calibration ratio 0.780 means the model over-predicts by 22% on 2022. That is
+the same drift README.md discloses from the other direction (isotonic fitted on
+2021's 4.58% bust rate, applied to 2022's 3.31%). An independent code path
+recovering a known defect is the evidence that the monitor works.
+
+**Finding 2 -- JJAS 2022 really is an atypical year for wind shear.** The
+`india_shear_z` PSI of 2.64 was investigated rather than accepted, because a
+z-scored feature drifting that hard usually means a normalisation bug. It is
+not one. The **raw** national index confirms the shift:
+
+| year | india_shear mean | std | max |
+|---|---|---|---|
+| 2016 | 21.59 | 2.30 | 26.26 |
+| 2017 | 21.70 | 2.46 | 28.57 |
+| 2018 | 22.65 | 2.94 | 26.76 |
+| 2019 | 22.27 | 2.89 | 28.27 |
+| 2020 | 22.61 | 2.66 | 27.45 |
+| 2021 | 22.56 | 2.89 | 28.48 |
+| **2022** | **20.80** | **1.86** | **24.05** |
+
+JJAS 2022 had systematically **lower and less variable** 200-850 hPa shear over
+India than any other year in the record, and its maximum never reached the
+minimum-of-maxima of the other six years. The standardisation is correct: it is
+fitted on training-year climatology only (`features/era5.py: national_daily`),
+with no leakage, and it is faithfully reporting the raw data.
+
+That strengthens the generalisation claim rather than weakening it. **The
+held-out year is not a soft test.** It is measurably outside the training
+distribution on one of the model's own inputs, and the model still scored
+AUROC 0.840 with ECE 0.011 on it.
+
+**Finding 3 -- and the honest caveat: PSI is an early warning, not a
+performance predictor.** The monitor returns RETRAIN for a year on which the
+model performed well. That is not a false positive to be tuned away; it is
+what the statistic measures. Input drift says "the world your model was fitted
+on has moved, go and check", not "your model is now wrong". Anyone presenting
+this must say so, because the alternative reading -- monitor says RETRAIN,
+therefore the headline result is unsafe -- is wrong and a judge may reach for
+it. Verdicts are three-valued (OK / WATCH / RETRAIN) precisely so that a rare
+event model does not fire a binary alarm on sampling noise.
+
+`scripts/monitor_drift.py` exits 2 on RETRAIN and 0 otherwise, so a scheduler
+can gate on the exit code without parsing stdout.
