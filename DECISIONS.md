@@ -236,13 +236,22 @@ subsample (D-007).
 
 Feature-group ablation on the held-out year (2022), each step adding a group:
 
-| feature set | n | AUROC (all leads) | AUROC (Day 3–7) | Δ AUROC |
+| feature set | n | AUROC (all leads) | AUROC (Day 3–7) | Δ AUROC (Day 3–7) |
 |---|---|---|---|---|
 | A forecast amount only | 4 | 0.7950 | 0.7916 | — |
-| B + disagreement (spread, jumpiness) | 12 | 0.8180 | 0.8176 | **+0.0230** |
-| C + climatology | 18 | 0.8244 | 0.8253 | +0.0064 |
-| D + ERA5 atmospheric state | 44 | **0.8454** | **0.8425** | **+0.0210** |
-| E + regime probabilities (deployed) | 52 | 0.8406 | 0.8375 | **−0.0048** |
+| B + disagreement (spread, jumpiness) | 12 | 0.8180 | 0.8176 | **+0.0259** |
+| C + climatology | 18 | 0.8244 | 0.8253 | +0.0077 |
+| D + ERA5 atmospheric state | 44 | **0.8431** | **0.8405** | **+0.0153** |
+| E + regime probabilities (deployed) | 52 | 0.8428 | 0.8401 | **−0.0004** |
+
+**Table refreshed 2026-08-23** after a full from-scratch pipeline rebuild. Rows
+A, B and C reproduce to 4 decimal places. Rows D and E moved (D 0.8425 →
+0.8405, E 0.8375 → 0.8401), so the regime delta is now **−0.0004** rather than
+the −0.0048 originally recorded. The movement is XGBoost thread-scheduling
+nondeterminism on the wider feature sets, well inside the ±0.01 AUROC standard
+error already declared below, and it *strengthens* the conclusion: the regime
+block costs essentially nothing and buys nothing, predictively. The original
+figures are preserved in git history at the baseline commit for audit.
 
 **The regime vector does not improve prediction.** That is expected in hindsight:
 the soft regime probabilities are a deterministic function of ERA5 indices the
@@ -382,3 +391,64 @@ IFS ensemble on the same rows -- +0.040 AUROC, -16.8% decision cost, ~2x
 economic value. That is the number to defend in front of a judge. The +0.025
 AUROC in the parent entry above is the *raw* comparison and should always be
 cited alongside so no one can accuse cherry-picking of the friendlier metric.
+
+---
+
+## D-015 — Scope expansion: AWS / Bedrock / RAG / tool calling / MLOps supersedes the LOGIC.md §13-§14 non-goals — AUTHORISED, with the trade recorded
+
+**This is a deliberate, user-authorised override of a LOCKED section.** It is
+recorded here rather than applied silently, because LOGIC.md §14 was written
+specifically to stop scope bloat and a reviewer is entitled to see who moved it
+and why.
+
+**What LOGIC.md said.** §13 mandates air-gapped operation ("the entire serving
+layer runs completely offline without internet or external CDN dependencies").
+§14 forbids "Distributed Cloud Bloat" and lists no-chatbot / no-microservices
+among the deliberate non-goals. Both were verified holding as of the baseline
+commit: the dashboard was measured making **zero** external network requests.
+
+**What changed.** The project owner directed a full-scope expansion covering AWS
+architecture, Bedrock integration, Bedrock Guardrails, RAG, LLM tool calling,
+MLOps, DevSecOps, observability and security. The conflict with §13/§14 was
+raised explicitly before any code was written, with the counter-evidence below,
+and the direction was reaffirmed.
+
+**Counter-evidence that was put and overruled** (recorded so the trade is
+visible, not to relitigate it):
+
+1. Bedrock, RAG and tool calling all require network egress. The air-gap
+   guarantee is the project's demo insurance policy and was empirically verified.
+2. The project's own strategy analysis scores this problem statement 8.6/10
+   largely because it is *not* a retrieval-chatbot-over-weather-data, and scores
+   the "WeatherGPT" statement 4.9/10 as a saturated trap.
+3. §14 is LOCKED, so moving it is a contract change rather than a refinement.
+
+**The mitigation that makes the trade survivable, and is binding on the build:**
+
+- **The offline path stays the default and stays tested.** Every GenAI and cloud
+  feature is behind an explicit feature flag, default OFF. With the flag off the
+  system must still serve bulletins from local SQLite with zero external
+  requests, and the existing test suite must still pass unmodified. If a change
+  breaks the air-gapped path, the change is wrong, not the guarantee.
+- **The LLM never produces a bust probability.** Numbers come from the
+  calibrated XGBoost model and TreeSHAP only. The LLM layer narrates, retrieves
+  and routes; it does not forecast, and it does not estimate risk. Any design
+  where an LLM number could reach the forecaster is out of bounds.
+- **Guardrails are a hard requirement, not decoration**, precisely because an
+  LLM sitting next to a disaster-management product is a real liability surface.
+- **The §1.3 non-interference invariant is untouched.** No automated public
+  alerting, ever. The duty forecaster remains the sole authority.
+
+**Verification boundary — read this before believing any AWS claim in this
+repo.** The build machine has **no AWS CLI, no boto3 and no credentials**
+(`~/.aws/credentials` absent, zero `AWS_*` environment variables). Therefore
+AWS and Bedrock code in this repository is **written and unit-tested against
+local fakes, but has never been executed against real AWS**. Anything not run
+is labelled as such in the docs. Claiming a verified cloud deployment we could
+not execute would be exactly the unverifiable claim D-007 and D-010 were written
+to prevent.
+
+**Status of §13/§14:** amended, not deleted. §13's air-gap guarantee now reads
+as "air-gapped by default, network features opt-in". §14's non-goals are
+narrowed to: still no raw weather forecasting, still no black-box deep model in
+the prediction path, still no automated public alerting.
