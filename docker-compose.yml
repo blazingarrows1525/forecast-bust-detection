@@ -1,0 +1,10 @@
+services:
+  fbd:
+    build: .
+    image: fbd:0.1.0
+    container_name: forecast-bust-detection
+    ports:
+      - "8912:8912"
+    # No volumes and no network dependencies: everything the demo needs is
+    # baked into the image, so it runs with the venue wifi unplugged.
+    restart: unless-stopped

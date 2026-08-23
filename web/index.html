@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forecast Bust Detection — India (SIH26079)</title>
+<link rel="stylesheet" href="/vendor/leaflet.css" />
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171e26; --panel2:#1e2732; --line:#2a3644;
+    --fg:#e6edf3; --muted:#8b98a5; --accent:#4a9eff;
+    --c0:#1a4d2e; --c1:#3d7c47; --c2:#c9a227; --c3:#e07b39; --c4:#c0392b; --ood:#6b4c9a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       background:var(--bg);color:var(--fg);overflow:hidden}
+  #app{display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr;height:100vh}
+  header{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line);
+         padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
+  header .sub{color:var(--muted);font-size:12px}
+  #banner{grid-column:1/-1;display:none;background:#4a2c00;border-bottom:1px solid #7a4a00;
+          color:#ffd591;padding:8px 16px;font-size:13px;font-weight:500}
+  #map{background:#0b0f14}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px}
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  label{font-size:12px;color:var(--muted)}
+  select,input[type=range],button{background:var(--panel2);color:var(--fg);
+        border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit;font-size:13px}
+  button{cursor:pointer}
+  button.active{background:var(--accent);border-color:var(--accent);color:#08121f;font-weight:600}
+  input[type=range]{padding:0;width:240px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+        padding:12px;margin-bottom:12px}
+  .card h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+           color:var(--muted);font-weight:600}
+  .big{font-size:30px;font-weight:700;line-height:1.1}
+  .muted{color:var(--muted);font-size:12px}
+  ul.reasons{margin:6px 0 0;padding-left:18px}
+  ul.reasons li{margin-bottom:6px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:4px 5px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  tr.q:hover{background:#243141;cursor:pointer}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+  .legend{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
+  .sw{width:14px;height:12px;border-radius:2px;display:inline-block}
+  .bar{height:7px;background:#2a3644;border-radius:4px;overflow:hidden;margin-top:3px}
+  .bar>span{display:block;height:100%;background:var(--accent)}
+  .regimeRow{display:flex;justify-content:space-between;font-size:12px;margin-top:5px}
+  .leaflet-container{background:#0b0f14}
+  .hint{color:var(--muted);font-size:12px;font-style:italic}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Forecast Bust Detection <span class="sub">· India · SIH26079</span></h1>
+    <div class="controls">
+      <label>Init date</label>
+      <input type="range" id="dateSlider" min="0" max="0" value="0" />
+      <select id="datePick"></select>
+      <label>Lead</label>
+      <select id="leadPick"></select>
+      <button id="btnModel" class="active">Model</button>
+      <button id="btnBaseline">Spread baseline</button>
+      <button id="btnTruth">Show truth</button>
+    </div>
+    <div class="sub" id="status"></div>
+  </header>
+  <div id="banner"></div>
+  <div id="map"></div>
+  <aside>
+    <div class="card">
+      <h2>Selected region</h2>
+      <div id="selName" style="font-weight:600;font-size:15px">Click a subdivision</div>
+      <div class="muted" id="selMeta"></div>
+      <div class="big" id="selProb" style="margin-top:8px">—</div>
+      <div class="muted" id="selProbSub"></div>
+      <div id="selInterval" class="muted"></div>
+      <div id="selReasons"></div>
+    </div>
+    <div class="card" id="regimeCard" style="display:none">
+      <h2>Regime (soft probabilities)</h2>
+      <div id="regimeBody"></div>
+    </div>
+    <div class="card">
+      <h2>Review queue — Day 3–7</h2>
+      <div class="muted" style="margin-bottom:6px">
+        Ranked district-days for the duty forecaster to check twice.
+      </div>
+      <table id="queue"><thead>
+        <tr><th>#</th><th>Region</th><th>Day</th><th>P(bust)</th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Legend</h2>
+      <div class="legend">
+        <span class="sw" style="background:var(--c0)"></span><span>&lt;5%</span>
+        <span class="sw" style="background:var(--c1)"></span><span>5–10%</span>
+        <span class="sw" style="background:var(--c2)"></span><span>10–20%</span>
+        <span class="sw" style="background:var(--c3)"></span><span>20–35%</span>
+        <span class="sw" style="background:var(--c4)"></span><span>&gt;35%</span>
+        <span class="sw" style="background:var(--ood)"></span><span>refused (OOD)</span>
+      </div>
+      <div class="muted" style="margin-top:8px">
+        Colour = probability that this forecast busts. Purple = the state is unlike
+        anything in training, so the system declines to give a number.
+      </div>
+    </div>
+    <div class="card">
+      <h2>Held-out year performance</h2>
+      <div id="metrics" class="muted">loading…</div>
+    </div>
+  </aside>
+</div>
+
+<script src="/vendor/leaflet.js"></script>
+<script>
+const API = "";
+let map, layer, geo=null, dates=[], cur={init:null, lead:5, view:"model", truth:false};
+let rows=[], byRegion={};
+
+function colour(p, status){
+  if(status && status!=="OK") return getCSS("--ood");
+  if(p==null) return "#3a4450";
+  if(p<0.05) return getCSS("--c0");
+  if(p<0.10) return getCSS("--c1");
+  if(p<0.20) return getCSS("--c2");
+  if(p<0.35) return getCSS("--c3");
+  return getCSS("--c4");
+}
+const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const pct = x => x==null ? "—" : (100*x).toFixed(1)+"%";
+
+async function boot(){
+  map = L.map("map", {zoomControl:true, attributionControl:false}).setView([22.5,80], 5);
+  geo = await (await fetch(API+"/api/regions")).json();
+  const d = await (await fetch(API+"/api/replay/dates")).json();
+  dates = d.init_dates;
+  const dp=document.getElementById("datePick"), sl=document.getElementById("dateSlider");
+  dates.forEach((x,i)=>{const o=document.createElement("option");o.value=i;o.textContent=x;dp.appendChild(o);});
+  sl.max = dates.length-1;
+  const lp=document.getElementById("leadPick");
+  for(let L=1;L<=10;L++){const o=document.createElement("option");o.value=L;o.textContent="Day "+L;
+    if(L===5)o.selected=true;lp.appendChild(o);}
+
+  // Default to a date with a notable event if present, else the middle.
+  let idx = Math.min(dates.length-1, Math.floor(dates.length/2));
+  sl.value=idx; dp.value=idx;
+  sl.oninput = e => {dp.value=e.target.value; load(dates[+e.target.value]);};
+  dp.onchange = e => {sl.value=e.target.value; load(dates[+e.target.value]);};
+  lp.onchange = e => {cur.lead=+e.target.value; render();};
+  document.getElementById("btnModel").onclick = ()=>setView("model");
+  document.getElementById("btnBaseline").onclick = ()=>setView("baseline");
+  document.getElementById("btnTruth").onclick = ()=>{cur.truth=!cur.truth;
+    document.getElementById("btnTruth").classList.toggle("active",cur.truth); render();};
+
+  loadMetrics();
+  await load(dates[idx]);
+}
+
+function setView(v){
+  cur.view=v;
+  document.getElementById("btnModel").classList.toggle("active",v==="model");
+  document.getElementById("btnBaseline").classList.toggle("active",v==="baseline");
+  render();
+}
+
+async function load(init){
+  cur.init=init;
+  const r = await fetch(`${API}/api/bulletin?init_date=${init}&mode=replay`);
+  if(!r.ok){document.getElementById("status").textContent="no data for "+init;return;}
+  const b = await r.json();
+  rows = b.predictions;
+  const banner=document.getElementById("banner");
+  if(b.banner){banner.style.display="block";banner.textContent=b.banner;}
+  else banner.style.display="none";
+  document.getElementById("status").textContent =
+    `${b.n_regions} subdivisions · data ${b.data_quality} · input age ${b.input_age_hours??"?"} h`;
+  render(); loadQueue();
+}
+
+function render(){
+  byRegion={};
+  rows.filter(r=>r.lead_day===cur.lead).forEach(r=>byRegion[r.region_id]=r);
+  if(layer) layer.remove();
+  layer = L.geoJSON(geo, {
+    style: f => {
+      const r = byRegion[f.properties.subdivision_id];
+      let p = r ? (cur.view==="model" ? r.bust_probability : baselineOf(r)) : null;
+      let st = r ? r.status : null;
+      if(cur.truth && r && r.actual_bust!=null){
+        return {fillColor: r.actual_bust? "#c0392b":"#26343f", fillOpacity:.85,
+                color:"#0b0f14", weight:1};
+      }
+      return {fillColor: colour(p, cur.view==="model"?st:null), fillOpacity:.85,
+              color:"#0b0f14", weight:1};
+    },
+    onEachFeature: (f, lyr) => {
+      lyr.on("click", ()=>select(f.properties.subdivision_id));
+      const r = byRegion[f.properties.subdivision_id];
+      lyr.bindTooltip(`${f.properties.name}<br>${r?pct(r.bust_probability):"—"}`,{sticky:true});
+    }
+  }).addTo(map);
+}
+
+// The API stores the calibrated spread baseline alongside each row.
+function baselineOf(r){ return r.baseline_probability ?? null; }
+
+async function select(rid){
+  const r = byRegion[rid]; if(!r) return;
+  document.getElementById("selName").textContent = r.region;
+  document.getElementById("selMeta").textContent =
+    `Day ${r.lead_day} · valid ${r.valid_date} · init ${r.init_date}`;
+  const p = r.bust_probability;
+  document.getElementById("selProb").textContent =
+    r.status==="OK" ? pct(p) : "confidence unavailable";
+  document.getElementById("selProb").style.color =
+    r.status==="OK" ? colour(p,"OK") : getCSS("--ood");
+  document.getElementById("selProbSub").textContent =
+    r.status==="OK" ? "probability this forecast busts"
+                    : "conditions outside training experience";
+  document.getElementById("selInterval").textContent =
+    r.prediction_interval ?
+      `80% interval ${pct(r.prediction_interval[0])}–${pct(r.prediction_interval[1])} · confidence in estimate ${pct(r.confidence_in_estimate)}`
+      : "";
+  let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
+  (r.dominant_factors||[]).forEach(f=>html+=`<li>${f}</li>`);
+  html += "</ul>";
+  if(r.forecast_rain_mm!=null){
+    html += `<div class="muted" style="margin-top:8px">forecast ${r.forecast_rain_mm.toFixed(1)} mm/day`;
+    if(r.observed_rain_mm!=null) html += ` · observed ${r.observed_rain_mm.toFixed(1)} mm/day`;
+    if(r.actual_bust!=null) html += ` · <b>${r.actual_bust? "BUSTED":"did not bust"}</b>`;
+    html += "</div>";
+  }
+  document.getElementById("selReasons").innerHTML = html;
+
+  const rc=document.getElementById("regimeCard");
+  if(r.regime){
+    rc.style.display="block";
+    const keys=["monsoon_depression","active_monsoon","break_monsoon","western_disturbance","orographic","coastal"];
+    let h="";
+    keys.forEach(k=>{const v=r.regime[k]??0;
+      h+=`<div class="regimeRow"><span>${k.replace(/_/g," ")}</span><span>${pct(v)}</span></div>
+          <div class="bar"><span style="width:${(100*v).toFixed(0)}%"></span></div>`;});
+    h+=`<div class="muted" style="margin-top:8px">regime uncertainty (entropy): ${(r.regime.entropy??0).toFixed(2)} — higher means the regime itself is ambiguous, which raises bust risk.</div>`;
+    document.getElementById("regimeBody").innerHTML=h;
+  } else rc.style.display="none";
+}
+
+async function loadQueue(){
+  const r = await fetch(`${API}/api/review-queue?init_date=${cur.init}&top=12`);
+  const tb = document.querySelector("#queue tbody"); tb.innerHTML="";
+  if(!r.ok) return;
+  (await r.json()).forEach(q=>{
+    const tr=document.createElement("tr"); tr.className="q";
+    tr.innerHTML=`<td>${q.rank}</td><td>${q.region}</td><td>${q.lead_day}</td>
+      <td><span class="pill" style="background:${colour(q.bust_probability,"OK")};color:#08121f">${pct(q.bust_probability)}</span></td>`;
+    tr.onclick=()=>{cur.lead=q.lead_day;document.getElementById("leadPick").value=q.lead_day;
+                    render();select(q.region_id);};
+    tb.appendChild(tr);
+  });
+}
+
+async function loadMetrics(){
+  try{
+    const m = await (await fetch(API+"/api/metrics")).json();
+    const band = m.decision_band || [];
+    let h="<table><thead><tr><th>Predictor</th><th>AUROC</th><th>Brier</th></tr></thead><tbody>";
+    band.slice().sort((a,b)=>b.auroc-a.auroc).forEach(r=>{
+      h+=`<tr><td>${r.model}</td><td>${r.auroc.toFixed(3)}</td><td>${r.brier.toFixed(4)}</td></tr>`;});
+    h+="</tbody></table><div class='muted' style='margin-top:6px'>Held-out year, Day 3–7 decision band. Not a cherry-picked day.</div>";
+    document.getElementById("metrics").innerHTML=h;
+  }catch(e){ document.getElementById("metrics").textContent="metrics unavailable"; }
+}
+
+boot();
+</script>
+</body>
+</html>

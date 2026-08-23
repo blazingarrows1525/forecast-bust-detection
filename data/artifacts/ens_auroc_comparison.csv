@@ -1,0 +1,5 @@
+predictor,auroc
+true IFS ENS spread / mean,0.5537767724279019
+lagged-ensemble spread (proxy),0.7313779792104769
+true IFS ENS spread (raw),0.8072371588921323
+XGBoost + isotonic (our model),0.8323834499944232

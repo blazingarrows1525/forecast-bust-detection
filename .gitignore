@@ -1,0 +1,10 @@
+data/raw/
+data/interim/
+data/processed/
+data/artifacts/*.sqlite
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log
+dist/
+offline-demo/

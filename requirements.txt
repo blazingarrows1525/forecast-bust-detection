@@ -1,0 +1,39 @@
+# Forecast Bust Detection (SIH26079) — pinned to the versions this build was
+# developed and verified against.  No GPU anywhere: if a design needs one, it is
+# the wrong design for this problem (LOGIC.md sec 11).
+
+# --- scientific data ---
+numpy==1.26.2
+pandas==2.1.4
+scipy==1.15.3
+xarray==2025.6.1
+zarr==2.18.3
+gcsfs==2026.8.0
+dask==2026.7.1
+netCDF4==1.7.4
+h5netcdf==1.8.1
+pyarrow==23.0.1
+
+# --- geospatial ---
+geopandas==1.1.4
+shapely==2.1.2
+pyproj==3.7.1
+regionmask==0.13.0
+
+# --- modelling ---
+scikit-learn==1.3.2
+xgboost==3.2.0
+lightgbm==4.7.0
+joblib==1.5.3
+# shap is optional: TreeSHAP is computed via xgboost's native pred_contribs
+# because shap 0.49 cannot parse xgboost 3.x base_score (DECISIONS.md D-013).
+shap==0.49.1
+
+# --- service ---
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic>=2.7
+
+# --- dev ---
+pytest>=8.0
+tqdm>=4.66

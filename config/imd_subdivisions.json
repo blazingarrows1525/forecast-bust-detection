@@ -1,0 +1,437 @@
+{
+  "_doc": "IMD meteorological subdivisions (36) defined as unions of Census-2011 districts. Keys are 'State/District' exactly as spelled in the datameet Census_2011 2011_Dist.shp attribute table; 'State/*' means every district of that state. Sub-state splits follow IMD's published subdivision composition, which is revenue-division based for UP / MP / RJ / MH / KA / AP / WB.",
+  "_source_shapefile": "datameet/maps Districts/Census_2011/2011_Dist.shp (641 districts, Census 2011 vintage, pre-Telangana-bifurcation)",
+  "_caveats": [
+    "Census 2011 vintage predates districts created after 2011 (Hapur, Sambhal, Alipurduar, Kalimpong, etc.). Those areas are still covered because the parent district polygon covers them; only the district label is stale. Subdivision-level geometry is therefore unaffected.",
+    "Telangana districts sit inside ST_NM='Andhra Pradesh' in this shapefile and are re-assigned here to the TELANGANA subdivision, matching IMD's subdivision list.",
+    "Ladakh is inside Jammu & Kashmir; IMD treats it within the J&K subdivision for this vintage."
+  ],
+  "subdivisions": {
+    "ANDAMAN_NICOBAR": {
+      "name": "Andaman & Nicobar Islands",
+      "members": ["Andaman & Nicobar Island/*"]
+    },
+    "ARUNACHAL_PRADESH": {
+      "name": "Arunachal Pradesh",
+      "members": ["Arunanchal Pradesh/*"]
+    },
+    "ASSAM_MEGHALAYA": {
+      "name": "Assam & Meghalaya",
+      "members": ["Assam/*", "Meghalaya/*"]
+    },
+    "NAGA_MANI_MIZO_TRIP": {
+      "name": "Naga., Mani., Mizo. & Tripura",
+      "members": ["Nagaland/*", "Manipur/*", "Mizoram/*", "Tripura/*"]
+    },
+    "SHWB_SIKKIM": {
+      "name": "Sub-Himalayan W.B. & Sikkim",
+      "members": [
+        "Sikkim/*",
+        "West Bengal/Darjiling",
+        "West Bengal/Jalpaiguri",
+        "West Bengal/Koch Bihar",
+        "West Bengal/Uttar Dinajpur",
+        "West Bengal/Dakshin Dinajpur",
+        "West Bengal/Maldah"
+      ]
+    },
+    "GANGETIC_WB": {
+      "name": "Gangetic West Bengal",
+      "members": [
+        "West Bengal/Bankura",
+        "West Bengal/Barddhaman",
+        "West Bengal/Birbhum",
+        "West Bengal/Haora",
+        "West Bengal/Hugli",
+        "West Bengal/Kolkata",
+        "West Bengal/Murshidabad",
+        "West Bengal/Nadia",
+        "West Bengal/North 24 Parganas",
+        "West Bengal/Pashchim Medinipur",
+        "West Bengal/Purba Medinipur",
+        "West Bengal/Puruliya",
+        "West Bengal/South 24 Parganas"
+      ]
+    },
+    "ODISHA": { "name": "Odisha", "members": ["Odisha/*"] },
+    "JHARKHAND": { "name": "Jharkhand", "members": ["Jharkhand/*"] },
+    "BIHAR": { "name": "Bihar", "members": ["Bihar/*"] },
+    "EAST_UP": {
+      "name": "East Uttar Pradesh",
+      "members": [
+        "Uttar Pradesh/Allahabad",
+        "Uttar Pradesh/Ambedkar Nagar",
+        "Uttar Pradesh/Azamgarh",
+        "Uttar Pradesh/Bahraich",
+        "Uttar Pradesh/Ballia",
+        "Uttar Pradesh/Balrampur",
+        "Uttar Pradesh/Bara Banki",
+        "Uttar Pradesh/Basti",
+        "Uttar Pradesh/Chandauli",
+        "Uttar Pradesh/Deoria",
+        "Uttar Pradesh/Faizabad",
+        "Uttar Pradesh/Fatehpur",
+        "Uttar Pradesh/Ghazipur",
+        "Uttar Pradesh/Gonda",
+        "Uttar Pradesh/Gorakhpur",
+        "Uttar Pradesh/Hardoi",
+        "Uttar Pradesh/Jaunpur",
+        "Uttar Pradesh/Kaushambi",
+        "Uttar Pradesh/Kheri",
+        "Uttar Pradesh/Kushinagar",
+        "Uttar Pradesh/Lucknow",
+        "Uttar Pradesh/Maharajganj",
+        "Uttar Pradesh/Mau",
+        "Uttar Pradesh/Mirzapur",
+        "Uttar Pradesh/Pratapgarh",
+        "Uttar Pradesh/Rae Bareli",
+        "Uttar Pradesh/Sant Kabir Nagar",
+        "Uttar Pradesh/Sant Ravi Das Nagar(bhadohi)",
+        "Uttar Pradesh/Shrawasti",
+        "Uttar Pradesh/Siddharth Nagar",
+        "Uttar Pradesh/Sitapur",
+        "Uttar Pradesh/Sonbhadra",
+        "Uttar Pradesh/Sultanpur",
+        "Uttar Pradesh/Unnao",
+        "Uttar Pradesh/Varanasi"
+      ]
+    },
+    "WEST_UP": {
+      "name": "West Uttar Pradesh",
+      "members": [
+        "Uttar Pradesh/Agra",
+        "Uttar Pradesh/Aligarh",
+        "Uttar Pradesh/Auraiya",
+        "Uttar Pradesh/Baghpat",
+        "Uttar Pradesh/Banda",
+        "Uttar Pradesh/Bareilly",
+        "Uttar Pradesh/Bijnor",
+        "Uttar Pradesh/Budaun",
+        "Uttar Pradesh/Bulandshahr",
+        "Uttar Pradesh/Chitrakoot",
+        "Uttar Pradesh/Etah",
+        "Uttar Pradesh/Etawah",
+        "Uttar Pradesh/Farrukhabad",
+        "Uttar Pradesh/Firozabad",
+        "Uttar Pradesh/Gautam Buddha Nagar",
+        "Uttar Pradesh/Ghaziabad",
+        "Uttar Pradesh/Hamirpur",
+        "Uttar Pradesh/Jalaun",
+        "Uttar Pradesh/Jhansi",
+        "Uttar Pradesh/Jyotiba Phule Nagar",
+        "Uttar Pradesh/Kannauj",
+        "Uttar Pradesh/Kanpur Dehat",
+        "Uttar Pradesh/Kanpur Nagar",
+        "Uttar Pradesh/Kansiram Nagar",
+        "Uttar Pradesh/Lalitpur",
+        "Uttar Pradesh/Mahamaya Nagar",
+        "Uttar Pradesh/Mahoba",
+        "Uttar Pradesh/Mainpuri",
+        "Uttar Pradesh/Mathura",
+        "Uttar Pradesh/Meerut",
+        "Uttar Pradesh/Moradabad",
+        "Uttar Pradesh/Muzaffarnagar",
+        "Uttar Pradesh/Pilibhit",
+        "Uttar Pradesh/Rampur",
+        "Uttar Pradesh/Saharanpur",
+        "Uttar Pradesh/Shahjahanpur"
+      ]
+    },
+    "UTTARAKHAND": { "name": "Uttarakhand", "members": ["Uttarakhand/*"] },
+    "HAR_CHD_DELHI": {
+      "name": "Haryana, Chandigarh & Delhi",
+      "members": ["Haryana/*", "Chandigarh/*", "NCT of Delhi/*"]
+    },
+    "PUNJAB": { "name": "Punjab", "members": ["Punjab/*"] },
+    "HIMACHAL_PRADESH": { "name": "Himachal Pradesh", "members": ["Himachal Pradesh/*"] },
+    "JAMMU_KASHMIR": { "name": "Jammu & Kashmir", "members": ["Jammu & Kashmir/*"] },
+    "WEST_RAJASTHAN": {
+      "name": "West Rajasthan",
+      "members": [
+        "Rajasthan/Barmer",
+        "Rajasthan/Bikaner",
+        "Rajasthan/Churu",
+        "Rajasthan/Ganganagar",
+        "Rajasthan/Hanumangarh",
+        "Rajasthan/Jaisalmer",
+        "Rajasthan/Jalor",
+        "Rajasthan/Jodhpur",
+        "Rajasthan/Nagaur",
+        "Rajasthan/Pali",
+        "Rajasthan/Sirohi"
+      ]
+    },
+    "EAST_RAJASTHAN": {
+      "name": "East Rajasthan",
+      "members": [
+        "Rajasthan/Ajmer",
+        "Rajasthan/Alwar",
+        "Rajasthan/Banswara",
+        "Rajasthan/Baran",
+        "Rajasthan/Bharatpur",
+        "Rajasthan/Bhilwara",
+        "Rajasthan/Bundi",
+        "Rajasthan/Chittaurgarh",
+        "Rajasthan/Dausa",
+        "Rajasthan/Dhaulpur",
+        "Rajasthan/Dungarpur",
+        "Rajasthan/Jaipur",
+        "Rajasthan/Jhalawar",
+        "Rajasthan/Jhunjhunun",
+        "Rajasthan/Karauli",
+        "Rajasthan/Kota",
+        "Rajasthan/Pratapgarh",
+        "Rajasthan/Rajsamand",
+        "Rajasthan/Sawai Madhopur",
+        "Rajasthan/Sikar",
+        "Rajasthan/Tonk",
+        "Rajasthan/Udaipur"
+      ]
+    },
+    "WEST_MP": {
+      "name": "West Madhya Pradesh",
+      "members": [
+        "Madhya Pradesh/Alirajpur",
+        "Madhya Pradesh/Ashoknagar",
+        "Madhya Pradesh/Barwani",
+        "Madhya Pradesh/Betul",
+        "Madhya Pradesh/Bhind",
+        "Madhya Pradesh/Bhopal",
+        "Madhya Pradesh/Burhanpur",
+        "Madhya Pradesh/Datia",
+        "Madhya Pradesh/Dewas",
+        "Madhya Pradesh/Dhar",
+        "Madhya Pradesh/East Nimar",
+        "Madhya Pradesh/Guna",
+        "Madhya Pradesh/Gwalior",
+        "Madhya Pradesh/Harda",
+        "Madhya Pradesh/Hoshangabad",
+        "Madhya Pradesh/Indore",
+        "Madhya Pradesh/Jhabua",
+        "Madhya Pradesh/Mandsaur",
+        "Madhya Pradesh/Morena",
+        "Madhya Pradesh/Neemuch",
+        "Madhya Pradesh/Raisen",
+        "Madhya Pradesh/Rajgarh",
+        "Madhya Pradesh/Ratlam",
+        "Madhya Pradesh/Sehore",
+        "Madhya Pradesh/Shajapur",
+        "Madhya Pradesh/Sheopur",
+        "Madhya Pradesh/Shivpuri",
+        "Madhya Pradesh/Ujjain",
+        "Madhya Pradesh/Vidisha",
+        "Madhya Pradesh/West Nimar"
+      ]
+    },
+    "EAST_MP": {
+      "name": "East Madhya Pradesh",
+      "members": [
+        "Madhya Pradesh/Anuppur",
+        "Madhya Pradesh/Balaghat",
+        "Madhya Pradesh/Chhatarpur",
+        "Madhya Pradesh/Chhindwara",
+        "Madhya Pradesh/Damoh",
+        "Madhya Pradesh/Dindori",
+        "Madhya Pradesh/Jabalpur",
+        "Madhya Pradesh/Katni",
+        "Madhya Pradesh/Mandla",
+        "Madhya Pradesh/Narsimhapur",
+        "Madhya Pradesh/Panna",
+        "Madhya Pradesh/Rewa",
+        "Madhya Pradesh/Sagar",
+        "Madhya Pradesh/Satna",
+        "Madhya Pradesh/Seoni",
+        "Madhya Pradesh/Shahdol",
+        "Madhya Pradesh/Sidhi",
+        "Madhya Pradesh/Singrauli",
+        "Madhya Pradesh/Tikamgarh",
+        "Madhya Pradesh/Umaria"
+      ]
+    },
+    "GUJARAT_REGION": {
+      "name": "Gujarat Region, Daman, D & N Haveli",
+      "members": [
+        "Gujarat/Ahmadabad",
+        "Gujarat/Anand",
+        "Gujarat/Banas Kantha",
+        "Gujarat/Bharuch",
+        "Gujarat/Dohad",
+        "Gujarat/Gandhinagar",
+        "Gujarat/Kheda",
+        "Gujarat/Mahesana",
+        "Gujarat/Narmada",
+        "Gujarat/Navsari",
+        "Gujarat/Panch Mahals",
+        "Gujarat/Patan",
+        "Gujarat/Sabar Kantha",
+        "Gujarat/Surat",
+        "Gujarat/Tapi",
+        "Gujarat/The Dangs",
+        "Gujarat/Vadodara",
+        "Gujarat/Valsad",
+        "Daman & Diu/Daman",
+        "Dadara & Nagar Havelli/*"
+      ]
+    },
+    "SAURASHTRA_KUTCH": {
+      "name": "Saurashtra, Kutch & Diu",
+      "members": [
+        "Gujarat/Amreli",
+        "Gujarat/Bhavnagar",
+        "Gujarat/Jamnagar",
+        "Gujarat/Junagadh",
+        "Gujarat/Kachchh",
+        "Gujarat/Porbandar",
+        "Gujarat/Rajkot",
+        "Gujarat/Surendranagar",
+        "Daman & Diu/Diu"
+      ]
+    },
+    "KONKAN_GOA": {
+      "name": "Konkan & Goa",
+      "members": [
+        "Maharashtra/Mumbai",
+        "Maharashtra/Mumbai Suburban",
+        "Maharashtra/Thane",
+        "Maharashtra/Raigarh",
+        "Maharashtra/Ratnagiri",
+        "Maharashtra/Sindhudurg",
+        "Goa/*"
+      ]
+    },
+    "MADHYA_MAHARASHTRA": {
+      "name": "Madhya Maharashtra",
+      "members": [
+        "Maharashtra/Ahmadnagar",
+        "Maharashtra/Dhule",
+        "Maharashtra/Jalgaon",
+        "Maharashtra/Kolhapur",
+        "Maharashtra/Nandurbar",
+        "Maharashtra/Nashik",
+        "Maharashtra/Pune",
+        "Maharashtra/Sangli",
+        "Maharashtra/Satara",
+        "Maharashtra/Solapur"
+      ]
+    },
+    "MARATHWADA": {
+      "name": "Marathwada",
+      "members": [
+        "Maharashtra/Aurangabad",
+        "Maharashtra/Bid",
+        "Maharashtra/Hingoli",
+        "Maharashtra/Jalna",
+        "Maharashtra/Latur",
+        "Maharashtra/Nanded",
+        "Maharashtra/Osmanabad",
+        "Maharashtra/Parbhani"
+      ]
+    },
+    "VIDARBHA": {
+      "name": "Vidarbha",
+      "members": [
+        "Maharashtra/Akola",
+        "Maharashtra/Amravati",
+        "Maharashtra/Bhandara",
+        "Maharashtra/Buldana",
+        "Maharashtra/Chandrapur",
+        "Maharashtra/Garhchiroli",
+        "Maharashtra/Gondiya",
+        "Maharashtra/Nagpur",
+        "Maharashtra/Wardha",
+        "Maharashtra/Washim",
+        "Maharashtra/Yavatmal"
+      ]
+    },
+    "CHHATTISGARH": { "name": "Chhattisgarh", "members": ["Chhattisgarh/*"] },
+    "COASTAL_AP": {
+      "name": "Coastal Andhra Pradesh",
+      "members": [
+        "Andhra Pradesh/East Godavari",
+        "Andhra Pradesh/Guntur",
+        "Andhra Pradesh/Krishna",
+        "Andhra Pradesh/Prakasam",
+        "Andhra Pradesh/Sri Potti Sriramulu Nellore",
+        "Andhra Pradesh/Srikakulam",
+        "Andhra Pradesh/Visakhapatnam",
+        "Andhra Pradesh/Vizianagaram",
+        "Andhra Pradesh/West Godavari",
+        "Puducherry/Yanam"
+      ]
+    },
+    "TELANGANA": {
+      "name": "Telangana",
+      "members": [
+        "Andhra Pradesh/Adilabad",
+        "Andhra Pradesh/Hyderabad",
+        "Andhra Pradesh/Karimnagar",
+        "Andhra Pradesh/Khammam",
+        "Andhra Pradesh/Mahbubnagar",
+        "Andhra Pradesh/Medak",
+        "Andhra Pradesh/Nalgonda",
+        "Andhra Pradesh/Nizamabad",
+        "Andhra Pradesh/Rangareddy",
+        "Andhra Pradesh/Warangal"
+      ]
+    },
+    "RAYALASEEMA": {
+      "name": "Rayalaseema",
+      "members": [
+        "Andhra Pradesh/Anantapur",
+        "Andhra Pradesh/Chittoor",
+        "Andhra Pradesh/Kurnool",
+        "Andhra Pradesh/Y.s.r."
+      ]
+    },
+    "TAMILNADU_PUDUCHERRY": {
+      "name": "Tamil Nadu, Puducherry & Karaikal",
+      "members": ["Tamil Nadu/*", "Puducherry/Puducherry", "Puducherry/Karaikal"]
+    },
+    "COASTAL_KARNATAKA": {
+      "name": "Coastal Karnataka",
+      "members": ["Karnataka/Dakshina Kannada", "Karnataka/Udupi", "Karnataka/Uttara Kannada"]
+    },
+    "NORTH_INT_KARNATAKA": {
+      "name": "North Interior Karnataka",
+      "members": [
+        "Karnataka/Bagalkot",
+        "Karnataka/Belgaum",
+        "Karnataka/Bellary",
+        "Karnataka/Bidar",
+        "Karnataka/Bijapur",
+        "Karnataka/Dharwad",
+        "Karnataka/Gadag",
+        "Karnataka/Gulbarga",
+        "Karnataka/Haveri",
+        "Karnataka/Koppal",
+        "Karnataka/Raichur",
+        "Karnataka/Yadgir"
+      ]
+    },
+    "SOUTH_INT_KARNATAKA": {
+      "name": "South Interior Karnataka",
+      "members": [
+        "Karnataka/Bangalore",
+        "Karnataka/Bangalore Rural",
+        "Karnataka/Chamrajnagar",
+        "Karnataka/Chikkaballapura",
+        "Karnataka/Chikmagalur",
+        "Karnataka/Chitradurga",
+        "Karnataka/Davanagere",
+        "Karnataka/Hassan",
+        "Karnataka/Kodagu",
+        "Karnataka/Kolar",
+        "Karnataka/Mandya",
+        "Karnataka/Mysore",
+        "Karnataka/Ramanagara",
+        "Karnataka/Shimoga",
+        "Karnataka/Tumkur"
+      ]
+    },
+    "KERALA_MAHE": {
+      "name": "Kerala & Mahe",
+      "members": ["Kerala/*", "Puducherry/Mahe"]
+    },
+    "LAKSHADWEEP": { "name": "Lakshadweep", "members": ["Lakshadweep/*"] }
+  }
+}
