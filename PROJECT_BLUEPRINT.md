@@ -8,7 +8,7 @@
 
 Read alongside (all three exist in the repo root):
 - **LOGIC.md** — the LOCKED engineering contract and mathematical spec.
-- **DECISIONS.md** — every deviation with evidence (D-001 … D-014).
+- **DECISIONS.md** — every deviation with evidence (D-001 … D-017).
 - **HANDOFF.md** — the terse resume-work brief for a fresh session.
 - **README.md** — the public writeup with the headline benchmark table.
 
@@ -43,8 +43,8 @@ Every clause of that paragraph is defensible from evidence in this repo.
 
 ### Not started
 - IMD live-feed adapter (system currently serves only the 2016-2022 archive; `/api/health` reports STALE by design).
-- Public deployment (Netlify / Fly / any cloud); the project is designed to run offline but a hosted demo URL would help judging.
-- Multi-model ensembling of AI weather models (GraphCast + Pangu + GenCast bust prediction) — the strategy doc's suggested moat expansion; see §9.
+- **Any actual cloud deployment.** Terraform is written but never applied, and no Bedrock call has ever run — see the verification ledger in §9A.
+- Multi-model ensembling of AI weather models (GraphCast + Pangu + GenCast bust prediction) — still the highest-value remaining item; see §9.3 A.
 
 ---
 
@@ -387,6 +387,101 @@ From the strategy document, transplanted here:
 - [ ] One teammate can answer the "isn't this just Scher & Messori" question without hedging.
 - [ ] `/api/bulletin/pdf` exists if you built E — print one and hand it over.
 - [ ] Public URL pasted into the submission form.
+
+---
+
+## 9A. The expanded platform (D-015 / D-016 / D-017)
+
+Added after the original build, under an explicitly authorised override of the
+LOGIC.md 13/14 non-goals. Read D-015 before touching any of it.
+
+### GenAI layer -- `src/fbd/genai/`, default OFF
+
+| Module | Role |
+|---|---|
+| `settings.py` | Feature flags, all default OFF. Bedrock model id resolution (`anthropic.` prefix). |
+| `guardrails.py` | Numeric grounding, non-interference, injection screening. |
+| `retrieval.py` | BM25 over LOGIC/DECISIONS/README/BLUEPRINT/HANDOFF. Pure stdlib, no network. |
+| `tools.py` | Four read-only tools over the bulletin store, strict closed schemas. |
+| `client.py` | `AnthropicBedrockMantle` construction; reports why it cannot run instead of throwing. |
+| `agent.py` | Hand-written tool loop, so guardrails sit between the model and the user. |
+
+**The load-bearing control is numeric grounding.** Every number in generated
+text must trace to a value a tool actually returned. An LLM sitting beside a
+disaster-management product cannot be allowed to say "roughly an 80% chance",
+and a system prompt asking it not to is a request, not a control. There is an
+end-to-end test that scripts a model into calling a real tool and then stating
+a probability that tool never returned, and asserts the answer is withheld.
+
+**Non-interference is enforced by the tool surface, not the prompt.** There is
+no write tool, no override tool, no alerting tool -- and a test plus a CI gate
+assert none is ever added.
+
+Enable with:
+
+```bash
+pip install -r requirements-genai.txt
+export FBD_GENAI_ENABLED=1 FBD_GENAI_TOOLS=1 FBD_GENAI_RAG=1
+```
+
+With the flag off, `/api/assistant/*` is **not registered at all** -- not a
+route that declines, which would still be an egress surface.
+
+`/api/assistant/search` needs no credentials and no network: it answers "where
+is that documented?" against the decision log. That alone is a good judge demo.
+
+### Drift monitoring -- `src/fbd/mlops/drift.py`, `scripts/monitor_drift.py`
+
+PSI per feature -> prediction shift -> calibration ratio -> OOD rate, with an
+OK/WATCH/RETRAIN verdict and exit code 2 on RETRAIN so a scheduler can gate.
+
+Two results worth knowing (D-016):
+* It independently reproduces the calibration drift README already disclosed
+  (ratio 0.780 -- the model over-predicts by 22% on 2022).
+* **JJAS 2022 is genuinely atypical in upper-level wind shear.** `india_shear_z`
+  PSI 2.64, confirmed in the raw national index (mean 20.80 vs 21.59-22.65 in
+  every other year; max 24.05 vs 26.26-28.57). Not a normalisation bug. This
+  means the held-out year is a *harder* test than assumed, and the model still
+  scored 0.840 -- use it, it strengthens the generalisation claim.
+* Caveat to say out loud: PSI is an early warning, not a performance predictor.
+  The monitor says RETRAIN on a year the model handled well. That is what the
+  statistic measures, not a false positive.
+
+### Observability -- `src/fbd/obs/metrics.py`
+
+`/metrics` in Prometheus text format (distinct from `/api/metrics`, the model
+benchmark table), plus JSON structured logs. `fbd_guardrail_violations_total`
+is a safety signal: it rising means something is trying to put ungrounded
+numbers in front of a forecaster.
+
+### CI and infrastructure
+
+`.github/workflows/ci.yml` -- tests, decision-log invariants, air-gap, supply
+chain (pip-audit + bandit + secret scan), container. The air-gap job imports
+the app with `socket.connect` monkeypatched to raise, and greps the dashboard
+for external origins. Both were run locally and pass.
+
+`infra/terraform/` -- VPC/ALB/Fargate/ECR/CloudWatch, Bedrock scoped to named
+model ARNs rather than `bedrock:*`, ingress defaulting to RFC1918, and
+`enable_genai=false` by default.
+
+### The verification ledger -- read before claiming anything
+
+| Component | Status |
+|---|---|
+| Full pipeline, end to end | **Executed**, reproduces D-001..D-014 |
+| 62 tests | **Executed**, 62/62 |
+| Drift monitor | **Executed**, findings in D-016 |
+| Docker + container health + dashboard air-gap | **Executed**, verified in a browser |
+| GenAI guardrails / retrieval / tools / agent | **Executed** against a fake client |
+| CI gates | **Executed locally**; never run on GitHub Actions |
+| Any real Bedrock call | **NEVER** -- no SDK, no credentials |
+| Terraform | **NEVER** -- no binary; not even `validate`d |
+| ECR push / ECS deploy / public URL | **NEVER** |
+
+The bottom four are code-as-design. Say so. Claiming a deployment that was
+never applied is exactly the unverifiable claim D-007, D-010 and D-014 were
+each written to prevent.
 
 ---
 
