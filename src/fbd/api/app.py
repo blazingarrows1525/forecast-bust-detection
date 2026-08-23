@@ -36,7 +36,9 @@ from fbd.api.schema import (
     PredictionStatus,
     RegimeVector,
     ReviewQueueItem,
+    ReviewTier,
 )
+from fbd.quality import escalation
 
 DB = config.ARTIFACTS / "bulletins.sqlite"
 WEB_DIR = config.ROOT / "web"
@@ -111,7 +113,13 @@ def _to_prediction(r: sqlite3.Row, age_h: float | None, dq: DataQuality) -> Bust
         if r["pi_low"] is not None and r["pi_high"] is not None
         else None
     )
+    tier = escalation.classify_tier(
+        bust_probability=r["bust_probability"],
+        ood_flag=(r["status"] != PredictionStatus.OK.value),
+    )
     return BustPrediction(
+        review_tier=ReviewTier(tier.value),
+        tier_guidance=escalation.guidance(tier),
         region=r["region"],
         region_id=r["region_id"],
         lead_day=r["lead_day"],
@@ -169,7 +177,19 @@ def health() -> HealthResponse:
             notes.append("GenAI assistant disabled; serving fully offline (default).")
     except Exception:  # noqa: BLE001
         pass
+    drift_status = None
+    if meta.get("drift_status"):
+        try:
+            drift_status = json.loads(meta["drift_status"])
+            if drift_status.get("status") in {"WATCH", "DRIFT"}:
+                notes.append(
+                    f"INPUT DRIFT {drift_status['status']}: {drift_status.get('note', '')}"
+                )
+        except (ValueError, TypeError):
+            drift_status = None
+
     return HealthResponse(
+        drift_status=drift_status,
         status="ok" if n else "degraded",
         model_version=meta.get("model_version", "0.1.0"),
         model_loaded=(config.ARTIFACTS / "bust_model.joblib").exists(),

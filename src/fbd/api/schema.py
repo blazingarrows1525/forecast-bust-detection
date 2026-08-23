@@ -31,6 +31,17 @@ class PredictionStatus(str, Enum):
     UNAVAILABLE = "UNAVAILABLE"
 
 
+class ReviewTier(str, Enum):
+    """Operational tier. Three, not two, because REFUSE is not "safe".
+
+    Refused region-days bust ~7x more often than accepted ones (LOGIC.md 11.2),
+    so collapsing REFUSE into "not flagged" would hide the highest-risk days.
+    """
+    AUTO_OK = "AUTO_OK"
+    REVIEW = "REVIEW"
+    REFUSE = "REFUSE"
+
+
 class RegimeVector(BaseModel):
     active_monsoon: float = 0.0
     break_monsoon: float = 0.0
@@ -60,6 +71,14 @@ class BustPrediction(BaseModel):
 
     dominant_factors: list[str] = Field(default_factory=list)
     regime: RegimeVector | None = None
+
+    review_tier: ReviewTier = Field(
+        ReviewTier.AUTO_OK,
+        description="AUTO_OK / REVIEW / REFUSE. REFUSE means unknown risk, not low risk.",
+    )
+    tier_guidance: str | None = Field(
+        None, description="What the tier means for the duty forecaster, in plain words."
+    )
 
     data_quality: DataQuality = DataQuality.OK
     input_age_hours: float | None = None
@@ -111,6 +130,10 @@ class HealthResponse(BaseModel):
     latest_init_date: str | None
     input_age_hours: float | None
     data_quality: DataQuality
+    drift_status: dict | None = Field(
+        None,
+        description="KS drift of recent inputs vs the training snapshot: OK/WATCH/DRIFT/UNKNOWN.",
+    )
     notes: list[str] = Field(default_factory=list)
 
 

@@ -188,6 +188,11 @@ def main() -> int:
             )
         )
 
+    from fbd.quality import drift as qdrift
+
+    drift_payload = qdrift.assess_batch(target).as_dict()
+    print(f"drift status: {drift_payload['status']} -- {drift_payload['note']}")
+
     DB.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB)
     con.executescript(SCHEMA)
@@ -203,6 +208,12 @@ def main() -> int:
             ("ood_threshold", str(ood.threshold_)),
             ("n_features", str(len(model.features))),
             ("splits", ",".join(args.splits)),
+            # Drift is computed HERE, where the full feature frame exists, and
+            # cached like every other field. /api/health then reads it instead
+            # of recomputing -- a health endpoint must stay cheap, and the
+            # bulletin store is the only place the raw features are present at
+            # serving time anyway.
+            ("drift_status", json.dumps(drift_payload)),
         ],
     )
     con.commit()

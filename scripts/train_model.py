@@ -115,6 +115,15 @@ def main() -> int:
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     model.save(MODEL_PATH)
+
+    # Snapshot the training-year input distributions next to the model, so the
+    # serving-side drift check always compares against the vintage that
+    # actually shipped. A reference built at a different time than the model
+    # would silently baseline against the wrong thing.
+    from fbd.quality import drift as qdrift
+
+    ref_path = qdrift.save_reference(tr)
+    print(f"saved drift reference -> {ref_path}")
     RESULTS.write_text(json.dumps({
         "overall": rows,
         "decision_band": band_rows,
