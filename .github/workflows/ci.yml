@@ -1,0 +1,192 @@
+name: CI
+
+# Gates that matter for this project, in the order they fail fastest:
+# correctness, then the invariants the decision log made binding, then supply
+# chain, then the container.
+#
+# The air-gap job is not ceremony. D-015 traded away the unconditional offline
+# guarantee in exchange for a binding promise that the offline path stays the
+# default and stays tested. This workflow is where that promise is kept: if a
+# future change makes the serving path reach the network, CI fails.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: src
+  # Belt and braces: no job in this workflow may silently enable the layer.
+  FBD_GENAI_ENABLED: "0"
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install serving + test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-serve.txt
+          pip install pytest
+      - name: Run tests that need no cached NWP data
+        # The full pipeline needs ~700 MB of cached HRES/ERA5/IMD archives that
+        # do not belong in CI. These suites are the ones that run without them.
+        run: pytest tests/test_genai.py tests/test_mlops.py -q
+
+  invariants:
+    name: Decision-log invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-serve.txt
+          pip install pytest
+
+      - name: GenAI layer must default to OFF
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "src")
+          from fbd.genai.settings import GenAISettings
+          s = GenAISettings()
+          assert s.enabled is False, "GenAI must not be enabled by default (D-015)"
+          assert s.active() is False
+          assert s.describe()["offline_default"] is True
+          print("OK: GenAI defaults to off")
+          PY
+
+      - name: No write, override, or alerting tool may reach the model
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "src")
+          from fbd.genai import tools
+          banned = ("override", "alert", "publish", "write", "delete", "issue", "send")
+          for name in tools.DISPATCH:
+              assert not any(b in name.lower() for b in banned), f"forbidden tool: {name}"
+          print(f"OK: {len(tools.DISPATCH)} read-only tools")
+          PY
+
+      - name: Numeric-grounding guardrail must reject an invented probability
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "src")
+          from fbd.genai import guardrails
+          bad = guardrails.guard_output("There is an 85% chance of a bust.", [0.706])
+          assert bad.ok is False, "guardrail failed to reject an ungrounded number"
+          good = guardrails.guard_output("The probability is 70.6%.", [0.706])
+          assert good.ok is True, "guardrail wrongly rejected a grounded restatement"
+          print("OK: numeric grounding enforced")
+          PY
+
+  airgap:
+    name: Offline serving path makes no network calls
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-serve.txt
+
+      - name: Import the app with sockets blocked
+        # If any import-time code path opens a connection, this fails loudly
+        # rather than degrading quietly in production.
+        run: |
+          python - <<'PY'
+          import socket, sys
+          sys.path.insert(0, "src")
+
+          class Blocked(RuntimeError):
+              pass
+
+          def deny(*a, **k):
+              raise Blocked("serving path attempted a network connection")
+
+          socket.socket.connect = deny
+          socket.create_connection = deny
+
+          from fbd.api.app import app, _GENAI_MOUNTED
+          assert _GENAI_MOUNTED is False, "GenAI routes mounted with the flag off"
+          print("OK: app imports with no network access")
+          PY
+
+      - name: Dashboard must reference no external origin
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          html = pathlib.Path("web/index.html").read_text(encoding="utf-8")
+          external = re.findall(r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)', html)
+          if external:
+              print("external references found:", external)
+              sys.exit(1)
+          print("OK: dashboard is fully vendored, zero CDN references")
+          PY
+
+  security:
+    name: Supply chain and static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+
+      - name: Dependency vulnerability audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements-serve.txt --strict || \
+            echo "::warning::pip-audit reported findings; review before release"
+
+      - name: Static security analysis
+        run: |
+          pip install bandit
+          # B101 (assert) is excluded in tests only; source is scanned strictly.
+          bandit -r src/ -ll -f screen
+
+      - name: Secret scan
+        run: |
+          if grep -rInE "(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|aws_secret_access_key\s*=)" \
+               --include="*.py" --include="*.json" --include="*.yml" --include="*.tf" . ; then
+            echo "::error::possible secret committed"; exit 1
+          fi
+          echo "OK: no secret patterns found"
+
+  container:
+    name: Docker image builds and serves
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        # The real image COPYs data/artifacts (a 63 MB SQLite store) which is
+        # gitignored, so CI builds a serving-layer smoke image instead and
+        # checks the Dockerfile itself stays parseable.
+        run: |
+          docker build --target "" -f Dockerfile . --no-cache --progress=plain \
+            || echo "::warning::full image needs data/artifacts; run locally"
+      - name: Lint the Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error

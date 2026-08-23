@@ -523,3 +523,52 @@ event model does not fire a binary alarm on sampling noise.
 
 `scripts/monitor_drift.py` exits 2 on RETRAIN and 0 otherwise, so a scheduler
 can gate on the exit code without parsing stdout.
+
+---
+
+## D-017 — CI, infrastructure-as-code and the verification ledger — DISCLOSED
+
+**CI (`.github/workflows/ci.yml`).** Five jobs, ordered by how fast they fail:
+unit tests, decision-log invariants, air-gap, supply chain, container.
+
+The **invariants** and **airgap** jobs are the ones that matter, because they
+turn D-015's mitigations from promises into gates. They assert that the GenAI
+layer defaults to OFF, that no write/override/alerting tool has been added to
+the model's surface, that the numeric-grounding guardrail still rejects an
+invented probability, that the app imports cleanly **with sockets monkeypatched
+to raise**, and that `web/index.html` references no external origin. If a
+future change quietly reintroduces network dependence in the serving path, CI
+fails rather than production degrading.
+
+Both air-gap gates were run locally before being committed, and both pass:
+the app imports with `socket.connect` denied, and the dashboard has zero
+external references.
+
+**Terraform (`infra/terraform/`).** VPC across two AZs, ALB on TLS 1.3, ECS
+Fargate, immutable-tag ECR with scan-on-push, CloudWatch. Choices a reviewer
+should challenge, and the answers, are tabulated in `infra/terraform/README.md`
+-- notably Fargate over EKS (LOGIC.md 14 forbids Kubernetes), SQLite baked into
+the image rather than mounted from EFS, ingress defaulting to RFC1918 rather
+than the public internet, and a Bedrock policy that names model ARNs instead of
+granting `bedrock:*`.
+
+### The verification ledger
+
+This project's credibility rests on never claiming more than was run. So,
+explicitly, what has and has not been executed:
+
+| Component | Status |
+|---|---|
+| Full pipeline (regions -> dataset -> train -> bulletins -> ablation -> stress) | **Executed**, reproduces D-001..D-014 |
+| Test suite, 62 tests | **Executed**, 62/62 pass |
+| Drift monitor | **Executed** on train vs 2022; findings in D-016 |
+| Docker build + container health + dashboard air-gap | **Executed**, verified in a browser |
+| GenAI guardrails, retrieval, tools, agent loop | **Executed** against a fake client; 28 tests |
+| CI air-gap and invariant gates | **Executed locally**; never run on GitHub Actions |
+| Bedrock / any real LLM call | **NEVER EXECUTED** -- no SDK, no credentials |
+| Terraform | **NEVER EXECUTED** -- no terraform binary; not even `validate`d |
+| ECR push / ECS deploy / public URL | **NEVER EXECUTED** |
+
+The bottom four rows are code-as-design. Anyone presenting this must say so.
+Claiming a cloud deployment that was never applied would be precisely the
+unverifiable claim that D-007, D-010 and D-014 were each written to prevent.

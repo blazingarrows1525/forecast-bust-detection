@@ -1,0 +1,15 @@
+# Optional: the GenAI layer (DECISIONS.md D-015).
+#
+# NOT installed by default and NOT in the serving image. The offline path --
+# SQLite bulletins + Leaflet dashboard -- has no use for any of this, and
+# keeping it out is what makes the air-gapped default real rather than
+# nominal.
+#
+#   pip install -r requirements-genai.txt
+#   export FBD_GENAI_ENABLED=1 FBD_GENAI_TOOLS=1 FBD_GENAI_RAG=1
+#
+# Note: retrieval (/api/assistant/search) needs NEITHER of these -- the BM25
+# index is pure standard library, so document search works with no credentials
+# and no network.
+anthropic[bedrock]>=0.40.0
+boto3>=1.34.0
