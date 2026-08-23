@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bust Risk Command Centre — India (SIH26079)</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#171e26; --panel2:#1e2732; --line:#2a3644;
+    --fg:#e6edf3; --muted:#8b98a5; --accent:#4a9eff;
+    --c0:#1a4d2e; --c1:#3d7c47; --c2:#c9a227; --c3:#e07b39; --c4:#c0392b; --ood:#7d5bbe;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       background:var(--bg);color:var(--fg);overflow:hidden}
+  #app{display:grid;grid-template-columns:1fr 350px;grid-template-rows:auto 1fr;height:100vh}
+  header{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line);
+         padding:9px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:600}
+  .sub{color:var(--muted);font-size:12px}
+  label{font-size:12px;color:var(--muted)}
+  select,input[type=range],button,a.btn{background:var(--panel2);color:var(--fg);
+    border:1px solid var(--line);border-radius:6px;padding:5px 9px;font:inherit;font-size:13px;
+    text-decoration:none;display:inline-block}
+  button,a.btn{cursor:pointer}
+  button.active{background:var(--accent);border-color:var(--accent);color:#08121f;font-weight:600}
+  input[type=range]{padding:0;width:210px}
+  #stage{position:relative}
+  canvas{display:block}
+  #hint{position:absolute;left:12px;bottom:10px;color:var(--muted);font-size:11px;
+        background:rgba(11,15,20,.72);padding:5px 9px;border-radius:6px;pointer-events:none}
+  #axis{position:absolute;left:12px;top:12px;color:var(--muted);font-size:11px;
+        background:rgba(11,15,20,.72);padding:7px 10px;border-radius:6px;pointer-events:none;line-height:1.7}
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px}
+  .card h2{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+  .big{font-size:28px;font-weight:700;line-height:1.1}
+  .muted{color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:3px 5px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  tr.sel{background:#243141}
+  .legend{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
+  .sw{width:14px;height:11px;border-radius:2px;display:inline-block}
+  ul.reasons{margin:6px 0 0;padding-left:17px} ul.reasons li{margin-bottom:5px;font-size:12px}
+  #banner{grid-column:1/-1;display:none;background:#4a2c00;border-bottom:1px solid #7a4a00;
+          color:#ffd591;padding:7px 16px;font-size:12.5px;font-weight:500}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Bust Risk Command Centre <span class="sub">· space × lead-day · SIH26079</span></h1>
+    <label>Init</label>
+    <input type="range" id="dateSlider" min="0" max="0" value="0" />
+    <select id="datePick"></select>
+    <label>Highlight</label>
+    <select id="leadPick"></select>
+    <button id="btnModel" class="active">Model</button>
+    <button id="btnBaseline">Baseline</button>
+    <button id="btnTruth">Truth</button>
+    <button id="btnReset">Reset view</button>
+    <a class="btn" href="/">2D map ↗</a>
+    <span class="sub" id="status"></span>
+  </header>
+  <div id="banner"></div>
+  <div id="stage">
+    <div id="axis"><b>Vertical axis = lead day</b><br>ground → Day 1 · top → Day 10<br>
+      colour = P(forecast busts)</div>
+    <div id="hint">drag to orbit · wheel to zoom · right-drag to pan · click a column</div>
+  </div>
+  <aside>
+    <div class="card">
+      <h2>Selected</h2>
+      <div id="selName" style="font-weight:600;font-size:15px">Click a risk column</div>
+      <div class="muted" id="selMeta"></div>
+      <div class="big" id="selProb" style="margin-top:6px">—</div>
+      <div class="muted" id="selProbSub"></div>
+      <div id="selReasons"></div>
+    </div>
+    <div class="card">
+      <h2>Lead profile</h2>
+      <div class="muted" style="margin-bottom:5px">All 10 lead days for the selected subdivision.</div>
+      <table id="profile"><thead><tr><th>Day</th><th>Model</th><th>Baseline</th><th>Bust?</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Highest risk — Day 3–7</h2>
+      <table id="queue"><thead><tr><th>#</th><th>Region</th><th>Day</th><th>P</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Legend</h2>
+      <div class="legend">
+        <span class="sw" style="background:var(--c0)"></span><span>&lt;5%</span>
+        <span class="sw" style="background:var(--c1)"></span><span>5–10%</span>
+        <span class="sw" style="background:var(--c2)"></span><span>10–20%</span>
+        <span class="sw" style="background:var(--c3)"></span><span>20–35%</span>
+        <span class="sw" style="background:var(--c4)"></span><span>&gt;35%</span>
+        <span class="sw" style="background:var(--ood)"></span><span>refused (OOD)</span>
+      </div>
+      <div class="muted" style="margin-top:7px">
+        Purple columns are subdivisions where the atmospheric state is unlike anything
+        in training, so the system refuses to emit a number rather than guess.
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script src="/vendor/three.min.js"></script>
+<script>
+"use strict";
+// ---------------------------------------------------------------- constants
+const LEAD_H = 1.15;          // world units per lead day
+const COL_W  = 0.62;          // column footprint
+const DEG    = 1.0;           // world units per degree of lon/lat
+const COLORS = ["#1a4d2e","#3d7c47","#c9a227","#e07b39","#c0392b"];
+const OOD_COLOR = "#7d5bbe", NULL_COLOR = "#39434f";
+// Assam & Meghalaya floods, June 2022 -- a real bust in the held-out test year.
+const CASE_STUDY = "2022-06-14";
+
+let scene, camera, renderer, raycaster, pointer;
+let mapGroup, colGroup, bandGroup;
+let geo=null, cube=null, dates=[], lonMid=0, latMid=0;
+let cur = {init:null, lead:5, view:"model", sel:null};
+let orbit = {theta: -Math.PI/2, phi: 0.95, r: 46, target:new THREE.Vector3(0,4,0)};
+
+const pct = x => (x==null ? "—" : (100*x).toFixed(1)+"%");
+
+function colourFor(p, status){
+  if(status && status !== "OK") return OOD_COLOR;
+  if(p==null) return NULL_COLOR;
+  if(p<0.05) return COLORS[0];
+  if(p<0.10) return COLORS[1];
+  if(p<0.20) return COLORS[2];
+  if(p<0.35) return COLORS[3];
+  return COLORS[4];
+}
+const proj = (lon,lat) => [ (lon-lonMid)*DEG, -(lat-latMid)*DEG ];  // -> x, z
+
+// ------------------------------------------------------------------- setup
+function initGL(){
+  const stage = document.getElementById("stage");
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0f14);
+  scene.fog = new THREE.Fog(0x0b0f14, 60, 130);
+
+  camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  stage.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+  const key = new THREE.DirectionalLight(0xffffff, 0.85);
+  key.position.set(18, 34, 12); scene.add(key);
+  const rim = new THREE.DirectionalLight(0x4a9eff, 0.30);
+  rim.position.set(-20, 12, -18); scene.add(rim);
+
+  mapGroup  = new THREE.Group();
+  colGroup  = new THREE.Group();
+  bandGroup = new THREE.Group();
+  scene.add(mapGroup, colGroup, bandGroup);
+
+  raycaster = new THREE.Raycaster();
+  pointer = new THREE.Vector2();
+  bindControls(renderer.domElement);
+  window.addEventListener("resize", resize);
+  resize();
+}
+
+function resize(){
+  const s = document.getElementById("stage");
+  const w = s.clientWidth, h = s.clientHeight;
+  if(!w || !h) return;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+
+// Hand-written orbit controls: three.js r128 ships OrbitControls as a separate
+// example file, and vendoring a second script for ~40 lines of spherical maths
+// is not worth another offline asset to keep in sync.
+function bindControls(dom){
+  let dragging=false, button=0, lx=0, ly=0, moved=0;
+  dom.addEventListener("contextmenu", e=>e.preventDefault());
+  dom.addEventListener("pointerdown", e=>{
+    dragging=true; button=e.button; lx=e.clientX; ly=e.clientY; moved=0;
+    dom.setPointerCapture(e.pointerId);
+  });
+  dom.addEventListener("pointerup", e=>{
+    dragging=false;
+    try{ dom.releasePointerCapture(e.pointerId); }catch(_){}
+    if(moved < 5 && button === 0) pick(e);   // a drag must not count as a click
+  });
+  dom.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+    moved += Math.abs(dx)+Math.abs(dy);
+    if(button === 2){
+      // pan across the ground plane, in the camera's own screen basis
+      const right = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+      camera.getWorldDirection(right); right.cross(up).normalize();
+      const fwd = right.clone().cross(up).normalize();
+      orbit.target.addScaledVector(right, -dx*orbit.r*0.0012);
+      orbit.target.addScaledVector(fwd,    dy*orbit.r*0.0012);
+    } else {
+      orbit.theta -= dx*0.006;
+      orbit.phi    = Math.max(0.12, Math.min(1.52, orbit.phi - dy*0.005));
+    }
+  });
+  dom.addEventListener("wheel", e=>{
+    e.preventDefault();
+    orbit.r = Math.max(14, Math.min(120, orbit.r * (1 + Math.sign(e.deltaY)*0.09)));
+  }, {passive:false});
+}
+
+function applyCamera(){
+  const {theta, phi, r, target} = orbit;
+  camera.position.set(
+    target.x + r*Math.cos(phi)*Math.cos(theta),
+    target.y + r*Math.sin(phi),
+    target.z + r*Math.cos(phi)*Math.sin(theta)
+  );
+  camera.lookAt(target);
+}
+
+// ------------------------------------------------------------- map geometry
+function ringToShape(ring){
+  const s = new THREE.Shape();
+  ring.forEach(([lon,lat], i) => {
+    const [x,z] = proj(lon,lat);
+    i ? s.lineTo(x,z) : s.moveTo(x,z);
+  });
+  return s;
+}
+
+/** Concatenate geometries into one buffer.
+ *
+ * three.js r128 ships BufferGeometryUtils only under examples/, which is not in
+ * the vendored core bundle, so the merge is done by hand.  Converting to
+ * non-indexed first avoids having to re-base index arrays.
+ */
+function mergeGeometries(geoms){
+  const flat = geoms.map(g => g.index ? g.toNonIndexed() : g);
+  let total = 0;
+  flat.forEach(g => total += g.attributes.position.count);
+  const pos = new Float32Array(total*3), nor = new Float32Array(total*3);
+  let o = 0;
+  flat.forEach(g=>{
+    pos.set(g.attributes.position.array, o*3);
+    if(g.attributes.normal) nor.set(g.attributes.normal.array, o*3);
+    o += g.attributes.position.count;
+  });
+  const out = new THREE.BufferGeometry();
+  out.setAttribute("position", new THREE.BufferAttribute(pos,3));
+  out.setAttribute("normal",   new THREE.BufferAttribute(nor,3));
+  return out;
+}
+
+function buildMap(){
+  mapGroup.clear();
+
+  // India's coastline and islands make many subdivisions MultiPolygons, so a
+  // mesh-per-ring costs ~1,300 draw calls before a single risk column is drawn.
+  // The ground is uniform context and is never picked (picking is columns
+  // only), so every fill merges into one mesh and every outline into one
+  // LineSegments: ~1,330 objects -> 2.
+  const fills = [], linePts = [];
+
+  geo.features.forEach(f=>{
+    const g = f.geometry; if(!g) return;
+    const list = g.type === "Polygon" ? [g.coordinates]
+               : g.type === "MultiPolygon" ? g.coordinates : [];
+    list.forEach(rings=>{
+      if(!rings || !rings.length) return;
+      const shape = ringToShape(rings[0]);
+      for(let h=1; h<rings.length; h++){                   // interior holes
+        shape.holes.push(new THREE.Path(
+          rings[h].map(([lon,lat])=>{ const [x,z]=proj(lon,lat); return new THREE.Vector2(x,z); })
+        ));
+      }
+      // ShapeGeometry triangulates in XY; rotate onto the XZ ground plane.
+      const geom = new THREE.ShapeGeometry(shape);
+      geom.rotateX(Math.PI/2);
+      fills.push(geom);
+
+      // LineSegments consumes vertex pairs, so emit each edge twice.
+      const pts = shape.getPoints(48);
+      for(let i=0;i<pts.length-1;i++){
+        linePts.push(pts[i].x, 0.02, pts[i].y, pts[i+1].x, 0.02, pts[i+1].y);
+      }
+    });
+  });
+
+  if(fills.length){
+    mapGroup.add(new THREE.Mesh(
+      mergeGeometries(fills),
+      new THREE.MeshLambertMaterial({
+        color:0x243141, transparent:true, opacity:0.94, side:THREE.DoubleSide
+      })
+    ));
+  }
+  if(linePts.length){
+    const lg = new THREE.BufferGeometry();
+    lg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(linePts),3));
+    mapGroup.add(new THREE.LineSegments(
+      lg, new THREE.LineBasicMaterial({color:0x4a5a6d})
+    ));
+  }
+}
+
+// The decision band (Day 3-7) drawn as translucent slabs, so the operationally
+// actionable slice of the cube is visible without reading the axis label.
+function buildBand(band){
+  bandGroup.clear();
+  const lo = (Math.min(...band)-1)*LEAD_H, hi = Math.max(...band)*LEAD_H;
+  const geom = new THREE.BoxGeometry(72, hi-lo, 72);
+  const mat = new THREE.MeshBasicMaterial({
+    color:0x4a9eff, transparent:true, opacity:0.045, depthWrite:false
+  });
+  const m = new THREE.Mesh(geom, mat);
+  m.position.set(0, (lo+hi)/2, 0);
+  bandGroup.add(m);
+}
+
+function buildColumns(){
+  colGroup.clear();
+  if(!cube) return;
+  const leads = cube.lead_days;
+  cube.regions.forEach(r=>{
+    if(!isFinite(r.lon) || !isFinite(r.lat)) return;
+    const [x,z] = proj(r.lon, r.lat);
+    leads.forEach((L,i)=>{
+      const status = r.status[i];
+      const value = cur.view === "baseline" ? r.baseline[i] : r.p[i];
+      const isOOD = (cur.view === "model") && status !== "OK";
+
+      let colour;
+      if(cur.view === "truth"){
+        colour = r.actual[i]==null ? NULL_COLOR : (r.actual[i] ? "#c0392b" : "#26343f");
+      } else {
+        colour = colourFor(value, isOOD ? status : null);
+      }
+
+      const emphasise = (L === cur.lead);
+      const geom = new THREE.BoxGeometry(
+        COL_W*(emphasise?1.28:1), LEAD_H*0.86, COL_W*(emphasise?1.28:1)
+      );
+      const mat = new THREE.MeshLambertMaterial({
+        color: new THREE.Color(colour),
+        transparent: true,
+        opacity: emphasise ? 1.0 : 0.82,
+        wireframe: isOOD
+      });
+      const box = new THREE.Mesh(geom, mat);
+      box.position.set(x, (L-0.5)*LEAD_H, z);
+      box.userData = {region_id:r.region_id, region:r.region, lead:L, idx:i, kind:"col"};
+      colGroup.add(box);
+    });
+  });
+}
+
+// ---------------------------------------------------------------- picking
+function pick(e){
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX-rect.left)/rect.width)*2 - 1;
+  pointer.y = -((e.clientY-rect.top)/rect.height)*2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(colGroup.children, false);
+  if(hits.length){
+    const u = hits[0].object.userData;
+    cur.lead = u.lead;
+    document.getElementById("leadPick").value = u.lead;
+    select(u.region_id, u.lead);
+    buildColumns();
+  }
+}
+
+async function select(rid, lead){
+  cur.sel = rid;
+  const r = cube.regions.find(x=>x.region_id===rid); if(!r) return;
+  const i = cube.lead_days.indexOf(lead);
+  const status = r.status[i], p = r.p[i];
+
+  document.getElementById("selName").textContent = r.region;
+  document.getElementById("selMeta").textContent =
+    `Day ${lead} · valid ${r.valid_date[i] ?? "—"} · init ${cube.init_date}`;
+  document.getElementById("selProb").textContent =
+    status==="OK" ? pct(p) : "confidence unavailable";
+  document.getElementById("selProb").style.color =
+    status==="OK" ? colourFor(p,"OK") : OOD_COLOR;
+  document.getElementById("selProbSub").textContent =
+    status==="OK" ? `baseline says ${pct(r.baseline[i])}`
+                  : "state outside training experience — system refuses to guess";
+
+  const tb = document.querySelector("#profile tbody"); tb.innerHTML="";
+  cube.lead_days.forEach((L,j)=>{
+    const tr=document.createElement("tr");
+    if(L===lead) tr.className="sel";
+    const truth = r.actual[j]==null ? "—" : (r.actual[j] ? "BUST" : "no");
+    tr.innerHTML = `<td>${L}</td><td>${r.status[j]==="OK"?pct(r.p[j]):"—"}</td>`+
+                   `<td>${pct(r.baseline[j])}</td><td>${truth}</td>`;
+    tr.onclick=()=>{cur.lead=L;document.getElementById("leadPick").value=L;
+                    select(rid,L);buildColumns();};
+    tb.appendChild(tr);
+  });
+
+  // Reasons are fetched per click, which is why the cube payload stays lean.
+  try{
+    const res = await fetch(`/api/bulletin/${rid}?init_date=${cube.init_date}&mode=replay`);
+    if(res.ok){
+      const rowsAll = await res.json();
+      const row = rowsAll.find(x=>x.lead_day===lead);
+      let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
+      (row?.dominant_factors ?? []).forEach(f=>html+=`<li>${f}</li>`);
+      html += "</ul>";
+      if(row && row.forecast_rain_mm!=null){
+        html += `<div class="muted" style="margin-top:6px">forecast ${row.forecast_rain_mm.toFixed(1)} mm/day`;
+        if(row.observed_rain_mm!=null) html += ` · observed ${row.observed_rain_mm.toFixed(1)} mm/day`;
+        if(row.actual_bust!=null) html += ` · <b>${row.actual_bust?"BUSTED":"did not bust"}</b>`;
+        html += "</div>";
+      }
+      document.getElementById("selReasons").innerHTML = html;
+    }
+  }catch(_){ /* panel simply stays empty offline */ }
+}
+
+function fillQueue(){
+  const band = new Set(cube.decision_band);
+  const flat = [];
+  cube.regions.forEach(r=>cube.lead_days.forEach((L,i)=>{
+    if(band.has(L) && r.status[i]==="OK" && r.p[i]!=null)
+      flat.push({region:r.region, rid:r.region_id, lead:L, p:r.p[i]});
+  }));
+  flat.sort((a,b)=>b.p-a.p);
+  const tb=document.querySelector("#queue tbody"); tb.innerHTML="";
+  flat.slice(0,10).forEach((q,n)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${n+1}</td><td>${q.region}</td><td>${q.lead}</td>`+
+                 `<td><span class="sw" style="background:${colourFor(q.p,"OK")}"></span> ${pct(q.p)}</td>`;
+    tr.style.cursor="pointer";
+    tr.onclick=()=>{cur.lead=q.lead;document.getElementById("leadPick").value=q.lead;
+                    select(q.rid,q.lead);buildColumns();};
+    tb.appendChild(tr);
+  });
+}
+
+// -------------------------------------------------------------------- boot
+async function loadCube(init){
+  const r = await fetch(`/api/risk-cube?init_date=${init}&mode=replay`);
+  if(!r.ok){ document.getElementById("status").textContent = "no data for "+init; return; }
+  cube = await r.json();
+  const b = document.getElementById("banner");
+  if(cube.banner){ b.style.display="block"; b.textContent=cube.banner; } else b.style.display="none";
+  document.getElementById("status").textContent =
+    `${cube.n_regions} subdivisions × ${cube.lead_days.length} lead days = `+
+    `${cube.n_regions*cube.lead_days.length} cells` +
+    (init === CASE_STUDY ? "  ·  case study: Assam & Meghalaya floods, June 2022" : "");
+  buildColumns(); fillQueue();
+  if(cur.sel) select(cur.sel, cur.lead);
+}
+
+function setView(v){
+  cur.view=v;
+  ["Model","Baseline","Truth"].forEach(n=>
+    document.getElementById("btn"+n).classList.toggle("active", n.toLowerCase()===v));
+  buildColumns();
+}
+
+async function boot(){
+  initGL();
+  geo = await (await fetch("/api/regions")).json();
+
+  // Centre the projection on the actual data extent so India sits at the origin.
+  let lo=[999,999], hi=[-999,-999];
+  geo.features.forEach(f=>{
+    const g=f.geometry; if(!g) return;
+    const list = g.type==="Polygon" ? [g.coordinates] : g.coordinates;
+    list.forEach(rings=>rings[0].forEach(([lon,lat])=>{
+      lo[0]=Math.min(lo[0],lon); lo[1]=Math.min(lo[1],lat);
+      hi[0]=Math.max(hi[0],lon); hi[1]=Math.max(hi[1],lat);
+    }));
+  });
+  lonMid=(lo[0]+hi[0])/2; latMid=(lo[1]+hi[1])/2;
+
+  buildMap();
+
+  const d = await (await fetch("/api/replay/dates")).json();
+  dates = d.init_dates;
+  const dp=document.getElementById("datePick"), sl=document.getElementById("dateSlider");
+  dates.forEach((x,i)=>{const o=document.createElement("option");o.value=i;o.textContent=x;dp.appendChild(o);});
+  sl.max=dates.length-1;
+  const lp=document.getElementById("leadPick");
+  for(let L=1;L<=10;L++){const o=document.createElement("option");o.value=L;o.textContent="Day "+L;
+    if(L===5)o.selected=true;lp.appendChild(o);}
+
+  // Open on the documented case study rather than an arbitrary date: a quiet
+  // day renders an almost uniform green field, which demonstrates nothing about
+  // the space x lead structure this view exists to show.  It is labelled as a
+  // case study in the header and the slider reaches every other date, so this
+  // is a starting point, not a filtered view.
+  let idx = dates.indexOf(CASE_STUDY);
+  if(idx < 0) idx = Math.min(dates.length-1, Math.floor(dates.length*0.5));
+  sl.value=idx; dp.value=idx; cur.init=dates[idx];
+  sl.oninput = e=>{dp.value=e.target.value; cur.init=dates[+e.target.value]; loadCube(cur.init);};
+  dp.onchange= e=>{sl.value=e.target.value; cur.init=dates[+e.target.value]; loadCube(cur.init);};
+  lp.onchange= e=>{cur.lead=+e.target.value; buildColumns(); if(cur.sel) select(cur.sel,cur.lead);};
+  document.getElementById("btnModel").onclick   = ()=>setView("model");
+  document.getElementById("btnBaseline").onclick= ()=>setView("baseline");
+  document.getElementById("btnTruth").onclick   = ()=>setView("truth");
+  document.getElementById("btnReset").onclick   = ()=>{
+    orbit.theta=-Math.PI/2; orbit.phi=0.95; orbit.r=46; orbit.target.set(0,4,0);
+  };
+
+  await loadCube(cur.init);
+  buildBand(cube ? cube.decision_band : [3,7]);
+  animate();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  applyCamera();
+  renderer.render(scene, camera);
+}
+
+boot().catch(e=>{
+  document.getElementById("status").textContent = "failed to start: "+e.message;
+  console.error(e);
+});
+</script>
+</body>
+</html>
