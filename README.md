@@ -96,11 +96,29 @@ works alone, is in [`src/fbd/labels/bust.py`](src/fbd/labels/bust.py).
 
 ## Quick start
 
+### Run it straight from a clone (no raw data download)
+
+The derived modelling frame and the trained model are committed to the repo, and
+the precomputed dashboard store ships as a release asset — so you can run the
+tests and the offline dashboard without downloading a single byte of raw NWP
+data. See [`DATA.md`](DATA.md) for exactly what lives where.
+
 ```bash
 pip install -r requirements.txt
+export PYTHONPATH=src                                  # Windows: set PYTHONPATH=src
+
+python -m pytest tests/ -q                             # 68 tests, all pass from the clone
+python scripts/fetch_release_artifacts.py              # downloads bulletins.sqlite (~60 MB), checksum-verified
+python -m uvicorn fbd.api.app:app --app-dir src --port 8912
 ```
 
-Then, in order (each step caches, so re-runs are cheap):
+Open <http://localhost:8912>. Prefer not to download the release asset? Regenerate
+it locally from the committed artifacts instead: `python scripts/generate_bulletins.py`.
+
+### Reproduce everything from the primary sources
+
+To rebuild the derived data from scratch, in order (each step caches, so re-runs
+are cheap):
 
 ```bash
 python -m fbd.regions.build          # 36 IMD subdivisions from 641 districts
@@ -258,7 +276,10 @@ Every deviation from the build spec, with evidence, is in
 
 ## Data
 
-All public, all anonymous access, none requiring registration.
+All public, all anonymous access, none requiring registration. **What is
+committed to this repo, what ships as a release asset, and what is reproduced
+from the primary sources is documented in full in [`DATA.md`](DATA.md).** The
+raw third-party data is deliberately not rehosted here.
 
 | Role | Source | Notes |
 |---|---|---|
