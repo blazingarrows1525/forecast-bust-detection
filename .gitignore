@@ -1,7 +1,21 @@
+# --- Data policy: see DATA.md for the full explanation ---
+
+# Raw third-party datasets are NOT redistributed in this repo (IMD gridded
+# rainfall, WeatherBench 2 HRES/ENS/ERA5, Census-2011 shapefiles). They are
+# external data under their own licences. Reproduce them locally with
+# scripts/fetch_*.py -- the repo pulls them straight from the primary sources.
 data/raw/
-data/interim/
-data/processed/
+
+# The precomputed bulletin store (~60 MB SQLite) ships as a GitHub Release
+# asset, not in git history, to keep the clone lean. Download it with
+# scripts/fetch_release_artifacts.py or from the repo's Releases page.
 data/artifacts/*.sqlite
+
+# NOTE: our own derived artifacts ARE committed (data/processed/dataset.parquet,
+# data/interim/*, data/artifacts/*.joblib|*.json|*.csv|*.npz) so the repo runs
+# and the tests pass without re-downloading the raw data.
+
+# --- Python / tooling ---
 __pycache__/
 *.pyc
 .pytest_cache/
