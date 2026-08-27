@@ -451,11 +451,11 @@ where `ŷ_i` is the sum of tree scores through sigmoid and `Ω(f) = γ · T + 0.
 
 | Parameter | Value | Rationale |
 |---|---|---|
-| `max_depth` | 4 | Shallow enough to keep TreeSHAP fast and interpretable, deep enough to capture interactions. Deeper trees started overfitting on the JJAS-only 2021 val set. |
-| `n_estimators` | 300 | Elbow of the val-loss curve. Beyond 400 marginal AUROC gain went below 0.001. |
-| `learning_rate` | 0.05 | Shrinkage, standard for the estimator count. |
-| `subsample` | 0.8 | Stochastic training. |
-| `colsample_bytree` | 0.8 | Column subsampling. |
+| `max_depth` | 5 | Shallow enough to keep TreeSHAP fast and interpretable, deep enough to capture interactions. Deeper trees started overfitting on the JJAS-only 2021 val set. |
+| `n_estimators` | 600 | Elbow of the val-loss curve, paired with the low learning rate below. |
+| `learning_rate` | 0.04 | Shrinkage; low rate is why the estimator count is high. |
+| `subsample` | 0.85 | Stochastic training. |
+| `colsample_bytree` | 0.75 | Column subsampling. |
 | `min_child_weight` | 20 | Prevents splits on tiny subpopulations that would fit the 4% rare class to noise. |
 | `reg_lambda` | 2.0 | L2 on leaf weights. |
 | `scale_pos_weight` | `n₀ / n₁ ≈ 25` | See below. |
@@ -881,7 +881,7 @@ Verified in-browser today: WebGL 2.0 context (`ANGLE/D3D11` on discrete NVIDIA),
 The dashboard must render with wifi unplugged. Verified in two ways:
 
 1. **Static scan:** `grep -rE 'src=|href=' web/*.html` — every match is either `/vendor/*` (locally vendored), `/api/*` (own service), or `/*.html` (own service). No `unpkg`, no `cdn.jsdelivr.net`, no Google Fonts, no map tile servers.
-2. **Runtime scan:** load `command.html` and `index.html` in a fresh browser, run `mcp__Claude_Browser__read_network_requests`, filter to hosts != `localhost`. Verified today: zero external requests across a full dashboard session.
+2. **Runtime scan:** load `command.html` and `index.html` in a fresh browser, inspect the browser network log, filtering to hosts != `localhost`. Verified today: zero external requests across a full dashboard session.
 
 If a future change introduces a CDN dependency, the second scan would catch it immediately. Could also be automated as a CI gate — planned but not yet implemented.
 

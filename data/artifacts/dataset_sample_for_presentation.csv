@@ -1,0 +1,9 @@
+subdivision_id,init_date,lead_day,valid_date,fcst_rain_mm,obs_rain_mm,error,lagged_spread,clim_bust_rate,regime_monsoon_depression,regime_entropy,bust,bust_type,split
+ASSAM_MEGHALAYA,2022-06-14,3,2022-06-16,110.541,99.406,11.135,9.031,0.036,0.032,0.815,0.0,none,test
+ASSAM_MEGHALAYA,2022-06-14,4,2022-06-17,83.69,115.641,-31.95,6.649,0.05,0.032,0.815,1.0,under_forecast,test
+ASSAM_MEGHALAYA,2022-06-14,5,2022-06-18,59.058,43.822,15.236,7.071,0.045,0.032,0.815,0.0,none,test
+WEST_RAJASTHAN,2022-07-01,3,2022-07-03,8.275,7.571,0.704,11.016,0.033,0.082,0.646,0.0,none,test
+WEST_RAJASTHAN,2022-07-01,4,2022-07-04,3.452,6.503,-3.051,0.894,0.045,0.082,0.646,0.0,none,test
+ODISHA,2022-06-17,8,2022-06-24,37.066,5.477,31.589,11.371,0.073,0.036,0.934,1.0,over_forecast,test
+ODISHA,2022-06-27,8,2022-07-04,44.368,12.148,32.22,12.137,0.062,0.052,0.934,1.0,over_forecast,test
+KONKAN_GOA,2022-06-26,10,2022-07-05,23.847,129.612,-105.765,,0.062,0.094,0.906,1.0,under_forecast,test

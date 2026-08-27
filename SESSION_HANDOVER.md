@@ -6,7 +6,7 @@
 **Handover written:** 23 August 2026, late afternoon IST
 **Last verified commit:** `d66d188` — 62/62 tests, container healthy, offline default intact
 
-This file is the single briefing that lets a new Claude Code / Antigravity window continue this project without re-reading transcripts. It contains:
+This file is the single briefing that lets a new contributor continue this project without re-reading earlier working notes. It contains:
 
 1. **Copy-paste prompts** for opening a new window (§0).
 2. What the project is and what has been built (§1–§5).
@@ -25,27 +25,41 @@ Read alongside (all in repo root):
 
 ---
 
-## 0. Copy-paste prompts
+## 0. Onboarding checklist
 
-### 0.1 Kickoff prompt for a fresh session
+### 0.1 Starting fresh
 
-Paste this into a new Claude Code window opened in `C:\Users\ASUS\Desktop\sih`:
+Open the project and read, in order: this file end to end, then `LOGIC.md`, the
+last four entries of `DECISIONS.md` (D-015 … D-018), and `PROJECT_BLUEPRINT.md`
+§9A. Then confirm the documented state matches reality:
 
-> Open `SESSION_HANDOVER.md` in this repo and read it end-to-end before doing anything else. Then read `LOGIC.md`, the last three entries of `DECISIONS.md` (D-015, D-016, D-017), and `PROJECT_BLUEPRINT.md` §9A. After that, run `git log --oneline | head -10`, `PYTHONPATH=src python -m pytest tests/ -q`, and `docker ps --filter name=forecast-bust-detection` to check the actual state matches the handover.
->
-> When you are done reading, tell me: (a) how many tests pass, (b) whether the container is running, (c) which unchecked item in §7's "What's left" table you would tackle first and why, and (d) any drift between the handover file and what you actually see. Do NOT start work until I confirm.
+```bash
+git log --oneline | head -10
+PYTHONPATH=src python -m pytest tests/ -q
+docker ps --filter name=forecast-bust-detection
+```
 
-### 0.2 Resume prompt (if the session was interrupted)
+Check four things before starting work: how many tests pass, whether the
+container is running, which unchecked item in §7's "What's left" table is the
+highest priority, and any drift between this file and what you actually see.
 
-> Same repo, same handover. Read `SESSION_HANDOVER.md` §7 (the checklist) and `git log --oneline | head -8` to see how far we got. Then continue from the next unchecked item. Follow the LOGIC.md contract; if anything conflicts, stop and flag it rather than proceeding.
+### 0.2 Resuming an interrupted session
 
-### 0.3 If you want to continue the hardening walkthrough specifically
+Read §7 (the checklist) and `git log --oneline | head -8` to see how far the
+work got, then continue from the next unchecked item. Follow the `LOGIC.md`
+contract; if anything conflicts, stop and flag it rather than proceeding.
 
-> Continue `AWS_GUARDRAILS_IMPLEMENTATION.md` from Step 7 (explanation-stability check). Steps 1–6 are done and committed at `d66d188`. Read `SESSION_HANDOVER.md` §7 first for the exact status of each step, then work through the rest in order. Every 👤 step: stop, tell me exactly what to do and what result to expect, wait for me to confirm.
+### 0.3 Continuing the hardening walkthrough
 
-### 0.4 If you want to focus on SIH presentation instead of more code
+`AWS_GUARDRAILS_IMPLEMENTATION.md` resumes at Step 7 (explanation-stability
+check). Steps 1–6 are done and committed at `d66d188`. Read §7 below for the
+exact status of each step, then work through the rest in order.
 
-> Read `SESSION_HANDOVER.md` and `PROJECT_BLUEPRINT.md` §9 (SIH strategy). Help me build the 90-second demo script and the judge-defence answers. Prioritise the "novelty framing that survives a hostile judge" and the "corrected headline claim" — those are the two lines I need to be able to say cold.
+### 0.4 Focusing on the SIH presentation instead
+
+Read `PROJECT_BLUEPRINT.md` §9 (SIH strategy) alongside this file. The two
+lines that must be deliverable cold are the novelty framing that survives a
+hostile judge, and the corrected headline claim.
 
 ---
 
@@ -297,7 +311,7 @@ git switch --detach <sha>            # look at the old state without losing anyt
 | 11 | 👤 Push to GitHub | ⏳ Waiting on you | Repo has no remote. |
 | 12 | 👤 Create AWS account + $1 budget alarm | ⏳ Waiting on you | |
 | 13 | 👤 Install/configure AWS CLI | ⏳ Waiting on you | This machine has NO AWS CLI, NO boto3, NO credentials (D-015). |
-| 14 | 🤖+👤 S3 backup | ⏳ Waiting on you | Claude will give commands. |
+| 14 | 🤖+👤 S3 backup | ⏳ Waiting on you | Commands are documented in §8. |
 | 15 | 👤 Docker Hub account | ⏳ Waiting on you | |
 | 16 | 🤖+👤 Push image to Docker Hub | ⏳ Waiting on you | Local image `fbd:0.1.0` builds cleanly. |
 | 17 | 👤 Launch EC2 t2.micro | ⏳ Waiting on you | |
@@ -360,7 +374,7 @@ curl http://localhost:8912/api/overrides
    ```
 3. Open the Actions tab on GitHub. **Expect:** a workflow run in progress, then a green checkmark within ~3 minutes.
 
-If red: read the failure, share the log, ask Claude to fix.
+If red: read the failure and fix it before continuing.
 
 ### 8.3 AWS account + budget alarm (Step 12, 15 minutes)
 

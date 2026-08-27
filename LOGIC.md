@@ -118,7 +118,7 @@ Where:
 ## 6. Model Architecture & Family Selection
 
 ### 6.1 Model Choice: Gradient Boosted Trees (XGBoost) + Isotonic Calibration
-- **Architecture:** `XGBClassifier` with `max_depth=4`, `n_estimators=300`, `learning_rate=0.05`, `subsample=0.8`, `colsample_bytree=0.8`, `scale_pos_weight` adjusted for class imbalance (~1:25).
+- **Architecture:** `XGBClassifier` with `max_depth=5`, `n_estimators=600`, `learning_rate=0.04`, `subsample=0.85`, `colsample_bytree=0.75`, `min_child_weight=20`, `reg_lambda=2.0`, `tree_method="hist"`, and `scale_pos_weight` set to the class ratio (~23.6 on the current training split). These are the values in `src/fbd/model/train.py` and stored in `bust_model.joblib`; the code is authoritative if this line ever drifts again.
 - **Post-Hoc Probability Calibration:** Isotonic Regression fitted strictly on the 2021 Validation year.
 - **Why NOT Deep Learning / CNN / Transformers:**
   1. Tabular regime with $\sim 10^4$ rows per lead where tree ensembles consistently outperform neural approaches.

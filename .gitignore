@@ -22,3 +22,7 @@ __pycache__/
 *.log
 dist/
 offline-demo/
+
+# Notebook scratch
+.ipynb_checkpoints/
+Untitled*.ipynb

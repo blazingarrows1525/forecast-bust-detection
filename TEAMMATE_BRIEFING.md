@@ -2,7 +2,7 @@
 
 **Read this file end-to-end before touching the deck.** It replaces every other document. `LOGIC.md`, `DECISIONS.md`, `HANDOFF.md`, `SESSION_HANDOVER.md`, `PROJECT_BLUEPRINT.md` and `README.md` are still authoritative for the code — this file is written for a human who was not in the build, needs to defend it in front of a jury, and must be able to answer any question in under 30 seconds.
 
-Written by the AI pair-programmer on 24 Aug 2026 for handover to the teammate presenting on 25 Aug 2026.
+Prepared 24 Aug 2026 for handover to the teammate presenting on 25 Aug 2026.
 
 ---
 

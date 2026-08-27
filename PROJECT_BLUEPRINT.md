@@ -4,7 +4,7 @@
 **Author:** Harsh Trivedi (trivediharsh1505@gmail.com), SRMIST Kattankulathur
 **Repository:** `C:\Users\ASUS\Desktop\sih`
 **Session snapshot:** 15:45 IST, 23 August 2026
-**Purpose of this file:** a single self-contained brief that lets a new Claude Code / Antigravity session — or a teammate, or you three weeks from now — pick up the project without re-reading the earlier transcript, and that spells out the concrete moves that make this an SIH-winning entry rather than just a working prototype.
+**Purpose of this file:** a single self-contained brief that lets a new contributor — or a teammate, or you three weeks from now — pick up the project without re-reading the earlier transcript, and that spells out the concrete moves that make this an SIH-winning entry rather than just a working prototype.
 
 Read alongside (all three exist in the repo root):
 - **LOGIC.md** — the LOCKED engineering contract and mathematical spec.

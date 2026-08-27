@@ -1,12 +1,11 @@
 # HANDOFF — Forecast Bust Detection (SIH26079)
 
-**⚠️ CRITICAL INSTRUCTIONS FOR CLAUDE CODE (OR ANY AGENT) STARTING A NEW SESSION ⚠️**
-Welcome. You are continuing a highly mature, benchmark-beating ML project for the Indian Monsoon.
-Before you write any code, execute any commands, or answer the user, you MUST do the following:
-1. **Acknowledge this state:** We have expanded into GenAI, MLOps, CI, and Terraform, but there are strict boundaries. Read the Verification Ledger (Section 3).
-2. **Respect the Contracts:** `LOGIC.md` is our locked engineering contract. Do not silently deviate from it. `DECISIONS.md` contains our decision log (D-001 through D-017). `PROJECT_BLUEPRINT.md` is the long-form strategy.
-3. **Run the Sanity Check:** Immediately run `PYTHONPATH=src pytest tests/ -v` and `PYTHONPATH=src python scripts/monitor_drift.py` to verify the environment is green.
-4. **Present Next Steps:** Ask the user which task from Section 5 they want to tackle next.
+**⚠️ READ THIS BEFORE STARTING WORK ON THIS REPOSITORY ⚠️**
+This is a mature, benchmark-beating ML project for the Indian monsoon. Before writing any code:
+1. **Understand the current state:** the project spans GenAI, MLOps, CI and Terraform, but with strict boundaries. Read the Verification Ledger (Section 3).
+2. **Respect the contracts:** `LOGIC.md` is the locked engineering contract — do not silently deviate from it. `DECISIONS.md` holds the decision log (D-001 through D-018). `PROJECT_BLUEPRINT.md` is the long-form strategy.
+3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
+4. **Pick the next task** from Section 5.
 
 ---
 
