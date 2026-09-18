@@ -1,0 +1,156 @@
+# Build and publish the serving image to GitHub Container Registry.
+#
+# Cost: zero. Actions minutes are unmetered for public repositories, and GHCR
+# storage and egress are free for public packages. That is the whole reason
+# this pipeline targets GHCR rather than a cloud vendor registry (D-021).
+#
+# The image is the same artifact the offline demo runs, so publishing it gives
+# anyone a one-command way to reproduce the dashboard:
+#   docker run -p 8912:8912 ghcr.io/<owner>/forecast-bust-detection:latest
+
+name: Publish image
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+    paths:
+      - "Dockerfile"
+      - "requirements-serve.txt"
+      - "src/**"
+      - "web/**"
+      - "config/**"
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build, verify, push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The image bakes in precomputed artifacts. Fail loudly and early if the
+      # ones the Dockerfile COPYs are absent, rather than shipping a container
+      # that 503s on its first request.
+      - name: Required build artifacts are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            data/interim/regions.geojson \
+            data/interim/centroids.json \
+            data/artifacts/results.json
+          do
+            if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Run: python -m fbd.regions.build && python scripts/precompute_geo_assets.py"
+            exit 1
+          fi
+          echo "all required artifacts present"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Load into the local daemon first so the image can be smoke-tested
+      # before anything is published. Pushing an image that cannot boot is
+      # worse than not publishing at all.
+      - name: Build (local, for verification)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: fbd:verify
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Report image size
+        run: |
+          size=$(docker image inspect fbd:verify --format='{{.Size}}')
+          echo "image size: $(numfmt --to=iec "$size")"
+          echo "IMAGE_SIZE=$(numfmt --to=iec "$size")" >> "$GITHUB_ENV"
+          # A serving image that needs no geo stack and no model should stay
+          # well under half a gigabyte; a large jump means something heavy
+          # crept back into requirements-serve.txt.
+          if [ "$size" -gt 600000000 ]; then
+            echo "::warning::image exceeded 600 MB - check requirements-serve.txt"
+          fi
+
+      - name: Smoke test the container
+        run: |
+          set -euo pipefail
+          docker run -d --name fbd-smoke -p 8912:8912 fbd:verify
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8912/api/health >/dev/null 2>&1; then
+              echo "health OK after ${i}s"; break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "container never became healthy"; docker logs fbd-smoke; exit 1
+            fi
+            sleep 1
+          done
+          # The geo endpoints must work without geopandas in the image (D-020).
+          features=$(curl -fsS http://localhost:8912/api/regions | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["features"]))')
+          echo "/api/regions returned $features features"
+          [ "$features" -ge 30 ] || { echo "too few regions"; exit 1; }
+          # Serving must not import the geo stack at all.
+          if docker exec fbd-smoke python -c "import geopandas" 2>/dev/null; then
+            echo "::error::geopandas is present in the serving image; D-020 regression"
+            exit 1
+          fi
+          echo "confirmed: geo stack absent, geo endpoints still serve"
+          docker rm -f fbd-smoke
+
+      - name: Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image published"
+            echo ""
+            echo "- size: \`${IMAGE_SIZE}\`"
+            echo "- tags:"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo ""
+            echo "Run it:"
+            echo '```bash'
+            echo "docker run -p 8912:8912 ${REGISTRY}/${IMAGE_NAME}:latest"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

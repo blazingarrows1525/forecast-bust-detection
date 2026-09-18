@@ -37,6 +37,36 @@ CLAUDE_MODEL_CHEAP = "claude-haiku-4-5"
 
 DEFAULT_REGION = "us-east-1"
 
+# Local model served by Ollama.  3B is deliberate: the assistant's job is
+# narration over numbers the pipeline already computed and routing read-only
+# tool calls, not open-ended reasoning.  It fits in ~2 GB of VRAM and keeps the
+# whole loop inside the forecaster's window.
+LOCAL_MODEL = "llama3.2:3b"
+
+# Which backend serves the assistant.  "local" is the default because it needs
+# no account, no key and no spend, and because it preserves the air-gap
+# property the rest of the system is built around (D-019).
+DEFAULT_PROVIDER = "local"
+
+
+@dataclass(frozen=True)
+class LocalSettings:
+    """How to reach a local Ollama model.  No credentials, no cost."""
+
+    host: str = field(
+        default_factory=lambda: os.environ.get("FBD_OLLAMA_HOST", "http://localhost:11434")
+    )
+    model: str = field(
+        default_factory=lambda: os.environ.get("FBD_LOCAL_MODEL", LOCAL_MODEL)
+    )
+    max_tokens: int = 1024
+    timeout: float = 120.0
+
+    @property
+    def model_id(self) -> str:
+        """Local tags carry no vendor prefix."""
+        return self.model
+
 
 @dataclass(frozen=True)
 class BedrockSettings:
@@ -78,7 +108,19 @@ class GenAISettings:
     # should never be set False outside a guardrail unit test.
     require_guardrails: bool = True
 
+    # Which backend serves the assistant: "local" (Ollama, default) or
+    # "bedrock" (managed cloud, needs credentials and funding).
+    provider: str = field(
+        default_factory=lambda: os.environ.get("FBD_GENAI_PROVIDER", DEFAULT_PROVIDER)
+    )
+
     bedrock: BedrockSettings = field(default_factory=BedrockSettings)
+    local: LocalSettings = field(default_factory=LocalSettings)
+
+    @property
+    def backend(self):
+        """Settings for whichever provider is selected."""
+        return self.bedrock if self.provider == "bedrock" else self.local
 
     def active(self) -> bool:
         """True only if the master switch and at least one capability are on."""
@@ -93,8 +135,11 @@ class GenAISettings:
             "tool_calling": self.tool_calling,
             "rag": self.rag,
             "guardrails_required": self.require_guardrails,
-            "model": self.bedrock.model if self.enabled else None,
-            "region": self.bedrock.region if self.enabled else None,
+            "provider": self.provider if self.enabled else None,
+            "model": self.backend.model if self.enabled else None,
+            # Only a managed cloud backend has a region; a local model does not.
+            "region": self.bedrock.region if (self.enabled and self.provider == "bedrock") else None,
+            "offline_capable": self.provider == "local",
             "offline_default": not self.enabled,
         }
 

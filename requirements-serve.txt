@@ -1,10 +1,21 @@
 # Minimal serving dependencies for the offline demo image.
+#
+# Deliberately does NOT include geopandas / shapely / pyproj (D-020). Those
+# exist only to read the subdivision GeoPackage, and the two endpoints that
+# needed them (/api/regions and the 3-D risk-cube centroids) now read
+# precomputed JSON generated at build time by
+# scripts/precompute_geo_assets.py. Measured saving: geopandas 2.9 MB +
+# pyogrio 20.9 MB + pyproj 18.0 MB + shapely 2.3 MB = ~44 MB of wheels,
+# including the bundled GDAL/GEOS/PROJ native code, off every image layer and
+# every pull -- for output that was byte-identical on every request. It also
+# removes that native surface from the container entirely.
+#
+# It also does not include the ingestion/training stack (zarr, gcsfs, dask,
+# xgboost, shap): serving reads precomputed SQLite bulletins and never runs a
+# model.
 numpy==1.26.2
 pandas==2.1.4
 pyarrow==23.0.1
-geopandas==1.1.4
-shapely==2.1.2
-pyproj==3.7.1
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
 pydantic>=2.7
