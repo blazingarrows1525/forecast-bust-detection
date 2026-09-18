@@ -120,7 +120,17 @@ def run(
     if client is None:
         from fbd.genai.client import build_client
 
-        client = build_client(settings.bedrock)
+        # Pass the whole settings object, not settings.bedrock.  Handing the
+        # bare cloud settings down here made build_client take its
+        # backwards-compatibility branch and construct the managed backend
+        # unconditionally, so FBD_GENAI_PROVIDER=local never reached Ollama on
+        # the only path that matters -- a real request.  D-019 addendum 2.
+        client = build_client(settings)
+
+    # Model id, context budget and effort belong to whichever backend was
+    # selected; reading them off settings.bedrock would send a cloud model id
+    # to a local server.
+    backend = settings.backend
 
     messages: list[dict] = [{"role": "user", "content": question}]
     grounded: list[float] = []
@@ -129,15 +139,22 @@ def run(
 
     while turns < MAX_TURNS:
         turns += 1
-        response = client.messages.create(
-            model=settings.bedrock.model_id,
-            max_tokens=settings.bedrock.max_tokens,
-            system=SYSTEM_PROMPT,
-            tools=tools.TOOL_SCHEMAS if settings.tool_calling else [],
-            thinking={"type": "adaptive"},
-            output_config={"effort": settings.bedrock.effort},
-            messages=messages,
-        )
+        request = {
+            "model": backend.model_id,
+            "max_tokens": backend.max_tokens,
+            "system": SYSTEM_PROMPT,
+            "tools": tools.TOOL_SCHEMAS if settings.tool_calling else [],
+            "messages": messages,
+        }
+        # Extended thinking and a reasoning-effort budget are Messages-API
+        # concepts with no local analogue.  The local shim accepts and ignores
+        # them, but sending them would be a claim about the request that is not
+        # true, so only the backend that honours them receives them.
+        if backend is settings.bedrock:
+            request["thinking"] = {"type": "adaptive"}
+            request["output_config"] = {"effort": backend.effort}
+
+        response = client.messages.create(**request)
 
         if getattr(response, "stop_reason", None) == "refusal":
             details = getattr(response, "stop_details", None)

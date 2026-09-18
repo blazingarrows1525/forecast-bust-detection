@@ -118,9 +118,29 @@ class GenAISettings:
     local: LocalSettings = field(default_factory=LocalSettings)
 
     @property
+    def provider_supported(self) -> bool:
+        """False if ``provider`` names a backend this build cannot construct.
+
+        Kept separate from ``backend`` because the health path must never
+        raise: an operator who mistypes FBD_GENAI_PROVIDER should see the
+        mistake reported on /api/health, not a stack trace, and should not be
+        shown a fallback backend as though it were the one they asked for.
+        """
+        from fbd.genai.providers import is_supported
+
+        return is_supported(self.provider)
+
+    @property
     def backend(self):
-        """Settings for whichever provider is selected."""
-        return self.bedrock if self.provider == "bedrock" else self.local
+        """Settings for whichever provider is selected.
+
+        An unrecognised name falls back to the local shape so callers have
+        something to read limits off; ``providers.build`` is what rejects it,
+        loudly, before any request is made.
+        """
+        from fbd.genai.providers import normalise
+
+        return self.bedrock if normalise(self.provider) == "bedrock" else self.local
 
     def active(self) -> bool:
         """True only if the master switch and at least one capability are on."""
@@ -136,10 +156,13 @@ class GenAISettings:
             "rag": self.rag,
             "guardrails_required": self.require_guardrails,
             "provider": self.provider if self.enabled else None,
+            # Reported verbatim so a typo in FBD_GENAI_PROVIDER is visible here
+            # rather than silently presenting the fallback as the real backend.
+            "provider_supported": self.provider_supported if self.enabled else None,
             "model": self.backend.model if self.enabled else None,
             # Only a managed cloud backend has a region; a local model does not.
-            "region": self.bedrock.region if (self.enabled and self.provider == "bedrock") else None,
-            "offline_capable": self.provider == "local",
+            "region": self.bedrock.region if (self.enabled and self.backend is self.bedrock) else None,
+            "offline_capable": self.provider_supported and self.backend is self.local,
             "offline_default": not self.enabled,
         }
 

@@ -147,12 +147,22 @@ def provider_availability(settings=None):
     path); the local backend does a 5-second localhost probe, which is cheap
     and tells the operator something actionable.
     """
+    from fbd.genai.providers import SUPPORTED, is_supported, normalise
     from fbd.genai.settings import load
 
     settings = settings or load()
     provider = getattr(settings, "provider", "local")
 
-    if provider == "bedrock":
+    if not is_supported(provider):
+        return Availability(
+            ok=False,
+            reason=(
+                f"FBD_GENAI_PROVIDER={provider!r} is not a backend this build "
+                f"can construct; expected one of: {', '.join(SUPPORTED)}."
+            ),
+        )
+
+    if normalise(provider) == "bedrock":
         check = availability()
         return Availability(ok=check.ok, reason=check.reason, sdk_installed=check.sdk_installed)
 

@@ -27,7 +27,10 @@ Providers
 ``local``    Ollama on localhost. No account, no key, no spend, works offline.
              The default, because it preserves the air-gap property.
 ``bedrock``  Managed cloud backend (D-015). Requires credentials and funding.
-``none``     Explicitly disabled; ``availability()`` explains why.
+
+There is deliberately no third "disabled" provider.  ``FBD_GENAI_ENABLED=0`` is
+already the off switch, it is the default, and it is the one CI asserts on
+(D-015).  A second way to say "off" would be a second thing to get wrong.
 """
 from __future__ import annotations
 
@@ -71,10 +74,26 @@ class ProviderError(RuntimeError):
     """Raised when a backend is reachable but returned something unusable."""
 
 
+#: Provider names ``build`` will accept.  ``ollama`` is an alias for ``local``.
+SUPPORTED = ("local", "bedrock")
+_ALIASES = {"ollama": "local"}
+
+
+def normalise(provider: str) -> str:
+    """Canonical provider name, or the raw value if it is not one we serve."""
+    name = (provider or "").strip().lower()
+    return _ALIASES.get(name, name)
+
+
+def is_supported(provider: str) -> bool:
+    """True if ``build`` would accept this provider name."""
+    return normalise(provider) in SUPPORTED
+
+
 def build(provider: str, settings) -> Any:
     """Return a client exposing ``.messages.create(...)`` for the named provider."""
-    name = (provider or "").strip().lower()
-    if name in ("local", "ollama"):
+    name = normalise(provider)
+    if name == "local":
         from fbd.genai.providers.ollama import OllamaClient
 
         return OllamaClient(settings)
@@ -83,5 +102,7 @@ def build(provider: str, settings) -> Any:
 
         return build_bedrock_client(settings)
     raise ProviderError(
-        f"unknown GenAI provider {provider!r}; expected one of: local, bedrock, none"
+        f"unknown GenAI provider {provider!r}; expected one of: "
+        f"{', '.join(SUPPORTED)}. To turn the layer off, unset "
+        f"FBD_GENAI_ENABLED (the default) rather than naming a provider."
     )

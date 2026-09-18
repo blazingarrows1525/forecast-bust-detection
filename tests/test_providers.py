@@ -230,3 +230,105 @@ def test_guardrails_still_block_an_invented_number_through_the_local_provider(mo
     result = agent.run("Give me a probability", settings=settings, client=c)
     assert result.ok is False
     assert result.violations
+
+
+# ------------------------------------------- backend selection on the real path
+# These are the tests that were missing. Everything above stubs the transport
+# and injects a client, which proved the translation worked but said nothing
+# about whether a real request ever reaches it. It did not: agent.run passed
+# settings.bedrock to build_client, which took its backwards-compatibility
+# branch and constructed the cloud backend no matter what FBD_GENAI_PROVIDER
+# said. The abstraction was correct and unreachable. (D-019 addendum 2.)
+def test_build_client_honours_the_configured_provider():
+    from fbd.genai.client import build_client
+
+    client = build_client(GenAISettings(enabled=True, provider="local"))
+    assert isinstance(client, O.OllamaClient)
+
+
+def test_agent_default_path_constructs_the_local_provider(monkeypatch):
+    """No injected client: this is the path a real request takes."""
+    from fbd.genai import agent
+
+    seen = {}
+
+    def fake_post(url, payload, timeout):
+        seen["url"] = url
+        seen["model"] = payload["model"]
+        return {"message": {"content": "Nothing unusual in the queue."}}
+
+    monkeypatch.setattr(O, "_post", fake_post)
+    settings = GenAISettings(enabled=True, narration=True, tool_calling=False, provider="local")
+
+    result = agent.run("anything to review?", settings=settings)
+
+    assert result.ok is True
+    assert seen["url"].startswith("http://localhost:11434"), "must reach Ollama, not AWS"
+    assert seen["model"] == settings.local.model, "must send the local model tag"
+
+
+def test_agent_sends_the_backend_model_not_the_cloud_one(monkeypatch):
+    """A local server given a cloud model id 404s; the ids are not interchangeable."""
+    from fbd.genai import agent
+
+    sent = {}
+
+    class _Recorder:
+        class messages:
+            @staticmethod
+            def create(**kwargs):
+                sent.update(kwargs)
+                return providers.Response(content=[TextBlock(text="ok")])
+
+    settings = GenAISettings(enabled=True, narration=True, tool_calling=False, provider="local")
+    agent.run("hello", settings=settings, client=_Recorder())
+
+    assert sent["model"] == settings.local.model_id
+    assert "anthropic." not in sent["model"]
+    # Messages-API-only knobs must not be claimed of a backend that ignores them.
+    assert "thinking" not in sent
+    assert "output_config" not in sent
+
+
+def test_agent_sends_cloud_only_knobs_to_the_cloud_backend(monkeypatch):
+    from fbd.genai import agent
+
+    sent = {}
+
+    class _Recorder:
+        class messages:
+            @staticmethod
+            def create(**kwargs):
+                sent.update(kwargs)
+                return providers.Response(content=[TextBlock(text="ok")])
+
+    settings = GenAISettings(enabled=True, narration=True, tool_calling=False, provider="bedrock")
+    agent.run("hello", settings=settings, client=_Recorder())
+
+    assert sent["model"] == settings.bedrock.model_id
+    assert sent["output_config"] == {"effort": settings.bedrock.effort}
+
+
+def test_an_unsupported_provider_is_reported_not_silently_downgraded():
+    """`none` was advertised in the docstring but never implemented."""
+    from fbd.genai.client import provider_availability
+
+    settings = GenAISettings(enabled=True, provider="none")
+    assert settings.provider_supported is False
+    assert settings.describe()["provider_supported"] is False
+    assert settings.describe()["offline_capable"] is False
+
+    check = provider_availability(settings)
+    assert check.ok is False
+    assert "not a backend this build can construct" in check.reason
+
+
+def test_ollama_host_must_be_an_http_url(monkeypatch):
+    """FBD_OLLAMA_HOST reaches urlopen, which also speaks file: and ftp:."""
+    for bad in ("file:///etc/passwd", "ftp://example.invalid/x", "localhost:11434"):
+        with pytest.raises(ProviderError, match="must be an http"):
+            O._require_http_url(bad)
+
+    ok, reason = O.OllamaClient(LocalSettings(host="file:///etc")).availability()
+    assert ok is False
+    assert "http(s) URL" in reason

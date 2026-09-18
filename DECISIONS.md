@@ -811,3 +811,56 @@ prompts of being switched on — and that the existing guardrails, which were
 designed for numbers, did not see it. The deterministic explanation path was
 right and the generative one was wrong, which is an argument for the
 architecture the project already had.
+
+### D-019 addendum 2 — the provider abstraction was correct and unreachable
+
+Found in review of PR #2, not by the test suite. Worth recording in full,
+because the failure mode is more instructive than the fix.
+
+`agent.run` is the only path a real request takes. It called:
+
+```python
+client = build_client(settings.bedrock)      # not settings
+```
+
+`build_client` accepts a bare `BedrockSettings` for backwards compatibility and
+infers the provider from the argument's *type*. Handing it `settings.bedrock`
+therefore selected the managed cloud backend unconditionally — so
+`FBD_GENAI_PROVIDER=local` was honoured by `settings.describe()`, by
+`/api/health`, by every test in `tests/test_providers.py`, and by nothing that
+actually issued a request. The same function then read `settings.bedrock.model_id`
+and `settings.bedrock.max_tokens`, so even a correctly-built local client would
+have been handed a cloud model id that a local server answers 404 to.
+
+**Why 25 passing provider tests did not catch it.** Every one of them either
+called the translation layer directly or passed `client=` into `agent.run`. The
+injected client is the thing under test in a guardrail test and the thing that
+must *not* be injected in a wiring test, and the suite only ever did the first.
+The D-019 claim "the assistant now runs with no credentials and no spend" was
+therefore true of the code and false of the product.
+
+**Fixed.** `agent.run` passes the whole settings object and reads its limits
+off `settings.backend`. Extended thinking and the reasoning-effort budget are
+sent only to the backend that honours them, rather than relying on the local
+shim to ignore them — a request that silently discards two of its parameters is
+a misleading request. Three tests now exercise the un-injected path, and one of
+them was confirmed to fail against the previous line.
+
+**Also corrected in the same review.**
+
+| Finding | Effect if unfixed |
+|---|---|
+| `/api/assistant/status` called the Bedrock-only `availability()` | Operator told to fix AWS credentials on a build whose backend is a local model, contradicting `describe()` in the same response |
+| `none` advertised as a provider but never implemented | A documented value that raises; removed — `FBD_GENAI_ENABLED=0` is already the off switch, and it is the one CI asserts on |
+| `FBD_OLLAMA_HOST` reached `urlopen` unvalidated | Operator-controlled input into a URL opener that also speaks `file:` and `ftp:`; scheme is now checked at the boundary (this is what bandit B310 was flagging, and the reason the suppression is now honest rather than a silencer) |
+| Image smoke test ran without `bulletins.sqlite` | `/api/health` answers 200 with `status: unavailable`, so the test passed on a container that could not serve its own dashboard. The workflow now fetches the checksum-verified release asset and asserts the row count |
+| `/app/data` left root-owned before `USER fbd` | `fbd.config` creates the data tree at import, so the container would have died with `PermissionError` before its first request — a defect that only appears at runtime as the non-root user, which no build-time check would have caught |
+| Publish trigger omitted `data/**`, `scripts/replay_demo.py` | Updating a bulletin would leave GHCR serving a stale image still tagged `:latest` |
+| CI installed no `httpx`, and never ran `tests/test_providers.py` | Seven API tests errored at import in CI while passing locally; the provider suite was not run at all |
+
+**The pattern worth naming.** Every one of these is the same class of defect:
+something asserted in a document or a settings object that nothing executable
+ever checked. The local-provider wiring, the status endpoint, the `none`
+provider, the smoke test and the container's own filesystem permissions were
+all *described* correctly and *verified* nowhere. That is the same finding as
+the narration failure above, arriving by a different route.

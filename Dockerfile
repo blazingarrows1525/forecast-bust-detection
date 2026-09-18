@@ -55,6 +55,16 @@ COPY --chown=fbd:fbd data/artifacts/ /app/data/artifacts/
 COPY --chown=fbd:fbd data/interim/regions.geojson /app/data/interim/
 COPY --chown=fbd:fbd data/interim/centroids.json /app/data/interim/
 
+# fbd.config creates the full data tree at import time (raw/, processed/,
+# raw/imd, raw/shapes, raw/wb2 -- none of which are COPYd, because serving
+# needs none of them).  --chown above only covers the directories COPY itself
+# created, so /app/data and the absent subdirectories would be root-owned and
+# the first import as `fbd` would die with PermissionError before the app ever
+# answered /api/health.  Create them here, owned by the runtime user.
+RUN mkdir -p /app/data/raw/imd /app/data/raw/shapes /app/data/raw/wb2 \
+             /app/data/interim /app/data/processed /app/data/artifacts \
+ && chown -R fbd:fbd /app/data
+
 USER fbd
 
 EXPOSE 8912

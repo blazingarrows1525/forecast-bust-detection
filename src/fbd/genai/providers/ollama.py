@@ -28,19 +28,39 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 
 from fbd.genai.providers import ProviderError, Response, TextBlock, ToolUseBlock
 
+#: urlopen will happily open file:, ftp: and custom schemes.  The host here
+#: comes from FBD_OLLAMA_HOST, so it is operator-controlled input reaching a
+#: URL opener -- exactly the case bandit B310 exists to catch.  Restricting the
+#: scheme at the boundary is what makes the suppressions below honest.
+_ALLOWED_SCHEMES = ("http", "https")
+
+
+def _require_http_url(url: str) -> str:
+    """Return ``url`` if it is an http(s) URL with a host; raise if it is not."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme not in _ALLOWED_SCHEMES or not parts.netloc:
+        scheme = parts.scheme or "none"
+        raise ProviderError(
+            f"refusing to open {url!r}: the Ollama host must be an http(s) URL "
+            f"with a hostname (got scheme {scheme!r}). Check FBD_OLLAMA_HOST."
+        )
+    return url
+
 
 def _post(url: str, payload: dict, timeout: float) -> dict:
+    _require_http_url(url)
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url, data=body, headers={"Content-Type": "application/json"}
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - localhost
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 - scheme checked by _require_http_url
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")[:300]
@@ -210,8 +230,9 @@ class OllamaClient:
     def list_models(self) -> list[str]:
         """Model tags currently pulled locally. Empty list if unreachable."""
         try:
-            req = urllib.request.Request(f"{self.host}/api/tags")
-            with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310 - localhost
+            url = _require_http_url(f"{self.host}/api/tags")
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310 - scheme checked by _require_http_url
                 data = json.loads(resp.read().decode("utf-8"))
             return [m.get("name", "") for m in data.get("models", [])]
         except Exception:  # noqa: BLE001 - availability probe must never raise
@@ -219,6 +240,15 @@ class OllamaClient:
 
     def availability(self) -> tuple[bool, str]:
         """Can a call actually succeed right now, and if not, why not."""
+        # A malformed FBD_OLLAMA_HOST is a different problem from a stopped
+        # server, and "not reachable" would send the operator hunting the
+        # wrong one.  This runs on the health path, so it reports rather than
+        # raises.
+        try:
+            _require_http_url(f"{self.host}/api/tags")
+        except ProviderError as exc:
+            return False, str(exc)
+
         models = self.list_models()
         if not models:
             return False, (

@@ -7,10 +7,10 @@ binding:
 * the numeric-grounding invariant -- an LLM must not be able to put a number in
   front of a duty forecaster that the calibrated model did not produce.
 
-The agent loop is exercised against a fake Bedrock client. That is not a
-convenience: this machine has no AWS credentials (D-015 verification
-boundary), so a fake is the only way the loop can be tested at all. It also
-makes the guardrail test deterministic, which a live model would not be.
+The agent loop is exercised against a fake client. That is not a convenience:
+the guardrail tests have to be deterministic, which a live model is not. The
+provider translation itself is covered separately in test_providers.py, and the
+backend-selection path is covered here by the 503 tests below.
 """
 from __future__ import annotations
 
@@ -154,7 +154,13 @@ def test_injection_in_the_question_stops_the_run():
 # --------------------------------------------------------------------------
 # The agent loop
 # --------------------------------------------------------------------------
-def test_agent_uses_a_tool_then_answers_from_grounded_numbers():
+def test_agent_uses_a_tool_then_answers_from_grounded_numbers(bulletin_store):
+    """Tool results must flow into the set the numeric guardrail checks against.
+
+    Runs against the fixture store rather than the real 63 MB artifact, which
+    is gitignored: the assertion below is about the agent loop's plumbing, not
+    about whether a developer happens to have generated the bulletins.
+    """
     client = FakeClient([
         _tool_call("get_review_queue", {"init_date": "2022-06-14", "top": 3}),
         _text("The top-ranked item is Assam & Meghalaya at Day 3."),
@@ -163,6 +169,7 @@ def test_agent_uses_a_tool_then_answers_from_grounded_numbers():
     assert result.ok is True
     assert "get_review_queue" in result.tool_calls
     assert result.grounded_numbers, "tool results must contribute grounded numbers"
+    assert 0.706 in result.grounded_numbers, "the queue's probability must be grounded"
     assert result.turns == 2
 
 
@@ -320,11 +327,54 @@ def test_retrieval_endpoint_works_without_any_cloud_credentials(monkeypatch):
     assert any("D-011" in h["citation"] for h in body["hits"])
 
 
-def test_ask_reports_missing_backend_as_503_not_a_stack_trace(monkeypatch):
-    client, _ = _client(monkeypatch, FBD_GENAI_ENABLED="1", FBD_GENAI_TOOLS="1")
+def test_ask_reports_a_missing_cloud_backend_as_503_not_a_stack_trace(monkeypatch):
+    """No credentials must produce an actionable 503, not a botocore traceback."""
+    client, _ = _client(
+        monkeypatch,
+        FBD_GENAI_ENABLED="1",
+        FBD_GENAI_TOOLS="1",
+        FBD_GENAI_PROVIDER="bedrock",
+    )
     resp = client.post("/api/assistant/ask", json={"question": "what should I review?"})
     assert resp.status_code == 503
     assert "Bedrock unavailable" in resp.json()["detail"]
+
+
+def test_ask_reports_an_unreachable_local_backend_as_503_not_a_stack_trace(monkeypatch):
+    """The same contract for the default provider.
+
+    Pinned to a closed localhost port rather than left to the ambient
+    environment: this used to assert "Bedrock unavailable" under a local
+    default, so it passed only on machines with no Ollama and silently changed
+    meaning on machines that had one.
+    """
+    client, _ = _client(
+        monkeypatch,
+        FBD_GENAI_ENABLED="1",
+        FBD_GENAI_TOOLS="1",
+        FBD_GENAI_PROVIDER="local",
+        FBD_OLLAMA_HOST="http://127.0.0.1:1",
+    )
+    resp = client.post("/api/assistant/ask", json={"question": "what should I review?"})
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert "Ollama" in detail
+    assert "ollama serve" in detail, "the 503 must say how to fix it"
+
+
+def test_ask_rejects_an_unknown_provider_by_name(monkeypatch):
+    """An unsupported FBD_GENAI_PROVIDER fails loudly and names the valid ones."""
+    client, _ = _client(
+        monkeypatch,
+        FBD_GENAI_ENABLED="1",
+        FBD_GENAI_TOOLS="1",
+        FBD_GENAI_PROVIDER="none",
+    )
+    resp = client.post("/api/assistant/ask", json={"question": "what should I review?"})
+    assert resp.status_code == 503
+    detail = resp.json()["detail"]
+    assert "unknown GenAI provider" in detail
+    assert "local" in detail and "bedrock" in detail
 
 
 def test_prometheus_metrics_are_exposed(monkeypatch):

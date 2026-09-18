@@ -36,12 +36,19 @@ jobs:
       - name: Install serving + test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-serve.txt
-          pip install pytest
+          pip install -r requirements-dev.txt
       - name: Run tests that need no cached NWP data
         # The full pipeline needs ~700 MB of cached HRES/ERA5/IMD archives that
         # do not belong in CI. These suites are the ones that run without them.
-        run: pytest tests/test_genai.py tests/test_mlops.py -q
+        #
+        # test_providers.py is listed explicitly: a provider abstraction that
+        # only its author ever runs is not an abstraction anyone can rely on.
+        run: >-
+          pytest -q
+          tests/test_genai.py
+          tests/test_mlops.py
+          tests/test_providers.py
+          tests/test_command_centre.py
 
   invariants:
     name: Decision-log invariants
@@ -54,8 +61,7 @@ jobs:
           cache: pip
       - run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-serve.txt
-          pip install pytest
+          pip install -r requirements-dev.txt
 
       - name: GenAI layer must default to OFF
         run: |

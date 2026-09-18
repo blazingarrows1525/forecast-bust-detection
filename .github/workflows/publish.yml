@@ -14,12 +14,23 @@ on:
   push:
     branches: [master]
     tags: ["v*"]
+    # Every path the Dockerfile COPYs, plus the scripts that generate them.
+    # An incomplete filter is worse than none: updating a bulletin or a geo
+    # asset would leave GHCR serving a stale image still tagged :latest, with
+    # nothing to show it had not been rebuilt.
     paths:
       - "Dockerfile"
+      - ".dockerignore"
       - "requirements-serve.txt"
       - "src/**"
       - "web/**"
       - "config/**"
+      - "data/artifacts/**"
+      - "data/interim/regions.geojson"
+      - "data/interim/centroids.json"
+      - "scripts/replay_demo.py"
+      - "scripts/precompute_geo_assets.py"
+      - "scripts/fetch_release_artifacts.py"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
 
@@ -41,6 +52,19 @@ jobs:
       # The image bakes in precomputed artifacts. Fail loudly and early if the
       # ones the Dockerfile COPYs are absent, rather than shipping a container
       # that 503s on its first request.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # bulletins.sqlite is ~63 MB and gitignored (DATA.md): it ships as a
+      # checksum-verified Release asset and is NOT in a fresh checkout. Without
+      # this step the image builds without it, every bulletin, review-queue and
+      # risk-cube endpoint is dead, and /api/health still answers 200 -- with
+      # status "unavailable". The smoke test then passes on a container that
+      # cannot serve its own dashboard.
+      - name: Fetch the released bulletin store
+        run: python scripts/fetch_release_artifacts.py
+
       - name: Required build artifacts are present
         run: |
           set -euo pipefail
@@ -48,12 +72,14 @@ jobs:
           for f in \
             data/interim/regions.geojson \
             data/interim/centroids.json \
-            data/artifacts/results.json
+            data/artifacts/results.json \
+            data/artifacts/bulletins.sqlite
           do
             if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
           done
           if [ "$missing" -ne 0 ]; then
             echo "Run: python -m fbd.regions.build && python scripts/precompute_geo_assets.py"
+            echo "and: PYTHONPATH=src python scripts/generate_bulletins.py"
             exit 1
           fi
           echo "all required artifacts present"
@@ -116,10 +142,30 @@ jobs:
             fi
             sleep 1
           done
+          # 200 is not the bar. /api/health answers 200 with status
+          # "unavailable" when the bulletin store is missing, which is exactly
+          # the hollow image this step exists to catch.
+          curl -fsS http://localhost:8912/api/health -o /tmp/health.json
+          python3 - <<'CHECK'
+          import json, sys
+          h = json.load(open("/tmp/health.json"))
+          print(f"health: status={h['status']} rows={h['n_bulletin_rows']} latest={h['latest_init_date']}")
+          if h["status"] == "unavailable" or h["n_bulletin_rows"] < 1:
+              sys.exit("image has no usable bulletin store; refusing to publish it")
+          open("/tmp/latest_init", "w").write(h["latest_init_date"] or "")
+          CHECK
+          # The dashboard's own endpoints must return rows, not merely exist.
+          init=$(cat /tmp/latest_init)
+          queue=$(curl -fsS "http://localhost:8912/api/review-queue?init_date=${init}" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+          echo "/api/review-queue returned $queue items for $init"
+          [ "$queue" -ge 1 ] || { echo "review queue is empty"; exit 1; }
           # The geo endpoints must work without geopandas in the image (D-020).
           features=$(curl -fsS http://localhost:8912/api/regions | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["features"]))')
           echo "/api/regions returned $features features"
           [ "$features" -ge 30 ] || { echo "too few regions"; exit 1; }
+          # config.py creates the data tree at import; the non-root runtime user
+          # must be able to do that or the app dies before its first request.
+          docker exec fbd-smoke python -c "import fbd.config; print('config import OK as', __import__('getpass').getuser())"
           # Serving must not import the geo stack at all.
           if docker exec fbd-smoke python -c "import geopandas" 2>/dev/null; then
             echo "::error::geopandas is present in the serving image; D-020 regression"
