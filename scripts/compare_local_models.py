@@ -54,46 +54,25 @@ OUT = config.ARTIFACTS / "model_comparison.json"
 # --------------------------------------------------------------------------
 # The status-grounding check (proposed in D-019 addendum; not in the product)
 # --------------------------------------------------------------------------
-# Phrases that assert the system DECLINED to score a row. Saying this about a
-# row whose status is OK is the exact D-019 failure: it tells a forecaster the
-# system has no opinion when in fact it has a strong one.
-_REFUSAL_CLAIMS = (
-    "declined to score", "declined to assess", "refused to score", "did not score",
-    "was not scored", "unable to score", "out of distribution", "out-of-distribution",
-    "outside its training", "unlike anything in its training",
-)
-
-# Phrases asserting the risk is LOW. Said about a top-decile row, this inverts
-# the meaning and is the more dangerous half of the failure.
-_LOW_RISK_CLAIMS = (
-    "low bust", "low risk", "unlikely to bust", "low probability", "historically low",
-    "no cause for concern", "not concerning", "little risk", "minimal risk",
-    "low chance",
-)
+# The phrase lists that used to live here now ship in fbd.genai.guardrails as
+# _REFUSAL_CLAIM_PATTERNS and _LOW_RISK_CLAIM_PATTERNS, so there is one
+# definition of the rule rather than one here and one in the product.
 
 
 def check_status_grounding(text: str, row: dict, top_decile: float) -> dict:
-    """Reject claims about status or direction that the row contradicts."""
-    lowered = text.lower()
-    violations = []
+    """Score one narration against the row it describes.
 
-    if row["status"] == "OK":
-        for phrase in _REFUSAL_CLAIMS:
-            if phrase in lowered:
-                violations.append(f"status_inverted:claimed '{phrase}' but status is OK")
-                break
+    Delegates to the shipped guardrail rather than keeping a second copy of the
+    rules here. This script is what *measured* the failure; the check itself now
+    lives in fbd.genai.guardrails and runs on the serving path, and a duplicate
+    would drift from it without anything noticing. ``top_decile`` is retained in
+    the signature for the recorded artifacts and is unused: the shipped check
+    uses the project's cost-optimal REVIEW_THRESHOLD instead.
+    """
+    from fbd.genai.guardrails import Evidence, check_status_grounding as shipped
 
-    p = row["bust_probability"]
-    if p is not None and p >= top_decile:
-        for phrase in _LOW_RISK_CLAIMS:
-            if phrase in lowered:
-                violations.append(
-                    f"direction_inverted:claimed '{phrase}' but p={p:.3f} "
-                    f"is in the top decile (>= {top_decile:.3f})"
-                )
-                break
-
-    return {"ok": not violations, "violations": violations}
+    report = shipped(text, Evidence.from_row(row))
+    return {"ok": report.ok, "violations": list(report.violations)}
 
 
 # --------------------------------------------------------------------------
@@ -315,8 +294,19 @@ def main() -> int:
             verdicts = []
             if rec.get("error"):
                 verdicts.append("ERROR")
-            if not rec.get("numeric", {}).get("ok", True):
-                verdicts.append("numeric-guardrail BLOCKED")
+            hits = rec.get("numeric", {}).get("violations") or []
+            if hits:
+                # Name which guardrail fired. Reporting a status block as a
+                # numeric one would misattribute the very finding this script
+                # exists to record.
+                kinds = {
+                    "status" if v.startswith(("status_", "direction_"))
+                    else "injection" if v.startswith("possible prompt injection")
+                    else "authority" if "non-interference" in v
+                    else "numeric"
+                    for v in hits
+                }
+                verdicts.append(f"BLOCKED by {'+'.join(sorted(kinds))} guardrail")
             sg = rec.get("status_grounding")
             if sg and not sg["ok"]:
                 verdicts.append("STATUS-GROUNDING FAILED")

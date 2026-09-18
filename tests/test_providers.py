@@ -334,66 +334,109 @@ def test_ollama_host_must_be_an_http_url(monkeypatch):
     assert "http(s) URL" in reason
 
 
-# --------------------------------------------- the failure the guardrails miss
-# These do not touch a model. They pin down the detector for the D-019 failure
-# (scripts/compare_local_models.py), so that whenever the status-grounding check
-# is finally wired into the serving path, it has a spec to satisfy rather than
-# being written from memory of what went wrong.
-def _detector():
-    import sys
-    from pathlib import Path
+# ------------------------------------------ status grounding (D-019 addendum 3)
+# The failure these cover is the one the numeric guardrail cannot see: a claim
+# about a row's STATUS or about the DIRECTION of its risk. No model is involved
+# -- the point is that the check is deterministic.
+from fbd.genai import guardrails  # noqa: E402
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-    from compare_local_models import check_status_grounding
-
-    return check_status_grounding
-
-
-# The exact sentence both llama3.2:3b and llama3.1:8b produced about a row whose
-# status is OK and whose bust probability is 1.000 (D-019 addendum 3).
-_OBSERVED_FABRICATION = (
+# The exact sentence llama3.2:3b (3/3) and llama3.1:8b (1/4) produced about a
+# row whose status is OK and whose bust probability is 1.000.
+FABRICATION = (
     "The system declined to score Chhattisgarh at day 10 on 2021-06-10 because "
     "the atmospheric state is unlike anything in its training data, and refused "
     "days historically bust far more often than accepted ones."
 )
-_SCORED_ROW = {"status": "OK", "bust_probability": 1.0}
-_REFUSED_ROW = {"status": "OUT_OF_DISTRIBUTION", "bust_probability": None}
 
 
-def test_numeric_guardrail_cannot_see_the_observed_fabrication():
-    """Why a second check is needed at all: this sentence contains no number."""
-    from fbd.genai import guardrails
-
-    report = guardrails.guard_output(_OBSERVED_FABRICATION, [1.0, 10.0, 2021.0])
-    assert report.ok is True, (
-        "the numeric guardrail passes this sentence -- which is the point. "
-        "The fabrication is about status and direction, not arithmetic."
-    )
+def _evidence(**rows) -> guardrails.Evidence:
+    """Evidence as though a tool had returned these region -> (status, p) rows."""
+    ev = guardrails.Evidence()
+    for region, (status, prob) in rows.items():
+        ev.observe({"region": region, "status": status, "bust_probability": prob})
+    return ev
 
 
-def test_status_grounding_catches_a_refusal_claimed_against_a_scored_row():
-    report = _detector()(_OBSERVED_FABRICATION, _SCORED_ROW, top_decile=0.069)
-    assert report["ok"] is False
-    assert any("status_inverted" in v for v in report["violations"])
+def test_numeric_guardrail_cannot_see_the_fabrication():
+    """Why a second check exists at all: the sentence contains no bad number."""
+    report = guardrails.check_numeric_grounding(FABRICATION, [1.0, 10.0, 2021.0])
+    assert report.ok is True
 
 
-def test_status_grounding_allows_a_refusal_claim_when_the_row_was_refused():
-    """The inverse must pass, or the check would suppress a true statement."""
-    report = _detector()(_OBSERVED_FABRICATION, _REFUSED_ROW, top_decile=0.069)
-    assert report["ok"] is True
+def test_refusal_claimed_against_a_scored_row_is_blocked():
+    ev = _evidence(Chhattisgarh=("OK", 1.0))
+    report = guardrails.check_status_grounding(FABRICATION, ev)
+    assert report.ok is False
+    assert any(v.startswith("status_inverted") for v in report.violations)
 
 
-def test_status_grounding_catches_low_risk_claimed_on_a_top_decile_row():
-    """The more dangerous half: it inverts what the forecaster should do."""
-    text = "Konkan & Goa shows low risk of busting; no cause for concern."
-    report = _detector()(text, _SCORED_ROW, top_decile=0.069)
-    assert report["ok"] is False
-    assert any("direction_inverted" in v for v in report["violations"])
+def test_refusal_claimed_with_no_row_at_all_is_blocked():
+    """The hole the first implementation had.
+
+    Both models answered this question by calling search_project_docs, finding
+    the definition of a refusal, and reciting it about a row they had never
+    looked up. An exemption for "documentation was consulted" let all six runs
+    through; requiring a row for the named region is what closes it.
+    """
+    ev = guardrails.Evidence().observe({"passages": ["..."]}, "search_project_docs")
+    report = guardrails.check_status_grounding(FABRICATION, ev)
+    assert report.ok is False
+    assert any(v.startswith("status_ungrounded") for v in report.violations)
 
 
-def test_status_grounding_passes_a_correct_narration():
+def test_refusal_claimed_about_a_genuinely_refused_row_passes():
+    """The inverse must pass, or the check suppresses a true and useful answer."""
+    ev = _evidence(Chhattisgarh=("OUT_OF_DISTRIBUTION", None))
+    assert guardrails.check_status_grounding(FABRICATION, ev).ok is True
+
+
+def test_explaining_what_a_refusal_is_passes():
+    """Naming no subdivision is a description of the method, not a claim."""
     text = (
-        "The forecast approaches this subdivision's 90th-percentile rainfall and "
-        "this lead time busts often, so it merits a second look."
+        "The system declines to score a region when the atmospheric state is "
+        "unlike anything in its training data; refused days bust far more often."
     )
-    assert _detector()(text, _SCORED_ROW, top_decile=0.069)["ok"] is True
+    ev = guardrails.Evidence().observe({"passages": ["..."]}, "search_project_docs")
+    assert guardrails.check_status_grounding(text, ev).ok is True
+
+
+def test_low_risk_claimed_on_a_flagged_row_is_blocked():
+    """The more dangerous half: it inverts what the forecaster should do."""
+    ev = _evidence(Chhattisgarh=("OK", 1.0))
+    report = guardrails.check_status_grounding(
+        "Chhattisgarh shows low risk of busting; no cause for concern.", ev
+    )
+    assert report.ok is False
+    assert any(v.startswith("direction_inverted") for v in report.violations)
+
+
+def test_low_risk_claimed_on_a_genuinely_quiet_row_passes():
+    """Below the cost-optimal threshold, "low risk" is simply true."""
+    from fbd.quality.escalation import REVIEW_THRESHOLD
+
+    ev = _evidence(Chhattisgarh=("OK", REVIEW_THRESHOLD / 10))
+    assert guardrails.check_status_grounding(
+        "Chhattisgarh shows low risk of busting.", ev
+    ).ok is True
+
+
+def test_region_id_and_display_name_resolve_to_the_same_row():
+    """A tool returns ASSAM_MEGHALAYA; a model writes "Assam & Meghalaya"."""
+    ev = guardrails.Evidence().observe(
+        {"region_id": "ASSAM_MEGHALAYA", "status": "OK", "bust_probability": 0.9}
+    )
+    assert "Assam & Meghalaya" in ev.region_status
+    report = guardrails.check_status_grounding(
+        "The system declined to score Assam & Meghalaya.", ev
+    )
+    assert report.ok is False
+
+
+def test_guard_output_without_evidence_keeps_its_old_behaviour():
+    """Existing callers must not acquire a new verdict built from no data."""
+    assert guardrails.guard_output(FABRICATION, [1.0, 10.0, 2021.0]).ok is True
+
+
+def test_guard_output_with_evidence_blocks_the_fabrication():
+    ev = _evidence(Chhattisgarh=("OK", 1.0))
+    assert guardrails.guard_output(FABRICATION, [1.0, 10.0, 2021.0], ev).ok is False

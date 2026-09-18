@@ -946,3 +946,63 @@ that would mislead a forecaster. The correct reading is not "use a bigger
 model" — it is that no model size available on this hardware makes narration
 safe without a deterministic check underneath it, which is the same conclusion
 the project reached about forecasts themselves.
+
+### D-019 addendum 4 — status grounding ships; and the first version of it failed
+
+The check owed since addendum 1 now runs on the serving path.
+`guardrails.check_status_grounding` is called from `guard_output`, and
+`agent.run` accumulates a `guardrails.Evidence` object from tool results
+exactly as it already accumulated grounded numbers. Statuses are grounded facts
+too; they were simply not being collected.
+
+**The rule.** The model may assert that the system declined to score a
+subdivision only if a tool result in that turn actually returned that
+subdivision with a refused status. Symmetrically, it may not call a row low
+risk when that row sits at or above the cost-optimal `REVIEW_THRESHOLD` from
+`quality/escalation.py` — the project's existing definition of "elevated",
+rather than a fresh number invented for this check.
+
+**The first implementation shipped a hole, and a live test found it.** It
+carried an exemption: if the turn had called `search_project_docs`, refusal
+language was allowed, on the reasoning that a methodology question ("what
+happens when a region is out of distribution?") legitimately describes a
+refusal. Run end to end against both models, six times:
+
+| model | blocked | leaked |
+|---|---|---|
+| `llama3.2:3b` | 0 | **3 / 3** |
+| `llama3.1:8b` | 0 | **3 / 3** |
+
+Every run answered the question by calling `search_project_docs`, finding the
+project's own description of a refusal, and reciting it about a row it had
+never looked up. The exemption was not a corner case the models might stumble
+into — it was the path they took every single time.
+
+**What fixed it.** The claim is now checked against the *subject* it names. A
+sentence naming a subdivision is an assertion about that row and requires a
+tool result for it; a sentence naming none is a description of the method and
+is allowed. Region names come from the committed `config/imd_subdivisions.json`
+— 36 subdivisions, 80 aliases including the `REGION_ID` form — so the check
+does not depend on the gitignored 63 MB bulletin store. If that config cannot
+be read the check fails closed.
+
+Re-run, same probe, same models: **6 blocked, 0 leaked**, and the full probe set
+shows no false positives — correct narration of a genuinely refused row still
+passes, a correct review-queue answer still passes, and an explanation of what
+a refusal means still passes.
+
+**Why this one is worth recording.** The check was unit-tested and correct
+against a row handed to it directly. It was wrong end to end, and only running
+it against a real model on the real path showed that, because the failure was
+in an exemption no unit test thought to exercise. That is the same lesson as
+addendum 2 — a thing asserted in one place and verified nowhere — arriving for
+the third time in this decision. The unit tests now include the leak case.
+
+**Narration stays OFF.** The demonstrated failure is now blocked deterministically,
+which is a real improvement over "a larger model does it less often". But the
+check is a phrase list over a class of claims, and a phrase list is evidence
+about the cases it covers and silence about the rest. Turning narration on
+would be claiming the surface is complete, which is not something six probes
+can establish. What has changed is that the *specific* failure recorded in
+addendum 1 can no longer reach a forecaster, on either model, on the path a
+real request takes.

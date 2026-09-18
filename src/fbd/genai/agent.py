@@ -8,8 +8,9 @@ every tool result along the way.  That is a control the loop owns.
 What this is for, and what it is not: it answers a duty forecaster's questions
 about assessments the model already computed, and cites the project's own
 decision log when asked why.  It does not forecast, it does not estimate risk,
-and structurally it cannot -- the numeric-grounding guardrail rejects any
-sentence containing a number that no tool returned.
+and structurally it cannot -- the guardrails reject any sentence containing a
+number no tool returned, and any sentence misstating whether a region was
+scored or which way its risk points (D-019 addendum 3).
 """
 from __future__ import annotations
 
@@ -134,6 +135,9 @@ def run(
 
     messages: list[dict] = [{"role": "user", "content": question}]
     grounded: list[float] = []
+    # Statuses are grounded facts too, and the only ones that caught the D-019
+    # fabrication.  Accumulated exactly like the numbers, from the same results.
+    evidence = guardrails.Evidence()
     used: list[str] = []
     turns = 0
 
@@ -168,14 +172,27 @@ def run(
 
         if response.stop_reason != "tool_use":
             text = _extract_text(response.content)
-            report = guardrails.guard_output(text, grounded)
+            report = guardrails.guard_output(text, grounded, evidence)
             if not report.ok:
                 # This is the invariant doing its job. Return the failure
-                # rather than the text: an ungrounded number must never reach
-                # a forecaster, even labelled as suspect.
+                # rather than the text: an ungrounded claim must never reach a
+                # forecaster, even labelled as suspect. A status inversion is
+                # worse than a bad number -- it reads as authoritative and
+                # points the wrong way -- so it is named separately.
+                inverted = any(
+                    v.startswith(
+                        ("status_inverted", "status_ungrounded", "direction_inverted")
+                    )
+                    for v in report.violations
+                )
                 return AgentResult(
                     ok=False,
                     text=(
+                        "The generated answer was withheld because it "
+                        "misstated whether the system scored this region, or "
+                        "which way the risk points. Use the bulletin and "
+                        "review-queue endpoints for the authoritative status."
+                        if inverted else
                         "The generated answer was withheld because it contained "
                         "a number the system did not compute. Use the bulletin "
                         "and review-queue endpoints for authoritative values."
@@ -201,6 +218,7 @@ def run(
             args = block.input if isinstance(block.input, dict) else json.loads(block.input)
             result, numbers = tools.dispatch(block.name, args)
             grounded.extend(numbers)
+            evidence.observe(result, block.name)
             used.append(block.name)
             results.append(
                 {
