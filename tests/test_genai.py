@@ -266,11 +266,15 @@ def test_dispatch_collects_numbers_from_nested_results():
 # --------------------------------------------------------------------------
 # API surface: the default-off contract (D-015)
 # --------------------------------------------------------------------------
-def _client(monkeypatch, **env):
+def _client(monkeypatch, db=None, **env):
     """Reimport the app with a given environment.
 
     The GenAI routes are attached at import time, so the module cache has to be
-    dropped for the flag to take effect.
+    dropped for the flag to take effect.  ``db`` points the reimported module
+    at a fixture store; without it the app falls back to the real
+    ``data/artifacts/bulletins.sqlite``, which is gitignored and therefore
+    absent in a fresh checkout -- so any assertion about served rows would pass
+    only on a machine that had generated it.
     """
     import importlib
     import sys
@@ -283,6 +287,8 @@ def _client(monkeypatch, **env):
     for mod in ("fbd.api.app", "fbd.api.genai_routes"):
         sys.modules.pop(mod, None)
     app_mod = importlib.import_module("fbd.api.app")
+    if db is not None:
+        monkeypatch.setattr(app_mod, "DB", db)
 
     from fastapi.testclient import TestClient
 
@@ -301,15 +307,21 @@ def test_assistant_endpoints_do_not_exist_when_disabled(monkeypatch):
     assert client.post("/api/assistant/ask", json={"question": "hello there"}).status_code in (404, 405)
 
 
-def test_offline_serving_is_unaffected_when_disabled(monkeypatch):
-    client, _ = _client(monkeypatch)
+def test_offline_serving_is_unaffected_when_disabled(monkeypatch, bulletin_store):
+    client, _ = _client(monkeypatch, db=bulletin_store)
     assert client.get("/api/health").status_code == 200
-    assert client.get("/api/bulletin?init_date=2022-06-14&lead_day=4").status_code == 200
+    resp = client.get("/api/bulletin?init_date=2022-06-14&lead_day=4")
+    assert resp.status_code == 200
+    assert resp.json()["predictions"], "the offline path must serve rows, not just 200"
 
 
-def test_health_states_the_genai_posture(monkeypatch):
-    client, _ = _client(monkeypatch)
-    notes = " ".join(client.get("/api/health").json()["notes"])
+def test_health_states_the_genai_posture(monkeypatch, bulletin_store):
+    client, _ = _client(monkeypatch, db=bulletin_store)
+    health = client.get("/api/health").json()
+    # A store-less build short-circuits to status "unavailable" and never
+    # reaches the GenAI note, so assert we are on the healthy branch first.
+    assert health["status"] != "unavailable"
+    notes = " ".join(health["notes"])
     assert "disabled" in notes and "offline" in notes
 
 

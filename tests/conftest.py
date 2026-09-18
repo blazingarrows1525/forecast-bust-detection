@@ -47,6 +47,10 @@ CREATE TABLE bulletins (
     model_version TEXT NOT NULL,
     PRIMARY KEY (region_id, init_date, lead_day)
 );
+
+-- _meta() queries this unconditionally; a missing table raises
+-- OperationalError rather than the HTTPException it catches.
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
 # Shapes match a real bulletin: one high-risk accepted row, one mid, and one
@@ -67,7 +71,12 @@ _ROWS = [
 
 @pytest.fixture
 def bulletin_store(tmp_path, monkeypatch):
-    """A minimal bulletins.sqlite, with the read-only tools pointed at it."""
+    """A minimal bulletins.sqlite, with the read-only tools pointed at it.
+
+    Returns the path so API tests can point ``fbd.api.app.DB`` at it too --
+    they reimport that module to pick up environment changes, so a monkeypatch
+    applied here would not survive.
+    """
     from fbd.genai import tools
 
     db = tmp_path / "bulletins.sqlite"
@@ -75,6 +84,10 @@ def bulletin_store(tmp_path, monkeypatch):
     con.executescript(_SCHEMA)
     con.executemany(
         f"INSERT INTO bulletins VALUES ({','.join('?' * len(_ROWS[0]))})", _ROWS
+    )
+    con.executemany(
+        "INSERT INTO meta VALUES (?, ?)",
+        [("model_version", "test-fixture"), ("trained_at", "2026-01-01T00:00:00Z")],
     )
     con.commit()
     con.close()
