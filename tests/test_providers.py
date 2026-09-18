@@ -332,3 +332,68 @@ def test_ollama_host_must_be_an_http_url(monkeypatch):
     ok, reason = O.OllamaClient(LocalSettings(host="file:///etc")).availability()
     assert ok is False
     assert "http(s) URL" in reason
+
+
+# --------------------------------------------- the failure the guardrails miss
+# These do not touch a model. They pin down the detector for the D-019 failure
+# (scripts/compare_local_models.py), so that whenever the status-grounding check
+# is finally wired into the serving path, it has a spec to satisfy rather than
+# being written from memory of what went wrong.
+def _detector():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from compare_local_models import check_status_grounding
+
+    return check_status_grounding
+
+
+# The exact sentence both llama3.2:3b and llama3.1:8b produced about a row whose
+# status is OK and whose bust probability is 1.000 (D-019 addendum 3).
+_OBSERVED_FABRICATION = (
+    "The system declined to score Chhattisgarh at day 10 on 2021-06-10 because "
+    "the atmospheric state is unlike anything in its training data, and refused "
+    "days historically bust far more often than accepted ones."
+)
+_SCORED_ROW = {"status": "OK", "bust_probability": 1.0}
+_REFUSED_ROW = {"status": "OUT_OF_DISTRIBUTION", "bust_probability": None}
+
+
+def test_numeric_guardrail_cannot_see_the_observed_fabrication():
+    """Why a second check is needed at all: this sentence contains no number."""
+    from fbd.genai import guardrails
+
+    report = guardrails.guard_output(_OBSERVED_FABRICATION, [1.0, 10.0, 2021.0])
+    assert report.ok is True, (
+        "the numeric guardrail passes this sentence -- which is the point. "
+        "The fabrication is about status and direction, not arithmetic."
+    )
+
+
+def test_status_grounding_catches_a_refusal_claimed_against_a_scored_row():
+    report = _detector()(_OBSERVED_FABRICATION, _SCORED_ROW, top_decile=0.069)
+    assert report["ok"] is False
+    assert any("status_inverted" in v for v in report["violations"])
+
+
+def test_status_grounding_allows_a_refusal_claim_when_the_row_was_refused():
+    """The inverse must pass, or the check would suppress a true statement."""
+    report = _detector()(_OBSERVED_FABRICATION, _REFUSED_ROW, top_decile=0.069)
+    assert report["ok"] is True
+
+
+def test_status_grounding_catches_low_risk_claimed_on_a_top_decile_row():
+    """The more dangerous half: it inverts what the forecaster should do."""
+    text = "Konkan & Goa shows low risk of busting; no cause for concern."
+    report = _detector()(text, _SCORED_ROW, top_decile=0.069)
+    assert report["ok"] is False
+    assert any("direction_inverted" in v for v in report["violations"])
+
+
+def test_status_grounding_passes_a_correct_narration():
+    text = (
+        "The forecast approaches this subdivision's 90th-percentile rainfall and "
+        "this lead time busts often, so it merits a second look."
+    )
+    assert _detector()(text, _SCORED_ROW, top_decile=0.069)["ok"] is True

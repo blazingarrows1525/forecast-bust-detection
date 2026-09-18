@@ -118,7 +118,7 @@ account and no spend (D-019).
 
 ```bash
 # one-time
-ollama pull llama3.2:3b
+ollama pull llama3.1:8b
 
 # run with the assistant enabled
 FBD_GENAI_ENABLED=1 FBD_GENAI_TOOLS=1 FBD_GENAI_RAG=1 \
@@ -131,7 +131,7 @@ Configuration:
 |---|---|---|
 | `FBD_GENAI_ENABLED` | off | master switch; off means no routes are registered at all |
 | `FBD_GENAI_PROVIDER` | `local` | `local` (Ollama) or `bedrock` (managed cloud) |
-| `FBD_LOCAL_MODEL` | `llama3.2:3b` | any pulled Ollama tag |
+| `FBD_LOCAL_MODEL` | `llama3.1:8b` | any pulled Ollama tag (~5 GB VRAM at 8B; `llama3.2:3b` fits 2 GB but fabricates far more -- see D-019 addendum 3) |
 | `FBD_OLLAMA_HOST` | `http://localhost:11434` | where Ollama listens |
 
 `/api/health` reports which provider is configured and, if it cannot run, the

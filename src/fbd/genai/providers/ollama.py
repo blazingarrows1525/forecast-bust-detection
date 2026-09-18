@@ -7,8 +7,10 @@ cloud backend cannot.
 The job the model actually does here is narrow: rewrite a fixed set of TreeSHAP
 attributions and bulletin numbers into a sentence a duty forecaster would
 accept, and route read-only tool calls. It is narration over numbers the
-pipeline already computed, not open-ended reasoning. A 3B model is sufficient,
-runs in ~2 GB of VRAM, and keeps the whole loop inside the forecaster's window.
+pipeline already computed, not open-ended reasoning. That argument was used to
+justify a 3B model; measurement did not support it (see settings.LOCAL_MODEL and
+D-019 addendum 3), so the default is 8B -- ~5 GB of VRAM, which still fits a
+6 GB card and still keeps the loop inside the forecaster's window.
 
 Translation notes
 -----------------
@@ -69,7 +71,7 @@ def _post(url: str, payload: dict, timeout: float) -> dict:
         raise ProviderError(
             f"cannot reach Ollama at {url} ({exc.reason}). "
             "Start it with `ollama serve`, or pull a model with "
-            "`ollama pull llama3.2:3b`."
+            "`ollama pull llama3.1:8b`."
         ) from exc
 
 
@@ -222,7 +224,7 @@ class OllamaClient:
 
     def __init__(self, settings):
         self.host = getattr(settings, "host", "http://localhost:11434").rstrip("/")
-        self.model = getattr(settings, "model", "llama3.2:3b")
+        self.model = getattr(settings, "model", "llama3.1:8b")
         self.timeout = float(getattr(settings, "timeout", 120.0))
         self.messages = _Messages(self)
 
@@ -253,7 +255,7 @@ class OllamaClient:
         if not models:
             return False, (
                 f"Ollama is not reachable at {self.host}. Install it from "
-                "ollama.com, then run `ollama pull llama3.2:3b`. The offline "
+                "ollama.com, then run `ollama pull llama3.1:8b`. The offline "
                 "serving path is unaffected and remains the default."
             )
         if self.model not in models:

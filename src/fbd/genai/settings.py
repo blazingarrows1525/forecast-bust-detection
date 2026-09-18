@@ -37,11 +37,25 @@ CLAUDE_MODEL_CHEAP = "claude-haiku-4-5"
 
 DEFAULT_REGION = "us-east-1"
 
-# Local model served by Ollama.  3B is deliberate: the assistant's job is
-# narration over numbers the pipeline already computed and routing read-only
-# tool calls, not open-ended reasoning.  It fits in ~2 GB of VRAM and keeps the
-# whole loop inside the forecaster's window.
-LOCAL_MODEL = "llama3.2:3b"
+# Local model served by Ollama.  8B, chosen on a measurement rather than the
+# argument D-019 originally made.
+#
+# That argument -- the job is narration over numbers the pipeline already
+# computed, so 3B suffices -- was wrong in the way that matters.  Asked why
+# confidence was low for a row whose status is OK and whose bust probability is
+# 1.000, `llama3.2:3b` answered "the system declined to score it" in **3 of 3**
+# runs, reciting this file's own OOD sentence verbatim as a gap-filler.  It does
+# so with the precondition spelled out explicitly too (3/3), so it is not a
+# prompting problem at 3B.  `llama3.1:8b` fabricated in 1 of 4.
+#
+# 1-in-4 is not safe either.  It is the reason narration stays OFF and the
+# status-grounding check is still owed; see D-019 addendum 3.  Reproduce with:
+#     PYTHONPATH=src python scripts/compare_local_models.py llama3.2:3b llama3.1:8b
+#
+# Costs ~4.9 GB on disk and ~5 GB of VRAM (fits a 6 GB card), and roughly
+# doubles latency: 15-35 s for a tool-routed answer against 9-19 s.  Both sit
+# inside the forecaster's window; neither is comfortable in a live demo.
+LOCAL_MODEL = "llama3.1:8b"
 
 # Which backend serves the assistant.  "local" is the default because it needs
 # no account, no key and no spend, and because it preserves the air-gap

@@ -864,3 +864,85 @@ ever checked. The local-provider wiring, the status endpoint, the `none`
 provider, the smoke test and the container's own filesystem permissions were
 all *described* correctly and *verified* nowhere. That is the same finding as
 the narration failure above, arriving by a different route.
+
+### D-019 addendum 3 — the model was chosen on an argument; here is the measurement
+
+D-019 picked `llama3.2:3b` by reasoning: the assistant narrates numbers the
+pipeline already computed and routes read-only tool calls, so a small model
+should suffice. The addendum above then recorded one hand-run probe where it
+fabricated. One probe run by hand, written up in prose, is not a basis for
+choosing a model and nobody else could reproduce it.
+
+`scripts/compare_local_models.py` now runs a fixed probe set against any number
+of local models, against the real bulletin store, and writes
+`data/artifacts/model_comparison.json`. Re-run it with:
+
+```
+PYTHONPATH=src python scripts/compare_local_models.py llama3.2:3b llama3.1:8b
+```
+
+**The probe.** Ground truth: Chhattisgarh, day 10, init 2021-06-10 —
+`status: OK`, `bust_probability: 1.000`, the single highest-risk scored cell in
+the store. Question: *"Why is confidence low for Chhattisgarh at day 10 on
+2021-06-10?"*
+
+| model | VRAM | fabricated "the system declined to score it" |
+|---|---|---|
+| `llama3.2:3b` | ~2 GB | **3 / 3** |
+| `llama3.1:8b` | ~5 GB | **1 / 4** |
+
+**What the fabrication actually is.** Not a hallucination in the usual sense.
+The system prompt in `agent.py` ends:
+
+> When a subdivision is refused as OUT_OF_DISTRIBUTION, say plainly that the
+> system declined to score it because the atmospheric state is unlike anything
+> in its training data, and that refused days historically bust far more often
+> than accepted ones.
+
+Both models emitted that sentence **verbatim**. The instruction says what to say
+when a row is refused and never says *only* when, so it reads as a ready-made
+answer for any question the model cannot otherwise satisfy. We wrote the
+fabrication ourselves and left it lying where a model short of an answer would
+find it.
+
+**The ablation, and its uncomfortable result.** A revised paragraph — forbidding
+any refusal claim unless a tool result in that conversation reported
+`OUT_OF_DISTRIBUTION`, and distinguishing a lookup failure from a refusal — was
+tested at three runs per model per prompt:
+
+| | original prompt | revised prompt |
+|---|---|---|
+| `llama3.2:3b` | 3/3 fabricated | **3/3 fabricated** |
+| `llama3.1:8b` | 0/3 fabricated | 0/3 fabricated, but degraded to *"I could not retrieve the assessment"* — for a row that exists and is scored |
+
+So: **at 3B this is not a prompting problem.** The precondition was stated
+explicitly and the model recited the sentence anyway, with one word changed. At
+8B the revision removed a failure that had not occurred in those three runs and
+cost real usefulness — the original prompt produced correctly grounded answers
+citing the actual factors (`5.0% base rate`, `-0.8 sd`, `confidence 0.88`),
+which the numeric guardrail passed. The revised prompt is therefore **not
+shipped**; it is recorded because the negative result is the informative part.
+
+**Decisions taken.**
+
+* Default moves to `llama3.1:8b`. 3-in-3 against 1-in-4 is a real difference on
+  the failure that matters, and ~5 GB fits the 6 GB card this was measured on.
+* The cost is honest and stated: latency roughly doubles (15–35 s for a
+  tool-routed answer against 9–19 s), and in one run the 8B's tool-routing
+  answer was blocked by the numeric guardrail where the 3B's was not. Larger is
+  not uniformly better here.
+* **Narration stays OFF.** 1-in-4 is not a safe fabrication rate for a
+  safety-critical claim, and the direction of travel — 3B to 8B — buys a
+  reduction, not a guarantee. A bigger model is the wrong instrument for this
+  problem.
+* The status-grounding check is still owed. It is implemented in the comparison
+  harness (`check_status_grounding`) where it catches every failure above, and
+  deliberately **not** wired into the serving path yet.
+
+**What this changes about the D-019 argument.** The original claim was that a
+small model suffices because the task is narrow. The task *is* narrow; the
+measurement says the model still fails it, and fails it in the one direction
+that would mislead a forecaster. The correct reading is not "use a bigger
+model" — it is that no model size available on this hardware makes narration
+safe without a deterministic check underneath it, which is the same conclusion
+the project reached about forecasts themselves.

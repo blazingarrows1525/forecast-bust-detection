@@ -59,7 +59,7 @@ Do not claim what has not been run. The verification boundaries are explicit (D-
 | Docker + container health + dashboard air-gap | **Executed**, verified in a browser |
 | GenAI guardrails / retrieval / tools / agent | **Executed** against a fake client |
 | CI gates | **Executed locally**; never run on GitHub Actions |
-| Any real LLM call | **EXECUTED** 19 Sep 2026 -- local `llama3.2:3b`, 90/35 tokens, 7.4 s, zero cost (D-019) |
+| Any real LLM call | **EXECUTED** 19 Sep 2026 -- local, zero cost (D-019). Default is now `llama3.1:8b`, chosen on a measured fabrication rate (D-019 addendum 3) |
 | LLM free-form narration | **EXECUTED and FAILED** -- fabricated a false status on a high-risk cell; narration stays OFF (D-019 addendum) |
 | Any real *cloud* LLM call | **NEVER** -- no credentials, no funding; local provider used instead |
 | Terraform | **WITHDRAWN** -- never applied or validated; AWS path dropped for cost (D-021) |
