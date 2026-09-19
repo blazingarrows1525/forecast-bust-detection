@@ -3,8 +3,8 @@
 **⚠️ READ THIS BEFORE STARTING WORK ON THIS REPOSITORY ⚠️**
 This is a mature, benchmark-beating ML project for the Indian monsoon. Before writing any code:
 1. **Understand the current state:** the project spans GenAI, MLOps, CI and Terraform, but with strict boundaries. Read the Verification Ledger (Section 3).
-2. **Respect the contracts:** `LOGIC.md` is the locked engineering contract — do not silently deviate from it. `DECISIONS.md` holds the decision log (D-001 through D-018). `PROJECT_BLUEPRINT.md` is the long-form strategy.
-3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
+2. **Respect the contracts:** `LOGIC.md` is the locked engineering contract — do not silently deviate from it. `DECISIONS.md` holds the decision log (D-001 through D-021). `PROJECT_BLUEPRINT.md` is the long-form strategy.
+3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` (expect 87 passed) and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
 4. **Pick the next task** from Section 5.
 
 ---
@@ -20,7 +20,7 @@ Every predictor is evaluated under the *same* Isotonic Calibration fitted on the
 
 - **True 50-member IFS ENS comparison (D-014 complete):** On the 6,732 decision-band rows where 50-member ENS exists, the model beats the true calibrated ensemble by **+0.040 AUROC (0.832 vs 0.792)**, **-16.8% decision cost**, and delivers **~2x the economic value**.
 - **Overall Model vs Spread Proxy:** AUROC 0.8400, Brier 0.0291, BSS +0.088, ECE 0.0108, Cost 237.3/1000.
-- **Tests:** **62/62 unit tests pass** covering causality poison tests, exact partitions, bust invariants, GenAI guardrails, and drift monitors.
+- **Tests:** **105/105 unit tests pass** covering causality poison tests, exact partitions, bust invariants, GenAI guardrails, and drift monitors.
 - **Offline Serving:** FastAPI backend with an interactive Leaflet dashboard (vendored JS/CSS). Air-gap validated.
 
 ---
@@ -54,14 +54,17 @@ Do not claim what has not been run. The verification boundaries are explicit (D-
 | Component | Status |
 |---|---|
 | Full pipeline, end to end | **Executed**, reproduces D-001..D-014 |
-| 62 tests | **Executed**, 62/62 |
+| 87 tests | **Executed**, 87/87 |
 | Drift monitor | **Executed**, findings in D-016 |
 | Docker + container health + dashboard air-gap | **Executed**, verified in a browser |
 | GenAI guardrails / retrieval / tools / agent | **Executed** against a fake client |
 | CI gates | **Executed locally**; never run on GitHub Actions |
-| Any real Bedrock call | **NEVER** -- no SDK, no credentials on machine |
-| Terraform | **NEVER** -- no binary; not even `validate`d |
-| ECR push / ECS deploy / public URL | **NEVER** |
+| Any real LLM call | **EXECUTED** 19 Sep 2026 -- local, zero cost (D-019). Default is now `llama3.1:8b`, chosen on a measured fabrication rate (D-019 addendum 3) |
+| LLM free-form narration | **EXECUTED and FAILED** -- fabricated a false status on a high-risk cell. The status-grounding guardrail now blocks it 6/6 on both models (D-019 addendum 4); narration still OFF, because a phrase list is evidence about the cases it covers and silence about the rest |
+| Any real *cloud* LLM call | **NEVER** -- no credentials, no funding; local provider used instead |
+| Terraform | **WITHDRAWN** -- never applied or validated; AWS path dropped for cost (D-021) |
+| ECR push / ECS deploy | **WITHDRAWN** -- replaced by GHCR + free-tier hosting (D-021, `docs/DEPLOY.md`) |
+| Container build + smoke test in CI | **AUTOMATED**, not yet run on GitHub Actions |
 
 ---
 
@@ -122,7 +125,7 @@ If you are picking this up to continue, focus on the high-leverage tasks detaile
 ## 6. First Commands in a New Session
 
 ```bash
-# 1. Check full test suite health (Expect 62/62)
+# 1. Check full test suite health (Expect 87/87)
 PYTHONPATH=src pytest tests/ -v
 
 # 2. Check the drift monitor

@@ -40,8 +40,15 @@ On the **6,732 decision-band rows where both exist**, scored identically:
 | **true IFS ENS spread** | **0.807** |
 | **our model** | **0.832** |
 
-So the honest margin over a *real* operational ensemble is **+0.025 AUROC**, not
-the +0.082 measured against the proxy. AUROC is rank-based and needs no
+So the margin over a *real* operational ensemble is **+0.025 AUROC**, not the
++0.082 measured against the proxy — and **+0.025 cannot be distinguished from
+zero on this subsample.** A cluster bootstrap over the 40 init dates puts it at
+**+0.0251 [−0.0083, +0.0580]**, an interval that contains zero. Against the
+lagged proxy the margin is solid (+0.0821 [+0.0615, +0.1039]); against a real
+50-member ensemble, on 40 days, it is not yet established. See
+[uncertainty](#uncertainty-every-number-above-has-an-interval) below and D-022.
+
+AUROC is rank-based and needs no
 calibration, so the true-ensemble comparison involves no fitting whatsoever.
 The calibrated cells above (Brier, BSS, cost, value) use isotonic maps fitted
 on **2019 + 2020** ENS subsamples -- training-year data, no leakage. Note that
@@ -58,6 +65,66 @@ calibration on the *same* validation year so the comparison is fair.
 
 Everything above is reproducible from `scripts/` with public data only.
 No GPU is used anywhere.
+
+### Uncertainty: every number above has an interval
+
+```bash
+PYTHONPATH=src python scripts/compute_confidence_intervals.py
+```
+
+The test year is 39,950 rows but only **122 init dates**. Each date contributes
+36 subdivisions × 10 leads that share one synoptic situation, so the rows are
+nowhere near independent — a per-row bootstrap would treat 39,950 correlated
+observations as 39,950 independent ones and produce intervals roughly **2×
+too narrow**. These resample **init dates**, not rows.
+
+| Predictor | AUROC [95%] | BSS [95%] |
+|---|---|---|
+| Climatology | 0.518 [0.496, 0.541] | −0.005 [−0.011, −0.002] |
+| Forecast rainfall alone | 0.750 [0.729, 0.771] | 0.028 [0.000, 0.054] |
+| Ensemble spread (proxy) | 0.758 [0.732, 0.784] | 0.031 [0.007, 0.054] |
+| **XGBoost + isotonic** | **0.840 [0.821, 0.859]** | **0.088 [0.053, 0.123]** |
+
+Margins are bootstrapped **paired** — both predictors scored on the same
+resampled rows — because two overlapping marginal intervals do not tell you
+whether a difference is distinguishable from zero.
+
+| Comparison | ΔAUROC [95%] | Distinguishable from zero? |
+|---|---|---|
+| model − lagged-ensemble proxy (20,060 rows, 120 dates) | +0.0821 [+0.0615, +0.1039] | **yes** |
+| **model − true IFS ENS, raw spread** (6,732 rows, 40 dates) | **+0.0251 [−0.0083, +0.0580]** | **no** |
+| model − true IFS ENS, calibrated (6,732 rows, 40 dates) | +0.0403 [+0.0052, +0.0758] | yes, barely |
+
+**The honest reading.** Beating the cheap proxy is established. Beating a real
+50-member operational ensemble **is not** — on 40 init dates the margin is
++0.025 with an interval that contains zero. The calibrated comparison clears
+zero, but only because isotonic step-fits introduce rank ties that *lower* ENS
+AUROC (0.807 → 0.792); the raw spread is the stronger ENS variant and therefore
+the fair test. The fix is more init dates, not a better argument. Full method
+and the intervals for Brier and ECE: [`DECISIONS.md` D-022](DECISIONS.md).
+
+### The two claims, drawn
+
+| calibration | earned refusal |
+|---|---|
+| [![Reliability diagram](docs/figures/reliability.png)](docs/FIGURES.md) | [![Earned refusal](docs/figures/earned_refusal.png)](docs/FIGURES.md) |
+
+Left: observed bust frequency against predicted probability on the held-out
+2022 rows the product actually serves. ECE 0.0107, and the curve tracks the
+diagonal through the operational range — but the **highest bin predicts 0.207
+and observes 0.158**, overconfident by 0.049 on ~80 rows. That is labelled on
+the figure rather than left for a low ECE to paper over, because the top bin is
+where a forecaster is looking.
+
+Right: the days the model *declines* to score bust at **23.4%** against **3.4%**
+for the days it accepts — 6.9×. A refusal is not a low-risk result, which is why
+there are three escalation tiers and not two.
+
+[`docs/FIGURES.md`](docs/FIGURES.md) has the method, the honest reading, and a
+reconciliation of the small gap against the table above (the served subset
+excludes 173 refused rows; 19,887 + 173 = 20,060).
+
+Regenerate with `PYTHONPATH=src python scripts/plot_evaluation_figures.py`.
 
 ---
 

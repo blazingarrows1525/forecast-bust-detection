@@ -214,11 +214,26 @@ def replay_dates() -> dict:
 
 @app.get("/api/regions")
 def regions() -> JSONResponse:
-    """Subdivision polygons as GeoJSON for the map."""
-    import geopandas as gpd
+    """Subdivision polygons as GeoJSON for the map.
+
+    Serves a precomputed, already-simplified GeoJSON when one is present. The
+    geometry never changes at runtime, so reading and simplifying a GeoPackage
+    per request bought nothing and forced GDAL/GEOS/PROJ into the serving image
+    (D-020). The GeoPackage path remains as a fallback for development
+    checkouts that have geopandas installed but have not run the precompute.
+    """
+    precomputed = config.INTERIM / "regions.geojson"
+    if precomputed.exists():
+        return JSONResponse(json.loads(precomputed.read_text(encoding="utf-8")))
 
     if not config.SUBDIVISION_GPKG.exists():
-        raise HTTPException(503, "subdivision geometry missing; run fbd.regions.build")
+        raise HTTPException(
+            503,
+            "subdivision geometry missing; run `python -m fbd.regions.build` then "
+            "`python scripts/precompute_geo_assets.py`",
+        )
+    import geopandas as gpd
+
     g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
     # Simplify for the browser: full-resolution district unions are ~10 MB.
     g["geometry"] = g.geometry.simplify(0.02, preserve_topology=True)
@@ -443,17 +458,28 @@ def _centroids() -> dict[str, tuple[float, float]]:
     ``representative_point`` rather than ``centroid``: a centroid can fall
     outside a concave polygon, which would float Konkan & Goa's risk column out
     over the Arabian Sea.
+
+    Prefers the precomputed centroids file so the serving image does not need
+    geopandas (D-020); falls back to the GeoPackage for development checkouts.
     """
     global _CENTROIDS
-    if _CENTROIDS is None:
-        import geopandas as gpd
+    if _CENTROIDS is not None:
+        return _CENTROIDS
 
-        g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
-        pts = g.geometry.representative_point()
-        _CENTROIDS = {
-            sid: (float(p.x), float(p.y))
-            for sid, p in zip(g.subdivision_id, pts)
-        }
+    precomputed = config.INTERIM / "centroids.json"
+    if precomputed.exists():
+        raw = json.loads(precomputed.read_text(encoding="utf-8"))
+        _CENTROIDS = {sid: (float(xy[0]), float(xy[1])) for sid, xy in raw.items()}
+        return _CENTROIDS
+
+    import geopandas as gpd
+
+    g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
+    pts = g.geometry.representative_point()
+    _CENTROIDS = {
+        sid: (float(p.x), float(p.y))
+        for sid, p in zip(g.subdivision_id, pts)
+    }
     return _CENTROIDS
 
 
