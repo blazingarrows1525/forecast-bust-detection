@@ -50,6 +50,7 @@ jobs:
           tests/test_providers.py
           tests/test_command_centre.py
           tests/test_voxel_grid.py
+          tests/test_web_pages.py
 
   invariants:
     name: Decision-log invariants

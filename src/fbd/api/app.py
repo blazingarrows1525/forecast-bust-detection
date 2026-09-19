@@ -310,6 +310,47 @@ def region_bulletin(
     return [_to_prediction(r, age_h, dq) for r in rows]
 
 
+@app.get("/api/convergence", response_model=list[BustPrediction])
+def convergence(
+    region_id: str = Query(..., description="e.g. ASSAM_MEGHALAYA"),
+    valid_date: str = Query(..., description="the day being forecast, YYYY-MM-DD"),
+    mode: str = Query("replay", pattern="^(replay|live)$"),
+) -> list[BustPrediction]:
+    """Every forecast ever issued for one region-day, longest lead first.
+
+    The orthogonal cut to the rest of this API. Everything else answers "given
+    a forecast issued today, what might fail?"; this answers "as this day
+    approached, what did we say about it, and were we getting more or less
+    worried?"
+
+    That is the question the system exists to answer, and it is the one a
+    forecaster asks after the fact. It is also where the ensemble and this
+    model visibly disagree: as an event nears, ensemble members converge, which
+    reads as rising confidence, while a bust risk can be climbing at the same
+    time.
+
+    Ordered by descending lead day, so reading left to right is time
+    approaching the event.
+    """
+    con = _con()
+    rows = con.execute(
+        "SELECT * FROM bulletins WHERE region_id = ? AND valid_date = ? "
+        "ORDER BY lead_day DESC",
+        (region_id, valid_date),
+    ).fetchall()
+    con.close()
+    if not rows:
+        raise HTTPException(404, f"no forecasts for {region_id} valid {valid_date}")
+
+    out = []
+    for r in rows:
+        # Data quality is a property of the init date, and these rows span ten
+        # of them, so it is resolved per row rather than once for the set.
+        dq, age_h, _ = _quality(r["init_date"], mode)
+        out.append(_to_prediction(r, age_h, dq))
+    return out
+
+
 @app.get("/api/review-queue", response_model=list[ReviewQueueItem])
 def review_queue(
     init_date: str = Query(...),
