@@ -2,16 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "fbd-api",
+      "name": "fbd",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "uvicorn", "fbd.api.app:app", "--host", "127.0.0.1", "--port", "8912", "--app-dir", "src"],
+      "runtimeArgs": [
+        "-c",
+        "import sys; sys.path.insert(0, 'src'); import uvicorn; uvicorn.run('fbd.api.app:app', host='127.0.0.1', port=8912)"
+      ],
       "port": 8912
-    },
-    {
-      "name": "fbd-dev",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "uvicorn", "fbd.api.app:app", "--host", "127.0.0.1", "--port", "8913", "--app-dir", "src", "--reload"],
-      "port": 8913
     }
   ]
 }

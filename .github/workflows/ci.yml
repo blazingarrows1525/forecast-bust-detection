@@ -49,6 +49,7 @@ jobs:
           tests/test_mlops.py
           tests/test_providers.py
           tests/test_command_centre.py
+          tests/test_voxel_grid.py
 
   invariants:
     name: Decision-log invariants
@@ -136,16 +137,26 @@ jobs:
           print("OK: app imports with no network access")
           PY
 
-      - name: Dashboard must reference no external origin
+      # Widened from index.html to every page: the rule is a property of the
+      # product, not of one file, and it silently stopped covering anything new
+      # the moment a second page existed.
+      - name: No page may reference an external origin
         run: |
           python - <<'PY'
           import pathlib, re, sys
-          html = pathlib.Path("web/index.html").read_text(encoding="utf-8")
-          external = re.findall(r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)', html)
-          if external:
-              print("external references found:", external)
+          bad = {}
+          for page in sorted(pathlib.Path("web").glob("*.html")):
+              found = re.findall(
+                  r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)',
+                  page.read_text(encoding="utf-8"),
+              )
+              if found:
+                  bad[page.name] = found
+          if bad:
+              print("external references found:", bad)
               sys.exit(1)
-          print("OK: dashboard is fully vendored, zero CDN references")
+          checked = sorted(p.name for p in pathlib.Path("web").glob("*.html"))
+          print(f"OK: fully vendored, zero CDN references in {checked}")
           PY
 
   security:

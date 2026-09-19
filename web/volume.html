@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Risk Volume — raymarched</title>
+<!--
+  Volumetric view of the bust-risk field.
+
+  The data is genuinely three-dimensional: longitude x latitude x lead day.
+  The existing command centre renders it as extruded columns, which is a 2.5-D
+  compromise that discards continuity along the lead axis. This raymarches the
+  field directly.
+
+  THE PRINCIPLE THIS IS BUILT AROUND
+  ----------------------------------
+  The render must never imply more resolution than the model has.
+
+  Volume rendering normally wants trilinear interpolation, and every sample
+  here uses NEAREST instead, on all three axes. That is deliberate:
+
+    * along LEAD, interpolation would invent a probability for "Day 3.5" that
+      the model never computed;
+    * across GEOGRAPHY, the prediction is constant within a subdivision, so
+      linear filtering would manufacture a gradient between two subdivisions
+      that does not exist in any model output.
+
+  So the volume is blocky, and the blockiness is the honest shape of the data:
+  36 irregular regions on a 0.25-degree grid, 10 discrete lead days. What
+  raymarching still buys -- and what columns cannot -- is accumulation along
+  the view ray, correct depth ordering, seeing through the field, and a
+  distinct optical medium for refusal.
+
+  REFUSAL
+  -------
+  status OUT_OF_DISTRIBUTION means the model declined to score the cell. On the
+  2022 test year those days busted 23.4% of the time against 3.4% for scored
+  ones, so a refusal is elevated, unknown risk -- never "safe". It is rendered
+  as dense achromatic noise: loud enough to draw the eye, with no hue, so it
+  can never be read as a point on the risk ramp. Cells with no data at all are
+  rendered as nothing, which is a different statement.
+
+  Requires WebGL2 (sampler3D). Vendored three.js r128 already ships
+  DataTexture3D, RawShaderMaterial and GLSL3 -- no upgrade needed.
+-->
+<style>
+  :root {
+    --bg: #070b10; --panel: #0e141c; --line: #1e2937;
+    --ink: #dfe7f0; --muted: #8496a8; --accent: #4a9eff;
+    --refuse: #d9dee4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 13px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #stage { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  .panel { position: fixed; background: rgba(14,20,28,.92); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 14px; backdrop-filter: blur(8px); }
+  #hud { top: 14px; left: 14px; max-width: 330px; }
+  #hud h1 { margin: 0 0 2px; font-size: 15px; font-weight: 650; letter-spacing: .2px; }
+  #hud .sub { color: var(--muted); font-size: 11.5px; margin-bottom: 10px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .row label { color: var(--muted); min-width: 74px; font-size: 11.5px; }
+  select, input[type=range] { background: #131b25; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; font: inherit; }
+  input[type=range] { padding: 0; flex: 1; accent-color: var(--accent); }
+  button { background: #16202c; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 5px; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.on { background: #17324f; border-color: var(--accent); }
+
+  #legend { bottom: 14px; left: 14px; width: 250px; }
+  #ramp { height: 12px; border-radius: 3px; border: 1px solid var(--line);
+    background: linear-gradient(90deg,#440154,#414487,#2a788e,#22a884,#7ad151,#fde725); }
+  .scale { display: flex; justify-content: space-between; color: var(--muted);
+    font-size: 10.5px; margin-top: 3px; }
+  .key { display: flex; align-items: center; gap: 8px; margin-top: 9px; font-size: 11.5px; }
+  .sw { width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--line); flex: none; }
+  .sw.refuse { background-image: repeating-linear-gradient(45deg,
+      var(--refuse) 0 2px, #2a323c 2px 4px); }
+  .sw.none { background: #10161e; }
+
+  #readout { top: 14px; right: 14px; width: 260px; display: none; }
+  #readout .big { font-size: 26px; font-weight: 650; letter-spacing: -.5px; }
+  #readout .name { font-weight: 600; margin-bottom: 2px; }
+  #readout ul { margin: 8px 0 0; padding-left: 16px; color: var(--muted); font-size: 11.5px; }
+  #readout li { margin-bottom: 3px; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10.5px;
+    border: 1px solid var(--line); color: var(--muted); }
+  .tag.refuse { color: #0b0f14; background: var(--refuse); border-color: var(--refuse); font-weight: 600; }
+
+  #perf { bottom: 14px; right: 14px; color: var(--muted); font-size: 11px;
+    font-variant-numeric: tabular-nums; }
+  #msg { position: fixed; inset: 0; display: none; place-items: center; text-align: center;
+    padding: 24px; background: var(--bg); }
+  #msg div { max-width: 460px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div id="hud" class="panel">
+  <h1>Risk volume</h1>
+  <div class="sub">longitude × latitude × lead day, raymarched.
+    Nearest-sampled on every axis — the render shows the model's own resolution.</div>
+  <div class="row">
+    <label for="datePick">Init date</label>
+    <select id="datePick"></select>
+  </div>
+  <div class="row">
+    <label for="threshold">Floor</label>
+    <input type="range" id="threshold" min="0" max="40" value="0" />
+    <span id="thresholdVal" style="min-width:40px;text-align:right;color:var(--muted)">0.00</span>
+  </div>
+  <div class="row">
+    <label for="density">Density</label>
+    <input type="range" id="density" min="10" max="600" value="180" />
+  </div>
+  <div class="row">
+    <button id="btnIso" class="on">Review isosurface</button>
+    <button id="btnRefuse" class="on">Refusals</button>
+  </div>
+  <div class="row" style="color:var(--muted);font-size:11px">
+    <span id="status">loading…</span>
+  </div>
+</div>
+
+<div id="readout" class="panel">
+  <div class="name" id="rName">—</div>
+  <div class="sub" id="rMeta" style="color:var(--muted);font-size:11.5px"></div>
+  <div class="big" id="rProb">—</div>
+  <div id="rTier"></div>
+  <ul id="rFactors"></ul>
+</div>
+
+<div id="legend" class="panel">
+  <div style="color:var(--muted);font-size:11px;margin-bottom:5px">Bust probability</div>
+  <div id="ramp"></div>
+  <div class="scale"><span>0</span><span id="rampMid">—</span><span id="rampMax">—</span></div>
+  <div class="key"><span class="sw refuse"></span>
+    <span><strong>Refused</strong> — not scored. Unknown, elevated risk (23.4% bust vs 3.4%).</span></div>
+  <div class="key"><span class="sw none"></span><span>No data</span></div>
+</div>
+
+<div id="perf" class="panel"></div>
+<div id="msg"><div id="msgText"></div></div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+"use strict";
+
+// The cost-optimal review threshold from quality/escalation.py. Not a free
+// parameter: C_fa / (C_fa + C_miss) with a 10:1 cost ratio.
+const REVIEW_THRESHOLD = 0.0909;
+
+// Status codes packed into the texture's green channel.
+const S_OK = 0, S_REFUSED = 1, S_NONE = 2;
+
+const $ = (id) => document.getElementById(id);
+let renderer, scene, camera, volumeMesh, material, frame = null;
+let grid = null, cube = null;
+let frames = 0, fpsClock = performance.now();
+const orbit = { theta: -Math.PI / 2, phi: 0.95, r: 62, min: 24, max: 160 };
+
+function fail(html) {
+  $("msgText").innerHTML = html;
+  $("msg").style.display = "grid";
+}
+
+// ---------------------------------------------------------------- shaders
+const VERT = /* glsl */`
+in vec3 position;
+uniform mat4 modelMatrix, modelViewMatrix, projectionMatrix;
+uniform mat4 inverseModel;
+uniform vec3 cameraPosition;
+out vec3 vOrigin;
+out vec3 vDirection;
+void main() {
+  // Ray origin and direction in the volume's own local space, so the
+  // box intersection below is against a fixed unit cube.
+  vOrigin = (inverseModel * vec4(cameraPosition, 1.0)).xyz;
+  vDirection = position - vOrigin;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const FRAG = /* glsl */`
+precision highp float;
+precision highp sampler3D;
+
+in vec3 vOrigin;
+in vec3 vDirection;
+out vec4 fragColor;
+
+uniform sampler3D uField;   // R = probability, G = status code /255
+uniform vec3  uSize;        // nx, ny(lat), nz(lead) in voxels
+uniform float uDensity;     // opacity scaling
+uniform float uFloor;       // hide probabilities below this
+uniform float uTime;
+uniform int   uShowIso;
+uniform int   uShowRefused;
+uniform float uThreshold;
+uniform float uAmbient;   // faint floor for assessed-but-low-risk cells
+
+// Viridis, polynomial fit. Perceptually uniform and colour-blind safe, which
+// matters more here than prettiness: this ramp encodes risk.
+vec3 viridis(float t) {
+  t = clamp(t, 0.0, 1.0);
+  const vec3 c0 = vec3(0.2777, 0.0054, 0.3341);
+  const vec3 c1 = vec3(0.1050, 1.4046, 1.3845);
+  const vec3 c2 = vec3(-0.3308, 0.2148, 0.0952);
+  const vec3 c3 = vec3(-4.6342, -5.7991, -19.3324);
+  const vec3 c4 = vec3(6.2282, 14.1799, 56.6905);
+  const vec3 c5 = vec3(4.7763, -13.7451, -65.3532);
+  const vec3 c6 = vec3(-5.4354, 4.6453, 26.3124);
+  return c0 + t*(c1 + t*(c2 + t*(c3 + t*(c4 + t*(c5 + t*c6)))));
+}
+
+// Cheap hash noise. Used only for the refusal medium, never for data.
+float hash(vec3 p) {
+  p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
+  p *= 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+// Slab test against the unit box centred on the origin.
+vec2 hitBox(vec3 orig, vec3 dir) {
+  const vec3 lo = vec3(-0.5), hi = vec3(0.5);
+  vec3 inv = 1.0 / dir;
+  vec3 tLo = (lo - orig) * inv;
+  vec3 tHi = (hi - orig) * inv;
+  vec3 tMin = min(tLo, tHi), tMax = max(tLo, tHi);
+  return vec2(max(max(tMin.x, tMin.y), tMin.z),
+              min(min(tMax.x, tMax.y), tMax.z));
+}
+
+void main() {
+  vec3 dir = normalize(vDirection);
+  vec2 t = hitBox(vOrigin, dir);
+  if (t.x > t.y) discard;
+  t.x = max(t.x, 0.0);
+
+  // Local box axes are (x = longitude, y = LEAD DAY, z = latitude); the
+  // texture is (u = lon, v = lat, w = lead). uSize is given in texture order,
+  // so reorder it to local order before reasoning about step size.
+  vec3 nLocal = vec3(uSize.x, uSize.z, uSize.y);
+
+  // One sample per voxel on whichever axis the ray crosses MOST voxels --
+  // max, not min. Using min undersamples a diagonal ray by ~4x and drops
+  // whole slabs, which on this data means silently hiding risk.
+  vec3 crossed = nLocal * abs(dir);
+  float steps = max(max(crossed.x, crossed.y), crossed.z);
+  float dt = (t.y - t.x) / clamp(steps, 1.0, 512.0);
+
+  vec3 p = vOrigin + dir * t.x;
+  vec4 acc = vec4(0.0);
+
+  for (float i = 0.0; i < 512.0; i += 1.0) {
+    if (acc.a > 0.98) break;
+    float travelled = t.x + dt * i;
+    if (travelled > t.y) break;
+
+    // local (x, y, z) = (lon, lead, lat)  ->  texture (u, v, w) = (lon, lat, lead)
+    vec3 local = p + 0.5;
+    vec3 uvw = vec3(local.x, local.z, local.y);
+    vec2 s = texture(uField, uvw).rg;
+    float prob = s.r;
+    int   stat = int(s.g * 255.0 + 0.5);
+
+    vec4 src = vec4(0.0);
+
+    if (stat == 0 && prob >= uFloor) {
+      // Scored. Colour by the ramp; opacity by probability so the eye is
+      // drawn to mass, not to the mere presence of land.
+      vec3 col = viridis(prob / max(uThreshold * 4.0, 0.25));
+      // Beer-Lambert absorption. Opacity depends on the distance travelled
+      // through the medium, not on how many samples we happened to take, so
+      // the Density slider means the same thing from every viewing angle.
+      // uAmbient gives every ASSESSED cell a faint presence even at
+      // probability ~0. That is not decoration: "the model looked at this and
+      // returned a low number" is different information from "nothing here",
+      // and without it the landmass vanishes and all orientation is lost.
+      float a = 1.0 - exp(-(prob * uDensity + uAmbient) * dt);
+      if (uShowIso == 1) {
+        // Thin bright shell where the field crosses the review threshold.
+        float d = abs(prob - uThreshold);
+        if (d < 0.006) { col = mix(col, vec3(1.0), 0.75); a = min(a * 6.0, 1.0); }
+      }
+      src = vec4(col, clamp(a, 0.0, 1.0));
+    } else if (stat == 1 && uShowRefused == 1) {
+      // Refused. Achromatic and NOISY: loud enough to draw attention, with
+      // no hue at all so it can never be read as a point on the risk ramp.
+      // A refusal is unknown, elevated risk -- never a low reading.
+      float n = hash(floor(uvw * uSize * 2.0));
+      float a = 1.0 - exp(-(0.35 + 0.65 * step(0.45, n)) * uDensity * dt * 0.8);
+      src = vec4(vec3(0.80 + 0.20 * n), clamp(a, 0.0, 1.0));
+    }
+
+    // Front-to-back compositing.
+    acc.rgb += (1.0 - acc.a) * src.rgb * src.a;
+    acc.a   += (1.0 - acc.a) * src.a;
+
+    p += dir * dt;
+  }
+
+  if (acc.a < 0.003) discard;
+  fragColor = acc;
+}`;
+
+// ------------------------------------------------------------------ setup
+function init() {
+  const stage = $("stage");
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  if (!renderer.capabilities.isWebGL2) {
+    fail("<h2>WebGL2 required</h2><p>This view raymarches a 3-D texture, which " +
+         "needs WebGL2 (<code>sampler3D</code>). The 2-D dashboard and the " +
+         "column view work without it.</p>");
+    return false;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  stage.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x070b10);
+  camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+
+  bindControls(renderer.domElement);
+  window.addEventListener("resize", resize);
+  resize();
+  return true;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+function bindControls(el) {
+  let dragging = false, lx = 0, ly = 0;
+  el.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; });
+  window.addEventListener("pointerup", () => { dragging = false; });
+  window.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    orbit.theta -= (e.clientX - lx) * 0.006;
+    orbit.phi = Math.max(0.08, Math.min(1.52, orbit.phi - (e.clientY - ly) * 0.005));
+    lx = e.clientX; ly = e.clientY;
+  });
+  el.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    orbit.r = Math.max(orbit.min, Math.min(orbit.max, orbit.r * (1 + Math.sign(e.deltaY) * 0.08)));
+  }, { passive: false });
+}
+
+// --------------------------------------------------------------- the volume
+function buildTexture(grid, cube) {
+  const { nx, ny, nodata } = grid;
+  const nz = cube.lead_days.length;
+
+  const ids = grid.ids;                       // Uint8Array, ny * nx
+  const byId = new Map(cube.regions.map((r) => [r.region_id, r]));
+  // RGBA rather than RG: r128 does not map RGFormat to a sized internal
+  // format (RG8) for texImage3D, so WebGL2 rejects it. RGBA8 is handled, and
+  // at 125x123x10 the extra two channels cost ~300 KB -- irrelevant here.
+  const STRIDE = 4;
+  const data = new Uint8Array(nx * ny * nz * STRIDE);
+
+  // Default every voxel to "no data" rather than to zero probability. A zero
+  // would render as a valid low reading, which is the one thing a missing
+  // value must never look like.
+  for (let i = 0; i < nx * ny * nz; i++) data[i * STRIDE + 1] = S_NONE;
+
+  let scored = 0, refused = 0, missing = 0;
+  for (let z = 0; z < nz; z++) {
+    for (let y = 0; y < ny; y++) {
+      for (let x = 0; x < nx; x++) {
+        const rid = ids[y * nx + x];
+        if (rid === nodata) continue;
+        const region = byId.get(grid.region_ids[rid]);
+        const o = ((z * ny + y) * nx + x) * STRIDE;
+        if (!region) { missing++; continue; }      // e.g. island territories
+        const st = region.status[z];
+        const p = region.p[z];
+        if (st === "OK" && p !== null && p !== undefined) {
+          data[o] = Math.round(Math.max(0, Math.min(1, p)) * 255);
+          data[o + 1] = S_OK; scored++;
+        } else if (st === "OUT_OF_DISTRIBUTION") {
+          data[o + 1] = S_REFUSED; refused++;
+        } else {
+          missing++;
+        }
+      }
+    }
+  }
+
+  const tex = new THREE.DataTexture3D(data, nx, ny, nz);
+  tex.format = THREE.RGBAFormat;
+  tex.type = THREE.UnsignedByteType;
+  // NEAREST on every axis. See the note at the top of this file: this is the
+  // invariant, not a performance choice.
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.wrapS = tex.wrapT = tex.wrapR = THREE.ClampToEdgeWrapping;
+  tex.unpackAlignment = 1;
+  tex.needsUpdate = true;
+  return { tex, nx, ny, nz, scored, refused, missing };
+}
+
+function mount(v) {
+  if (frame) { scene.remove(frame); frame = null; }
+  if (volumeMesh) {
+    scene.remove(volumeMesh);
+    volumeMesh.geometry.dispose();
+    material.uniforms.uField.value.dispose();
+    material.dispose();
+  }
+  // Geographic extent maps to x/z; lead day is the vertical axis. The lead
+  // axis is given real height so each of the 10 days reads as its own slab.
+  // A UNIT box, scaled by the mesh. The shader intersects a box of half-extent
+  // 0.5 in local space, so baking the size into the geometry would put every
+  // vertex far outside that box and make almost every ray miss.
+  const W = 40, D = 40 * (v.ny / v.nx), H = 15;
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+
+  material = new THREE.RawShaderMaterial({
+    glslVersion: THREE.GLSL3,
+    vertexShader: VERT,
+    fragmentShader: FRAG,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+    uniforms: {
+      uField: { value: v.tex },
+      uSize: { value: new THREE.Vector3(v.nx, v.ny, v.nz) },
+      uDensity: { value: 1.2 },
+      uFloor: { value: 0.0 },
+      uTime: { value: 0 },
+      uShowIso: { value: 1 },
+      uShowRefused: { value: 1 },
+      uThreshold: { value: REVIEW_THRESHOLD },
+      uAmbient: { value: 0.45 },
+      inverseModel: { value: new THREE.Matrix4() },
+    },
+  });
+
+  volumeMesh = new THREE.Mesh(geo, material);
+  volumeMesh.scale.set(W, H, D);
+  volumeMesh.updateMatrixWorld(true);
+  scene.add(volumeMesh);
+
+  // Frame + lead-day rungs. The vertical axis is lead day, which is the one
+  // thing no viewer guesses from the volume alone.
+  frame = new THREE.Group();
+  frame.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+    new THREE.LineBasicMaterial({ color: 0x2a3746 })));
+  const rung = [];
+  for (let i = 0; i < v.nz; i++) {
+    const y = -H / 2 + (i + 0.5) * (H / v.nz);
+    rung.push(-W / 2, y, -D / 2, -W / 2 - 1.6, y, -D / 2);
+  }
+  const rg = new THREE.BufferGeometry();
+  rg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(rung), 3));
+  frame.add(new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0x3d5064 })));
+  scene.add(frame);
+  applyControls();
+}
+
+function applyControls() {
+  if (!material) return;
+  const floor = $("threshold").value / 400;   // 0 .. 0.10
+  $("thresholdVal").textContent = floor.toFixed(3);
+  material.uniforms.uFloor.value = floor;
+  material.uniforms.uDensity.value = $("density").value / 10;
+  material.uniforms.uShowIso.value = $("btnIso").classList.contains("on") ? 1 : 0;
+  material.uniforms.uShowRefused.value = $("btnRefuse").classList.contains("on") ? 1 : 0;
+}
+
+// ------------------------------------------------------------------- data
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url} -> ${r.status}`);
+  return r.json();
+}
+
+function decodeGrid(g) {
+  const bin = atob(g.ids_b64);
+  const ids = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) ids[i] = bin.charCodeAt(i);
+  return Object.assign({}, g, { ids });
+}
+
+async function loadDate(initDate) {
+  $("status").textContent = "loading " + initDate + "…";
+  cube = await getJSON(`/api/risk-cube?init_date=${initDate}`);
+  const v = buildTexture(grid, cube);
+  mount(v);
+
+  const maxP = Math.max(...cube.regions.flatMap((r) =>
+    r.p.map((x) => (typeof x === "number" ? x : 0))));
+  $("rampMid").textContent = (maxP / 2).toFixed(2);
+  $("rampMax").textContent = maxP.toFixed(2);
+  $("status").textContent =
+    `${v.scored.toLocaleString()} scored · ${v.refused.toLocaleString()} refused · ` +
+    `${v.nx}×${v.ny}×${v.nz} voxels`;
+  if (cube.banner) $("status").textContent = cube.banner;
+}
+
+async function boot() {
+  if (!init()) return;
+  try {
+    grid = decodeGrid(await getJSON("/api/voxel-grid"));
+  } catch (e) {
+    fail("<h2>Voxel grid missing</h2><p>Run:<br><code>PYTHONPATH=src python " +
+         "scripts/precompute_voxel_grid.py</code></p>");
+    return;
+  }
+  let dates;
+  try {
+    dates = (await getJSON("/api/replay/dates")).init_dates;
+  } catch (e) {
+    fail("<h2>No bulletin store</h2><p>Run:<br><code>python " +
+         "scripts/fetch_release_artifacts.py</code></p>");
+    return;
+  }
+  const sel = $("datePick");
+  for (const d of dates) {
+    const o = document.createElement("option");
+    o.value = o.textContent = d;
+    sel.appendChild(o);
+  }
+  // Default to the documented demo case when it is in the archive.
+  sel.value = dates.includes("2022-06-14") ? "2022-06-14" : dates[dates.length - 1];
+  sel.addEventListener("change", () => loadDate(sel.value).catch(showErr));
+
+  for (const id of ["threshold", "density"]) $(id).addEventListener("input", applyControls);
+  for (const id of ["btnIso", "btnRefuse"]) {
+    $(id).addEventListener("click", () => { $(id).classList.toggle("on"); applyControls(); });
+  }
+
+  await loadDate(sel.value);
+  animate();
+}
+
+function showErr(e) {
+  $("status").textContent = String(e.message || e);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  frames++;
+  if (now - fpsClock > 500) {
+    const fps = (frames * 1000) / (now - fpsClock);
+    $("perf").textContent = `${fps.toFixed(0)} fps · ${renderer.info.render.calls} draw calls`;
+    frames = 0; fpsClock = now;
+  }
+
+  const { theta, phi, r } = orbit;
+  camera.position.set(
+    r * Math.cos(phi) * Math.cos(theta),
+    r * Math.sin(phi),
+    r * Math.cos(phi) * Math.sin(theta)
+  );
+  camera.lookAt(0, 0, 0);
+
+  if (material && volumeMesh) {
+    volumeMesh.updateMatrixWorld();
+    material.uniforms.inverseModel.value.copy(volumeMesh.matrixWorld).invert();
+    material.uniforms.uTime.value = now / 1000;
+  }
+  renderer.render(scene, camera);
+}
+
+boot().catch((e) => fail("<h2>Failed to start</h2><pre>" + (e.message || e) + "</pre>"));
+</script>
+</body>
+</html>

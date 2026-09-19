@@ -240,6 +240,27 @@ def regions() -> JSONResponse:
     return JSONResponse(json.loads(g.to_json()))
 
 
+@app.get("/api/voxel-grid")
+def voxel_grid() -> JSONResponse:
+    """Region index per grid cell, for the volumetric view.
+
+    Static: the geometry never changes at runtime, so this is precomputed by
+    ``scripts/precompute_voxel_grid.py`` from the same exact EPSG:7755
+    polygon-cell overlap the feature pipeline uses. Serving it rather than
+    rasterising per request keeps the geo stack out of the image (D-020) and
+    puts the rendered volume on the model's own grid rather than a second grid
+    that merely resembles it.
+    """
+    path = config.INTERIM / "voxel_grid.json"
+    if not path.exists():
+        raise HTTPException(
+            503,
+            "voxel grid missing; run `PYTHONPATH=src python "
+            "scripts/precompute_voxel_grid.py`",
+        )
+    return JSONResponse(json.loads(path.read_text(encoding="utf-8")))
+
+
 @app.get("/api/bulletin", response_model=Bulletin)
 def bulletin(
     init_date: str = Query(..., description="YYYY-MM-DD"),
