@@ -59,6 +59,29 @@ calibration on the *same* validation year so the comparison is fair.
 Everything above is reproducible from `scripts/` with public data only.
 No GPU is used anywhere.
 
+### The two claims, drawn
+
+| calibration | earned refusal |
+|---|---|
+| [![Reliability diagram](docs/figures/reliability.png)](docs/FIGURES.md) | [![Earned refusal](docs/figures/earned_refusal.png)](docs/FIGURES.md) |
+
+Left: observed bust frequency against predicted probability on the held-out
+2022 rows the product actually serves. ECE 0.0107, and the curve tracks the
+diagonal through the operational range — but the **highest bin predicts 0.207
+and observes 0.158**, overconfident by 0.049 on ~80 rows. That is labelled on
+the figure rather than left for a low ECE to paper over, because the top bin is
+where a forecaster is looking.
+
+Right: the days the model *declines* to score bust at **23.4%** against **3.4%**
+for the days it accepts — 6.9×. A refusal is not a low-risk result, which is why
+there are three escalation tiers and not two.
+
+[`docs/FIGURES.md`](docs/FIGURES.md) has the method, the honest reading, and a
+reconciliation of the small gap against the table above (the served subset
+excludes 173 refused rows; 19,887 + 173 = 20,060).
+
+Regenerate with `PYTHONPATH=src python scripts/plot_evaluation_figures.py`.
+
 ---
 
 ## What it does
