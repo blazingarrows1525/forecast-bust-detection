@@ -122,3 +122,132 @@ def test_landing_page_respects_reduced_motion():
         "scroll-driven drawing must be switchable off; without this the page "
         "animates at people who asked it not to"
     )
+
+
+# --------------------------------------------------------------------------
+# The risk ramp, under colour-vision deficiency
+# --------------------------------------------------------------------------
+# This is a computable safety property, so it is computed rather than reviewed.
+#
+# The ramp this replaced ran dark-green -> green -> amber -> orange -> red.
+# Under simulated protanopia its "<5%" and ">35%" bands sat at CIELAB dE 10.0:
+# the safest and the most dangerous band, effectively the same colour, for
+# roughly 1% of men. That is the inversion this whole project exists to
+# prevent, arriving through the palette.
+#
+# Anyone reaching for a traffic-light ramp again will trip this test.
+
+#: Roughly one just-noticeable difference is dE 2.3. Adjacent bands need to be
+#: clearly separable; the extremes must never be near each other.
+MIN_ADJACENT_DE = 14.0
+MIN_EXTREME_DE = 60.0
+
+_CVD = {
+    # Brettel/Vienot LMS transforms.
+    "deuteranopia": [[1, 0, 0], [0.494207, 0, 1.24827], [0, 0, 1]],
+    "protanopia": [[0, 2.02344, -2.52581], [0, 1, 0], [0, 0, 1]],
+    "tritanopia": [[1, 0, 0], [0, 1, 0], [-0.395913, 0.801109, 0]],
+    "normal": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+}
+
+
+def _ramp_from_css() -> list:
+    """The five risk stops, read out of index.html so the test tracks the page."""
+    css = _read("index.html")
+    root = re.search(r":root\{(.*?)\}", css, re.S).group(1)
+    stops = []
+    for i in range(5):
+        m = re.search(rf"--c{i}\s*:\s*(#[0-9a-fA-F]{{6}})", root)
+        assert m, f"--c{i} not found in :root"
+        stops.append(m.group(1))
+    return stops
+
+
+def _simulate(hex_colour: str, kind: str):
+    import numpy as np
+
+    def srgb2lin(c):
+        return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+    def lin2srgb(c):
+        return np.where(c <= 0.0031308, c * 12.92,
+                        1.055 * np.clip(c, 0, 1) ** (1 / 2.4) - 0.055)
+
+    rgb2lms = np.array([[17.8824, 43.5161, 4.11935],
+                        [3.45565, 27.1554, 3.86714],
+                        [0.0299566, 0.184309, 1.46709]])
+    h = hex_colour.lstrip("#")
+    rgb = np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], float) / 255
+    lin = srgb2lin(rgb)
+    out = np.linalg.inv(rgb2lms) @ (np.array(_CVD[kind]) @ (rgb2lms @ lin))
+    seen = np.clip(lin2srgb(out), 0, 1)
+
+    # CIELAB, D65.
+    m = np.array([[0.4124, 0.3576, 0.1805],
+                  [0.2126, 0.7152, 0.0722],
+                  [0.0193, 0.1192, 0.9505]])
+    xyz = m @ srgb2lin(seen) / np.array([0.95047, 1.0, 1.08883])
+    f = np.where(xyz > 0.008856, xyz ** (1 / 3), 7.787 * xyz + 16 / 116)
+    return np.array([116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])])
+
+
+@pytest.mark.parametrize("kind", sorted(_CVD))
+def test_risk_ramp_stays_separable_under_colour_vision_deficiency(kind: str):
+    import numpy as np
+
+    ramp = _ramp_from_css()
+    lab = [_simulate(c, kind) for c in ramp]
+
+    for i in range(len(lab) - 1):
+        d = float(np.linalg.norm(lab[i] - lab[i + 1]))
+        assert d >= MIN_ADJACENT_DE, (
+            f"{kind}: risk bands {i} and {i + 1} ({ramp[i]}, {ramp[i + 1]}) are "
+            f"dE {d:.1f} apart, below {MIN_ADJACENT_DE}. Adjacent risk levels "
+            f"must be distinguishable."
+        )
+
+    extremes = float(np.linalg.norm(lab[0] - lab[-1]))
+    assert extremes >= MIN_EXTREME_DE, (
+        f"{kind}: the lowest and highest risk bands are dE {extremes:.1f} apart. "
+        "These two must never approach each other -- confusing them inverts the "
+        "meaning of the map."
+    )
+
+
+def test_refusal_is_a_pattern_not_a_hue():
+    """§2.1 in the palette.
+
+    Any hue puts refusal on the same visual axis as risk, which invites reading
+    it as a point on the ramp. The previous purple fill was also *darker* than
+    the top risk band, so a region that busts 23.4% of the time looked calmer
+    than one at 35%.
+    """
+    html = _read("index.html")
+    assert 'OOD_FILL = "url(#oodHatch)"' in html
+    assert re.search(r"--ood\s*:", html) is None, (
+        "refusal must not be a colour token; it is a hatch pattern"
+    )
+    assert "oodHatch" in html and "<pattern" in html
+
+
+def test_dashboard_legend_states_that_a_refusal_is_not_low_risk():
+    html = _read("index.html")
+    assert "23.4" in html and "3.4" in html, (
+        "the legend must say what a refusal means operationally, not just "
+        "that the system declined"
+    )
+
+
+def test_dashboard_is_keyboard_operable():
+    """45 minutes to a deadline; a dropdown per region is the wrong interaction."""
+    html = _read("index.html")
+    for key in ("ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Escape"):
+        assert f'"{key}"' in html, f"no handler for {key}"
+    assert 'id="help"' in html, "shortcuts need a discoverable overlay"
+
+
+@pytest.mark.parametrize("page", PAGES, ids=lambda p: p.name)
+def test_no_page_is_branded_with_the_competition_id(page: Path):
+    """This is a personal project; the product surface carries no entry number."""
+    html = page.read_text(encoding="utf-8")
+    assert "SIH" not in html, f"{page.name} still carries SIH branding"

@@ -3,13 +3,36 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Forecast Bust Detection — India (SIH26079)</title>
+<title>Forecast Bust Detection — India</title>
 <link rel="stylesheet" href="/vendor/leaflet.css" />
 <style>
+  /* Risk ramp is viridis, the same five stops volume.html uses, so the product
+     has ONE risk encoding rather than one per page.
+
+     The previous ramp ran dark-green -> green -> amber -> orange -> red. Two
+     problems, both measured rather than assumed:
+
+       * Under simulated protanopia the <5% and >35% bands sat at CIELAB
+         dE 10.0 -- the safest and the most dangerous band, essentially
+         confusable. Viridis holds that pair at dE 152. Under deuteranopia the
+         old 10-20% and 20-35% bands sat at dE 10.6; the smallest adjacent gap
+         in viridis is 18.0.
+       * Green->amber->red is IMD's official warning-colour semantics. This
+         system does not issue warnings, and borrowing that palette implies it
+         does (FRONTEND_LOGIC.md sec 6).
+
+     Refusal is deliberately NOT in this list. It is a pattern, not a hue --
+     see --ood-ink and the hatch in the map defs. */
   :root{
     --bg:#0f1419; --panel:#171e26; --panel2:#1e2732; --line:#2a3644;
     --fg:#e6edf3; --muted:#8b98a5; --accent:#4a9eff;
-    --c0:#1a4d2e; --c1:#3d7c47; --c2:#c9a227; --c3:#e07b39; --c4:#c0392b; --ood:#6b4c9a;
+    --c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725;
+    --ood-ink:#e8edf2; --ood-bg:#2b333d; --truth-bust:#e5534b; --truth-ok:#26343f;
+  }
+  :root[data-theme="light"]{
+    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eceff2; --line:#d6dde4;
+    --fg:#1c2430; --muted:#5a6b7d; --accent:#0b6fa4;
+    --ood-ink:#2b333d; --ood-bg:#ffffff; --truth-ok:#e3e8ec;
   }
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -46,6 +69,16 @@
   th{color:var(--muted);font-weight:600}
   tr.q:hover{background:#243141;cursor:pointer}
   .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+  .sw.hatch{background-image:repeating-linear-gradient(45deg,
+    var(--ood-ink) 0 3px, var(--ood-bg) 3px 7px)}
+  #help{position:fixed;inset:0;background:rgba(6,10,14,.78);display:grid;
+    place-items:center;z-index:9999;padding:20px}
+  #help[hidden]{display:none}
+  #help>div{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:20px 24px;max-width:460px}
+  #help td{padding:3px 12px 3px 0;font-size:13px}
+  kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+    padding:1px 6px;font:12px ui-monospace,monospace}
   .legend{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
   .sw{width:14px;height:12px;border-radius:2px;display:inline-block}
   .bar{height:7px;background:#2a3644;border-radius:4px;overflow:hidden;margin-top:3px}
@@ -58,7 +91,7 @@
 <body>
 <div id="app">
   <header>
-    <h1>Forecast Bust Detection <span class="sub">· India · SIH26079</span></h1>
+    <h1>Forecast Bust Detection <span class="sub">· India · medium-range rainfall</span></h1>
     <div class="controls">
       <label>Init date</label>
       <input type="range" id="dateSlider" min="0" max="0" value="0" />
@@ -68,11 +101,32 @@
       <button id="btnModel" class="active">Model</button>
       <button id="btnBaseline">Spread baseline</button>
       <button id="btnTruth">Show truth</button>
+      <button id="btnPlay" title="Scrub Day 10 to Day 1 (space)">▶ Lead scrub</button>
+      <button id="btnTheme" title="Light / dark (t)">◐</button>
+      <button id="btnHelp" title="Keyboard shortcuts (?)">?</button>
       <a class="btn3d" href="/command.html" title="Show all 10 lead days at once in 3D">3D command centre ↗</a>
     </div>
     <div class="sub" id="status"></div>
   </header>
   <div id="banner"></div>
+<div id="help" hidden>
+  <div>
+    <h2 style="margin-top:0">Keyboard</h2>
+    <table>
+      <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>lead day</td></tr>
+      <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td><td>init date</td></tr>
+      <tr><td><kbd>space</kbd></td><td>lead scrub, Day 10 &rarr; Day 1</td></tr>
+      <tr><td><kbd>m</kbd> / <kbd>b</kbd></td><td>model / spread baseline</td></tr>
+      <tr><td><kbd>v</kbd></td><td>show truth</td></tr>
+      <tr><td><kbd>t</kbd></td><td>light / dark</td></tr>
+      <tr><td><kbd>/</kbd></td><td>jump to a subdivision</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>clear selection / close</td></tr>
+    </table>
+    <p class="muted" style="margin-bottom:0">A duty forecaster has about 45
+      minutes before the bulletin deadline; mousing through a dropdown per
+      region is the wrong interaction.</p>
+  </div>
+</div>
   <div id="map"></div>
   <aside>
     <div class="card">
@@ -105,11 +159,17 @@
         <span class="sw" style="background:var(--c2)"></span><span>10–20%</span>
         <span class="sw" style="background:var(--c3)"></span><span>20–35%</span>
         <span class="sw" style="background:var(--c4)"></span><span>&gt;35%</span>
-        <span class="sw" style="background:var(--ood)"></span><span>refused (OOD)</span>
+        <span class="sw hatch"></span><span><strong>refused</strong></span>
       </div>
       <div class="muted" style="margin-top:8px">
-        Colour = probability that this forecast busts. Purple = the state is unlike
-        anything in training, so the system declines to give a number.
+        Colour = probability that this forecast busts, on a perceptually uniform
+        ramp that survives colour-vision deficiency.
+      </div>
+      <div class="muted" style="margin-top:6px">
+        <strong>Hatched = refused.</strong> The state is unlike anything in training,
+        so the system declines to give a number. That is not a low reading:
+        refused region-days busted <strong>23.4%</strong> of the time in the
+        held-out year, against <strong>3.4%</strong> for scored ones.
       </div>
     </div>
     <div class="card">
@@ -125,14 +185,36 @@ const API = "";
 let map, layer, geo=null, dates=[], cur={init:null, lead:5, view:"model", truth:false};
 let rows=[], byRegion={};
 
+// Refusal is returned as an SVG pattern reference rather than a colour. A
+// refused region-day busts 23.4% of the time against 3.4% for scored ones, so
+// it must not be readable as a point on the risk ramp and must not be quieter
+// than one. A hue -- any hue -- invites both readings; hatching does not.
+const OOD_FILL = "url(#oodHatch)";
+
 function colour(p, status){
-  if(status && status!=="OK") return getCSS("--ood");
+  if(status && status!=="OK") return OOD_FILL;
   if(p==null) return "#3a4450";
   if(p<0.05) return getCSS("--c0");
   if(p<0.10) return getCSS("--c1");
   if(p<0.20) return getCSS("--c2");
   if(p<0.35) return getCSS("--c3");
   return getCSS("--c4");
+}
+
+// Leaflet draws into one SVG per pane, so the pattern is defined once there
+// and referenced by every refused path.
+function installHatch(){
+  const svg = document.querySelector("#map svg");
+  if(!svg || svg.querySelector("#oodHatch")) return;
+  const NS = "http://www.w3.org/2000/svg";
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML =
+    `<pattern id="oodHatch" width="7" height="7" patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)">
+       <rect width="7" height="7" fill="${getCSS("--ood-bg")}"/>
+       <line x1="0" y1="0" x2="0" y2="7" stroke="${getCSS("--ood-ink")}" stroke-width="3"/>
+     </pattern>`;
+  svg.insertBefore(defs, svg.firstChild);
 }
 const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const pct = x => x==null ? "—" : (100*x).toFixed(1)+"%";
@@ -160,8 +242,96 @@ async function boot(){
   document.getElementById("btnTruth").onclick = ()=>{cur.truth=!cur.truth;
     document.getElementById("btnTruth").classList.toggle("active",cur.truth); render();};
 
+  document.getElementById("btnPlay").onclick = toggleScrub;
+  document.getElementById("btnTheme").onclick = toggleTheme;
+  document.getElementById("btnHelp").onclick = () => toggleHelp(true);
+  applyStoredTheme();
+  bindKeys();
+
   loadMetrics();
   await load(dates[idx]);
+}
+
+// ------------------------------------------------------------------ theme
+function applyStoredTheme(){
+  let t = null;
+  try { t = localStorage.getItem("fbd-theme"); } catch(e) { /* private mode */ }
+  if(t) document.documentElement.setAttribute("data-theme", t);
+}
+function toggleTheme(){
+  const next = document.documentElement.getAttribute("data-theme")==="light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("fbd-theme", next); } catch(e) { /* non-fatal */ }
+  // The hatch bakes theme colours into an SVG pattern, so it is rebuilt.
+  const d = document.querySelector("#map svg defs"); if(d) d.remove();
+  render();
+}
+
+// ------------------------------------------------------------- lead scrub
+// Day 10 -> Day 1 on one already-loaded bulletin: no request per frame, and
+// it shows the thing a static map cannot -- where risk builds as the event
+// approaches.
+let scrubTimer = null;
+function toggleScrub(){
+  if(scrubTimer){ stopScrub(); return; }
+  document.getElementById("btnPlay").classList.add("active");
+  document.getElementById("btnPlay").textContent = "■ Stop";
+  let L = 10;
+  const step = () => {
+    setLead(L);
+    L -= 1;
+    if(L < 1){ stopScrub(); return; }
+    scrubTimer = setTimeout(step, 620);
+  };
+  step();
+}
+function stopScrub(){
+  clearTimeout(scrubTimer); scrubTimer = null;
+  const b = document.getElementById("btnPlay");
+  b.classList.remove("active"); b.textContent = "▶ Lead scrub";
+}
+function setLead(L){
+  cur.lead = Math.max(1, Math.min(10, L));
+  document.getElementById("leadPick").value = cur.lead;
+  render();
+}
+function stepDate(delta){
+  const sl = document.getElementById("dateSlider");
+  const i = Math.max(0, Math.min(dates.length-1, (+sl.value) + delta));
+  sl.value = i; document.getElementById("datePick").value = i;
+  load(dates[i]);
+}
+
+// -------------------------------------------------------------- keyboard
+function toggleHelp(show){
+  document.getElementById("help").hidden = !show;
+}
+function bindKeys(){
+  document.getElementById("help").onclick = () => toggleHelp(false);
+  window.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if(t && (t.tagName==="INPUT" || t.tagName==="SELECT" || t.tagName==="TEXTAREA")){
+      if(e.key === "Escape") t.blur();
+      return;
+    }
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    switch(e.key){
+      case "ArrowLeft":  stopScrub(); setLead(cur.lead - 1); break;
+      case "ArrowRight": stopScrub(); setLead(cur.lead + 1); break;
+      case "ArrowUp":    stopScrub(); stepDate(-1); break;
+      case "ArrowDown":  stopScrub(); stepDate(1); break;
+      case " ":          toggleScrub(); break;
+      case "m": setView("model"); break;
+      case "b": setView("baseline"); break;
+      case "v": document.getElementById("btnTruth").click(); break;
+      case "t": toggleTheme(); break;
+      case "?": toggleHelp(true); break;
+      case "/": document.getElementById("datePick").focus(); break;
+      case "Escape": toggleHelp(false); break;
+      default: return;
+    }
+    e.preventDefault();
+  });
 }
 
 function setView(v){
@@ -207,6 +377,7 @@ function render(){
       lyr.bindTooltip(`${f.properties.name}<br>${r?pct(r.bust_probability):"—"}`,{sticky:true});
     }
   }).addTo(map);
+  installHatch();
 }
 
 // The API stores the calibrated spread baseline alongside each row.
@@ -221,7 +392,7 @@ async function select(rid){
   document.getElementById("selProb").textContent =
     r.status==="OK" ? pct(p) : "confidence unavailable";
   document.getElementById("selProb").style.color =
-    r.status==="OK" ? colour(p,"OK") : getCSS("--ood");
+    r.status==="OK" ? colour(p,"OK") : getCSS("--fg");
   document.getElementById("selProbSub").textContent =
     r.status==="OK" ? "probability this forecast busts"
                     : "conditions outside training experience";

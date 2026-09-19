@@ -44,7 +44,7 @@ DB = config.ARTIFACTS / "bulletins.sqlite"
 WEB_DIR = config.ROOT / "web"
 
 app = FastAPI(
-    title="Forecast Bust Detection — SIH26079",
+    title="Forecast Bust Detection",
     description=(
         "Predicts when a medium-range rainfall forecast is likely to fail over "
         "India: which subdivision, which lead day, and why. Decision support for "
