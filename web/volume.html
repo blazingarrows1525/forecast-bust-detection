@@ -161,6 +161,8 @@ const S_OK = 0, S_REFUSED = 1, S_NONE = 2;
 const $ = (id) => document.getElementById(id);
 let renderer, scene, camera, volumeMesh, material, frame = null;
 let grid = null, cube = null;
+let pickTarget = null, pickMaterial = null, pickScene = null;
+let pickPending = null, lastPick = 0;
 let frames = 0, fpsClock = performance.now();
 const orbit = { theta: -Math.PI / 2, phi: 0.95, r: 62, min: 24, max: 160 };
 
@@ -308,6 +310,65 @@ void main() {
   fragColor = acc;
 }`;
 
+// Picking pass. Same march, different output: instead of a colour it writes
+// the identity of the first voxel the ray "lands on".
+//
+// A volume has no surface to raycast against, so picking cannot be a mesh
+// intersection. The rule here is the same one the eye uses -- the first voxel
+// that actually contributes visible opacity -- so what you click is what you
+// saw. Marching on the GPU also guarantees the pick and the picture agree:
+// one shader edit cannot desynchronise them.
+const PICK_FRAG = /* glsl */`
+precision highp float;
+precision highp sampler3D;
+
+in vec3 vOrigin;
+in vec3 vDirection;
+out vec4 fragColor;
+
+uniform sampler3D uField;
+uniform vec3  uSize;
+uniform float uFloor;
+uniform int   uShowRefused;
+
+vec2 hitBox(vec3 orig, vec3 dir) {
+  const vec3 lo = vec3(-0.5), hi = vec3(0.5);
+  vec3 inv = 1.0 / dir;
+  vec3 tLo = (lo - orig) * inv, tHi = (hi - orig) * inv;
+  vec3 tMin = min(tLo, tHi), tMax = max(tLo, tHi);
+  return vec2(max(max(tMin.x, tMin.y), tMin.z), min(min(tMax.x, tMax.y), tMax.z));
+}
+
+void main() {
+  vec3 dir = normalize(vDirection);
+  vec2 t = hitBox(vOrigin, dir);
+  if (t.x > t.y) discard;
+  t.x = max(t.x, 0.0);
+
+  vec3 nLocal = vec3(uSize.x, uSize.z, uSize.y);
+  vec3 crossed = nLocal * abs(dir);
+  float steps = max(max(crossed.x, crossed.y), crossed.z);
+  float dt = (t.y - t.x) / clamp(steps, 1.0, 512.0);
+
+  vec3 p = vOrigin + dir * t.x;
+  for (float i = 0.0; i < 512.0; i += 1.0) {
+    if (t.x + dt * i > t.y) break;
+    vec3 local = p + 0.5;
+    vec4 s = texture(uField, vec3(local.x, local.z, local.y));
+    int stat = int(s.g * 255.0 + 0.5);
+    bool hit = (stat == 0 && s.r >= uFloor && s.r > 0.004)
+            || (stat == 1 && uShowRefused == 1);
+    if (hit) {
+      // R region index, G lead index, B probability, A = hit marker.
+      float lead = floor(clamp(local.y, 0.0, 0.9999) * uSize.z);
+      fragColor = vec4(s.b, lead / 255.0, s.r, 1.0);
+      return;
+    }
+    p += dir * dt;
+  }
+  discard;
+}`;
+
 // ------------------------------------------------------------------ setup
 function init() {
   const stage = $("stage");
@@ -325,7 +386,22 @@ function init() {
   scene.background = new THREE.Color(0x070b10);
   camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
 
+  // 1x1 target: the camera is re-aimed at a single pixel for the pick, so
+  // there is no full-resolution pass and no readback of a big buffer.
+  pickTarget = new THREE.WebGLRenderTarget(1, 1, {
+    minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+    format: THREE.RGBAFormat, type: THREE.UnsignedByteType,
+    depthBuffer: false, stencilBuffer: false,
+  });
+  pickScene = new THREE.Scene();
+
   bindControls(renderer.domElement);
+  renderer.domElement.addEventListener("pointermove", (e) => {
+    pickPending = { x: e.clientX, y: e.clientY };
+  });
+  renderer.domElement.addEventListener("pointerleave", () => {
+    pickPending = null; $("readout").style.display = "none";
+  });
   window.addEventListener("resize", resize);
   resize();
   return true;
@@ -390,7 +466,11 @@ function buildTexture(grid, cube) {
           data[o + 1] = S_REFUSED; refused++;
         } else {
           missing++;
+          continue;
         }
+        // Region index rides in B so the picking pass can name what a ray hit
+        // without a second spatial structure to keep in sync with this one.
+        data[o + 2] = rid;
       }
     }
   }
@@ -415,6 +495,7 @@ function mount(v) {
     volumeMesh.geometry.dispose();
     material.uniforms.uField.value.dispose();
     material.dispose();
+    if (pickMaterial) { pickMaterial.dispose(); pickMaterial = null; }
   }
   // Geographic extent maps to x/z; lead day is the vertical axis. The lead
   // axis is given real height so each of the 10 days reads as its own slab.
@@ -449,6 +530,25 @@ function mount(v) {
   volumeMesh.scale.set(W, H, D);
   volumeMesh.updateMatrixWorld(true);
   scene.add(volumeMesh);
+
+  pickMaterial = new THREE.RawShaderMaterial({
+    glslVersion: THREE.GLSL3,
+    vertexShader: VERT,
+    fragmentShader: PICK_FRAG,
+    side: THREE.BackSide,
+    uniforms: {
+      uField: { value: v.tex },
+      uSize: material.uniforms.uSize,
+      uFloor: material.uniforms.uFloor,
+      uShowRefused: material.uniforms.uShowRefused,
+      inverseModel: material.uniforms.inverseModel,
+    },
+  });
+  pickScene.clear();
+  const pickMesh = new THREE.Mesh(geo, pickMaterial);
+  pickMesh.scale.copy(volumeMesh.scale);
+  pickMesh.updateMatrixWorld(true);
+  pickScene.add(pickMesh);
 
   // Frame + lead-day rungs. The vertical axis is lead day, which is the one
   // thing no viewer guesses from the volume alone.
@@ -544,6 +644,79 @@ async function boot() {
   animate();
 }
 
+// --------------------------------------------------------------- picking
+const pickBuf = new Uint8Array(4);
+
+function pickAt(px, py) {
+  if (!pickMaterial) return null;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const dpr = renderer.getPixelRatio();
+  const w = Math.floor(rect.width * dpr), h = Math.floor(rect.height * dpr);
+  const x = Math.floor((px - rect.left) * dpr);
+  const y = Math.floor((py - rect.top) * dpr);
+  if (x < 0 || y < 0 || x >= w || y >= h) return null;
+
+  // Aim the existing camera at exactly one pixel rather than rendering the
+  // whole frame again and reading one texel out of it.
+  camera.setViewOffset(w, h, x, y, 1, 1);
+  const prevTarget = renderer.getRenderTarget();
+  renderer.setRenderTarget(pickTarget);
+  renderer.clear(true, true, true);
+  renderer.render(pickScene, camera);
+  renderer.readRenderTargetPixels(pickTarget, 0, 0, 1, 1, pickBuf);
+  renderer.setRenderTarget(prevTarget);
+  camera.clearViewOffset();
+
+  if (pickBuf[3] === 0) return null;                   // ray hit nothing
+  return { regionIndex: pickBuf[0], lead: pickBuf[1], prob: pickBuf[2] / 255 };
+}
+
+function showReadout(hit) {
+  const box = $("readout");
+  if (!hit || !cube) { box.style.display = "none"; return; }
+  const rid = grid.region_ids[hit.regionIndex];
+  const region = cube.regions.find((r) => r.region_id === rid);
+  if (!region) { box.style.display = "none"; return; }
+
+  const i = Math.min(hit.lead, cube.lead_days.length - 1);
+  const status = region.status[i];
+  const p = region.p[i];
+
+  $("rName").textContent = region.region;
+  $("rMeta").textContent =
+    `Day ${cube.lead_days[i]} · valid ${region.valid_date[i] || "—"}`;
+
+  if (status === "OUT_OF_DISTRIBUTION") {
+    // Never a number here, and never anything that reads as reassurance.
+    $("rProb").textContent = "not scored";
+    $("rTier").innerHTML =
+      '<span class="tag refuse">REFUSED</span> ' +
+      '<span style="color:var(--muted)">unknown risk — refused days bust ' +
+      '23.4% of the time vs 3.4% for scored ones</span>';
+  } else if (typeof p === "number") {
+    $("rProb").textContent = (p * 100).toFixed(1) + "%";
+    const tier = p >= REVIEW_THRESHOLD ? "REVIEW" : "AUTO_OK";
+    $("rTier").innerHTML = `<span class="tag">${tier}</span>` +
+      (tier === "REVIEW"
+        ? ' <span style="color:var(--muted)">at or above the cost-optimal ' +
+          'review threshold</span>'
+        : "");
+  } else {
+    $("rProb").textContent = "—";
+    $("rTier").innerHTML = '<span class="tag">no data</span>';
+  }
+
+  const ul = $("rFactors");
+  ul.innerHTML = "";
+  const mm = region.fcst_mm && region.fcst_mm[i];
+  if (typeof mm === "number") {
+    const li = document.createElement("li");
+    li.textContent = `forecast ${mm.toFixed(1)} mm/day`;
+    ul.appendChild(li);
+  }
+  box.style.display = "block";
+}
+
 function showErr(e) {
   $("status").textContent = String(e.message || e);
 }
@@ -572,6 +745,14 @@ function animate() {
     material.uniforms.uTime.value = now / 1000;
   }
   renderer.render(scene, camera);
+
+  // Throttled: readRenderTargetPixels forces a GPU sync, so doing it on every
+  // pointermove would tie frame rate to mouse rate.
+  if (pickPending && now - lastPick > 70) {
+    lastPick = now;
+    const at = pickPending; pickPending = null;
+    try { showReadout(pickAt(at.x, at.y)); } catch (e) { /* non-fatal */ }
+  }
 }
 
 boot().catch((e) => fail("<h2>Failed to start</h2><pre>" + (e.message || e) + "</pre>"));

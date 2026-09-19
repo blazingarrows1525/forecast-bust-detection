@@ -156,3 +156,43 @@ def test_volume_view_references_no_external_origin():
     html = (config.ROOT / "web" / "volume.html").read_text(encoding="utf-8")
     external = re.findall(r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)', html)
     assert not external, f"external references found: {external}"
+
+
+# ------------------------------------------------------------------ picking
+# A volume has no surface, so picking is a second raymarch rather than a mesh
+# intersection. That creates a failure mode with no visual symptom: the pick
+# shader and the display shader drifting apart, so the readout names a
+# different cell than the one under the cursor. Both guards below are
+# file-level for the same reason the NEAREST one is -- a shader cannot assert
+# on itself.
+def _volume_html() -> str:
+    return (config.ROOT / "web" / "volume.html").read_text(encoding="utf-8")
+
+
+def test_pick_and_picture_march_the_same_way():
+    """Identical stepping in both shaders, or the readout names the wrong cell."""
+    html = _volume_html()
+    step_expr = "float steps = max(max(crossed.x, crossed.y), crossed.z);"
+    assert html.count(step_expr) == 2, (
+        "display and picking shaders must use the same step count; if they "
+        "diverge the readout can report a different voxel than the one drawn"
+    )
+    assert html.count("vec3 crossed = nLocal * abs(dir);") == 2
+    # Same axis swizzle: local (x, y, z) = (lon, lead, lat).
+    assert html.count("vec3(local.x, local.z, local.y)") == 2
+
+
+def test_readout_never_prints_a_probability_for_a_refused_cell():
+    """The §2.1 invariant at the readout, not just in the render.
+
+    A refused cell has no probability. Printing one -- or printing nothing,
+    which reads as reassurance -- is the failure this whole project is about.
+    """
+    html = _volume_html()
+    start = html.index('if (status === "OUT_OF_DISTRIBUTION")')
+    branch = html[start:html.index("} else if", start)]
+    assert '"not scored"' in branch
+    assert "toFixed" not in branch, "no numeric probability may be rendered here"
+    assert "REFUSED" in branch and "23.4%" in branch, (
+        "a refusal must state that it is elevated risk, not merely absent"
+    )

@@ -154,11 +154,33 @@ Also deliberately not done:
 - **three.js upgrade.** r128 already ships `DataTexture3D`,
   `RawShaderMaterial`, `GLSL3`, `RedFormat` and `NearestFilter`, so the
   volumetric work needed no new bundle and no API migration.
-- **GPU picking.** The volume has no per-region readout yet; the `#readout`
-  panel is scaffolded and unused.
 - **WebGL1 fallback.** `sampler3D` requires WebGL2. The page detects and
   explains rather than degrading silently; the 2-D dashboard and the column
   view are unaffected.
+
+## 7a. Picking (added after the first pass)
+
+A volume has no surface, so picking cannot be a mesh intersection. It is a
+**second raymarch**, rendered to a 1×1 target with `camera.setViewOffset`
+aiming the existing camera at one pixel — no full-resolution pass, no large
+readback.
+
+The hit rule is the one the eye uses: the first voxel that contributes visible
+opacity, so what you click is what you saw. The region index rides in the
+texture's **B channel**, so identity comes from the same data the picture is
+drawn from and there is no second spatial structure to keep in sync.
+
+The failure mode this creates has no visual symptom — the pick shader and the
+display shader drifting apart, so the readout names a different cell than the
+one under the cursor. `test_pick_and_picture_march_the_same_way` asserts both
+shaders share a step count and an axis swizzle.
+
+Readback is a synchronous GPU stall, so picking is throttled to ~14 Hz rather
+than run per `pointermove`.
+
+**A refused cell's readout shows `not scored`** — never a number, and never a
+blank, which would read as reassurance. It states the 23.4% vs 3.4% figure
+instead. Guarded by `test_readout_never_prints_a_probability_for_a_refused_cell`.
 
 ## 8. Contract conflicts surfaced, not resolved
 
