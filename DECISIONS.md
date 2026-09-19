@@ -1006,3 +1006,75 @@ would be claiming the surface is complete, which is not something six probes
 can establish. What has changed is that the *specific* failure recorded in
 addendum 1 can no longer reach a forecaster, on either model, on the path a
 real request takes.
+
+## D-022 — Every headline number gets an interval; one headline claim does not survive it — DISCLOSED
+
+Until now this project reported point estimates with nothing attached to them.
+The README's most quotable sentence was *"the honest margin over a real
+operational ensemble is +0.025 AUROC"*, and nothing in the repo could say
+whether +0.025 was distinguishable from zero. The only p-value anywhere was the
+KS drift test.
+
+**Why a plain bootstrap would have been wrong.** The 2022 test set is 39,950
+rows over **122 init dates**. Each date contributes 36 subdivisions x 10 leads
+that share one synoptic situation: when a depression sits over the Bay of
+Bengal the forecast is hard for every subdivision downstream of it that day, and
+the model is right or wrong about most of them together. Resampling rows would
+treat 39,950 correlated observations as independent. Measured on synthetic data
+with the same structure, a per-row interval comes out **2x too narrow** — it
+would have manufactured significance the data does not support.
+
+So `fbd.evaluate.uncertainty` resamples **init dates**: draw 122 with
+replacement, take every row belonging to each, recompute. Margins are
+**paired** — both predictors scored on the same resampled rows, so the shared
+difficulty of a given set of days cancels. Overlapping marginal intervals do not
+establish that a difference includes zero, so the difference is bootstrapped
+directly.
+
+**The result.**
+
+| Comparison | dAUROC [95%] | Distinguishable from zero? |
+|---|---|---|
+| model - lagged-ensemble proxy (20,060 rows, 120 dates) | +0.0821 [+0.0615, +0.1039] | yes |
+| **model - true IFS ENS, raw spread** (6,732 rows, 40 dates) | **+0.0251 [-0.0083, +0.0580]** | **no** |
+| model - true IFS ENS, calibrated (6,732 rows, 40 dates) | +0.0403 [+0.0052, +0.0758] | yes, barely |
+
+**Beating the cheap proxy is established. Beating a real 50-member operational
+ensemble is not.** On 40 init dates the margin is +0.025 with an interval that
+contains zero.
+
+**Why the calibrated row is not a rescue.** It clears zero, but only because
+isotonic step-fits introduce rank ties that *lower* ENS AUROC from 0.807 to
+0.792 — a fact the README already recorded before any of this was measured.
+Picking the comparison in which the opponent has been handicapped would be
+choosing the flattering number, which is the behaviour this decision log exists
+to prevent. The raw spread is the stronger ENS variant and therefore the fair
+test.
+
+**A bug worth recording, because it points the other way.** The first run of the
+analysis compared against `ens_spread / ens_mean` rather than raw `ens_spread`
+and produced a margin of **+0.28** — an order of magnitude better than the truth,
+and it would have looked like a triumph. The relative-spread variant scores
+AUROC 0.554 against the raw variant's 0.807; comparing against the weak one
+would have been indefensible. The script now selects the *strongest* ENS variant
+explicitly and says why in a comment, because this is exactly the kind of error
+that only ever gets caught when the result is suspiciously good.
+
+**What does not change.** Every other claim in the project survives its
+interval: the model's AUROC 0.840 [0.821, 0.859], its BSS 0.088 [0.053, 0.123],
+and its margin over the proxy are all clearly separated from the baselines. The
+refusal result (23.4% vs 3.4%) is a large effect on 385 rows. Only the
+true-ensemble margin is undecided, and it is undecided because of how little
+ENS data the 105 GB archive cost allowed (D-007), not because the model is
+weaker than it looked.
+
+**What would settle it.** More init dates in the ENS subsample — the archive
+supports it at ~2.5 GB per additional year at every-3-days sampling. A
+rolling-origin backtest over 2019-2022 would separately answer the question this
+single test year cannot: whether 0.840 is a property of the model or of 2022.
+Both are open items, and neither is claimed as done.
+
+**The interval is a lower bound on the uncertainty, not an upper one.** Init
+dates three days apart are themselves correlated on a synoptic timescale, so
+even 122 dates overstate the independent information in one monsoon season. The
+honest fix is more test years, not a cleverer resampling scheme.

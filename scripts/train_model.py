@@ -47,9 +47,19 @@ class Calibrated:
         return self.iso.predict(self.inner.predict_proba(df))
 
 
-def main() -> int:
-    t0 = time.time()
-    ds = pd.read_parquet(DATASET)
+MODEL_LABEL = "4 XGBoost + isotonic"
+SPREAD_LABEL = "2 spread [lagged-ensemble]"
+PREDICTIONS = config.ARTIFACTS / "test_predictions.parquet"
+
+
+def build_test_predictions(ds=None):
+    """Fit every predictor and return per-row probabilities on the test year.
+
+    Factored out of ``main`` so the uncertainty analysis scores exactly the
+    predictors this script reports, rather than a second copy of the setup that
+    would be free to drift from it.
+    """
+    ds = pd.read_parquet(DATASET) if ds is None else ds
     tr, va, te = T.split_frames(ds)
     tr, va, te = (d.dropna(subset=["bust"]) for d in (tr, va, te))
     print(f"train={len(tr):,}  val={len(va):,}  test={len(te):,}")
@@ -60,23 +70,48 @@ def main() -> int:
     predictors = [
         ("0 forecast rain only", B.PersistenceBaseline()),
         ("1 climatology (region,month,lead)", B.ClimatologyBaseline()),
-        ("2 spread [lagged-ensemble]", B.SpreadBaseline(spread_col)),
+        (SPREAD_LABEL, B.SpreadBaseline(spread_col)),
         ("3 logistic (spread + lead)", B.LogisticBaseline(spread_col)),
     ]
 
-    rows, preds = [], {}
-    for label, p in predictors:
-        c = Calibrated(p, label).fit(tr, va)
-        pr = c.predict_proba(te)
-        preds[label] = pr
-        rows.append(M.evaluate(te.bust, pr, label=label))
+    preds = {}
+    for label, predictor in predictors:
+        preds[label] = Calibrated(predictor, label).fit(tr, va).predict_proba(te)
 
     feats = T.available_features(ds)
     print(f"\nmodel features ({len(feats)}): {feats}")
     model = T.BustModel().fit(tr, va, features=feats)
-    pr = model.predict_proba(te)
-    preds["4 XGBoost + isotonic"] = pr
-    rows.append(M.evaluate(te.bust, pr, label="4 XGBoost + isotonic"))
+    preds[MODEL_LABEL] = model.predict_proba(te)
+    return tr, va, te, preds, feats, model
+
+
+def save_test_predictions(te, preds):
+    """Per-row test probabilities, keyed so they can be re-grouped by init date.
+
+    Written because every downstream analysis -- confidence intervals,
+    reliability curves, per-subdivision skill -- needs these same numbers, and
+    refitting separately for each one invites them to disagree.
+    """
+    out = pd.DataFrame({
+        "init_date": pd.to_datetime(te.init_date).dt.strftime("%Y-%m-%d"),
+        "subdivision_id": te.subdivision_id.to_numpy(),
+        "lead_day": te.lead_day.to_numpy(),
+        "bust": te.bust.to_numpy(),
+    })
+    for label, values in preds.items():
+        out[label] = values
+    PREDICTIONS.parent.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(PREDICTIONS, index=False)
+    print(f"saved per-row test predictions -> {PREDICTIONS} ({len(out):,} rows)")
+    return PREDICTIONS
+
+
+def main() -> int:
+    t0 = time.time()
+    ds = pd.read_parquet(DATASET)
+    tr, va, te, preds, feats, model = build_test_predictions(ds)
+    rows = [M.evaluate(te.bust, pr, label=lab) for lab, pr in preds.items()]
+    save_test_predictions(te, preds)
 
     res = pd.DataFrame(rows).sort_values("auroc")
     cols = ["model", "n", "base_rate", "auroc", "brier", "bss", "ece",

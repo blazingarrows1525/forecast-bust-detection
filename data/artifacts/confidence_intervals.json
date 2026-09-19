@@ -1,0 +1,268 @@
+{
+  "method": "cluster bootstrap over init dates (percentile, 95%)",
+  "n_boot": 2000,
+  "n_rows_decision_band": 20060,
+  "n_init_dates": 120,
+  "decision_band": {
+    "0 forecast rain only": {
+      "auroc": {
+        "point": 0.750089520304138,
+        "lo": 0.7289499150756712,
+        "hi": 0.7714915294633838,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "brier": {
+        "point": 0.031078396412651855,
+        "lo": 0.027450797589898462,
+        "hi": 0.03493197853503929,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "bss": {
+        "point": 0.027538615137948308,
+        "lo": 3.526163538239995e-05,
+        "hi": 0.05361132443134857,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "ece": {
+        "point": 0.012250593696732604,
+        "lo": 0.009395012251833154,
+        "hi": 0.015617581276440261,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      }
+    },
+    "1 climatology (region,month,lead)": {
+      "auroc": {
+        "point": 0.5184950309135674,
+        "lo": 0.4962544541730777,
+        "hi": 0.5412946788585186,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "brier": {
+        "point": 0.032129174898568584,
+        "lo": 0.02835902721506014,
+        "hi": 0.036399296257811464,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "bss": {
+        "point": -0.0053408644860983845,
+        "lo": -0.010991715910853045,
+        "hi": -0.0015196742779561468,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "ece": {
+        "point": 0.012135405786885867,
+        "lo": 0.008860928220667759,
+        "hi": 0.0158472490914594,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      }
+    },
+    "2 spread [lagged-ensemble]": {
+      "auroc": {
+        "point": 0.7578584052781094,
+        "lo": 0.7323352445170953,
+        "hi": 0.7835771909786557,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "brier": {
+        "point": 0.03096438294325308,
+        "lo": 0.027425595679961827,
+        "hi": 0.03495638921031532,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "bss": {
+        "point": 0.03110616395457011,
+        "lo": 0.0066955557296905725,
+        "hi": 0.053944860996442974,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "ece": {
+        "point": 0.010920582963067608,
+        "lo": 0.007688225278851769,
+        "hi": 0.01452503198954069,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      }
+    },
+    "3 logistic (spread + lead)": {
+      "auroc": {
+        "point": 0.7541788000212437,
+        "lo": 0.7279754417955419,
+        "hi": 0.7802824889765992,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "brier": {
+        "point": 0.03098209106423331,
+        "lo": 0.02737992972262099,
+        "hi": 0.0350272634941633,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "bss": {
+        "point": 0.030552066387144472,
+        "lo": 0.008114595716894709,
+        "hi": 0.05232816555873051,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "ece": {
+        "point": 0.010452488348016188,
+        "lo": 0.0078790362952265,
+        "hi": 0.013429961764107975,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      }
+    },
+    "4 XGBoost + isotonic": {
+      "auroc": {
+        "point": 0.8399658839190121,
+        "lo": 0.8212564059338429,
+        "hi": 0.8585260913979197,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "brier": {
+        "point": 0.029147455009102506,
+        "lo": 0.025671954301786735,
+        "hi": 0.032959171437523575,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "bss": {
+        "point": 0.08795891245478937,
+        "lo": 0.05293202405349736,
+        "hi": 0.12320583849008199,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "ece": {
+        "point": 0.01060533051671282,
+        "lo": 0.008015239159057438,
+        "hi": 0.013486341579206116,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      }
+    }
+  },
+  "margins": [
+    {
+      "a": "4 XGBoost + isotonic",
+      "b": "2 spread [lagged-ensemble]",
+      "point": 0.08210747864090262,
+      "lo": 0.06153807653383696,
+      "hi": 0.10393749071967456,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true
+    }
+  ],
+  "true_ens": {
+    "n_rows": 6732,
+    "n_init_dates": 40,
+    "bust_rate": 0.033571004159239456,
+    "margins": {
+      "raw ENS spread": {
+        "point": 0.02514629110229083,
+        "lo": -0.008278887707087323,
+        "hi": 0.05799218377243233,
+        "n_boot": 2000,
+        "n_clusters": 40,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false
+      },
+      "calibrated ENS": {
+        "point": 0.04034091063660772,
+        "lo": 0.005221829746135045,
+        "hi": 0.07582894622587837,
+        "n_boot": 2000,
+        "n_clusters": 40,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      }
+    },
+    "auroc": {
+      "model": {
+        "point": 0.8323834499944232,
+        "lo": 0.7941841378538173,
+        "hi": 0.8671181594512957,
+        "n_boot": 2000,
+        "n_clusters": 40,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "raw ENS spread": {
+        "point": 0.8072371588921323,
+        "lo": 0.773840127407498,
+        "hi": 0.8380566697248232,
+        "n_boot": 2000,
+        "n_clusters": 40,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      },
+      "calibrated ENS": {
+        "point": 0.7920425393578154,
+        "lo": 0.7555147206895185,
+        "hi": 0.8249777219740624,
+        "n_boot": 2000,
+        "n_clusters": 40,
+        "n_degenerate": 0,
+        "alpha": 0.05
+      }
+    }
+  }
+}
