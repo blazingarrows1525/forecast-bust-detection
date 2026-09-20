@@ -251,3 +251,52 @@ def test_no_page_is_branded_with_the_competition_id(page: Path):
     """This is a personal project; the product surface carries no entry number."""
     html = page.read_text(encoding="utf-8")
     assert "SIH" not in html, f"{page.name} still carries SIH branding"
+
+
+# --------------------------------------------------------------------------
+# Override UI
+# --------------------------------------------------------------------------
+# POST /api/override is the one write in the whole product, and the reason
+# field is the entire point of it: overrides are immutable and stored with a
+# user so a decision can be reconstructed after an event. A prefilled or
+# optional reason would quietly destroy that.
+def test_override_reason_is_required_and_never_prefilled():
+    html = _read("index.html")
+    m = re.search(r'<textarea id="ovrReason"[^>]*>', html)
+    assert m, "no reason field"
+    tag = m.group(0)
+    assert "required" in tag and 'minlength="3"' in tag
+    # An empty element: anything between the tags would be a default answer.
+    assert '<textarea id="ovrReason"' in html
+    assert re.search(r'<textarea id="ovrReason"[^>]*>\s*</textarea>', html), (
+        "the reason field must start empty; a prefilled reason is not a reason"
+    )
+    assert "reason.length < 3" in html, "client-side guard missing"
+
+
+def test_dismissing_a_refused_row_warns_that_it_is_not_low_risk():
+    """The one genuinely dangerous action in this UI.
+
+    "Dismiss" on a refused row says "nothing to see here" about the highest-risk
+    class of row on the map -- refused region-days busted 23.4% of the time
+    against 3.4% for scored ones. The forecaster is still the authority and
+    this does not block them; it states what is being dismissed.
+    """
+    html = _read("index.html")
+    assert 'action === "dismiss" && r.status !== "OK"' in html, (
+        "the warning must fire on dismiss-of-a-refusal specifically, not on "
+        "every override -- a warning that always fires is ignored"
+    )
+    warn = html[html.index('action === "dismiss" && r.status !== "OK"'):]
+    warn = warn[:warn.index("} else {")]
+    assert "23.4" in warn and "3.4" in warn
+    assert "elevated" in warn
+
+
+def test_override_ui_states_that_nothing_public_changes():
+    """LOGIC.md 1.3: the system never issues or suppresses a warning."""
+    # Whitespace-normalised: the assertion is about what the page says, not
+    # about where the source happens to wrap.
+    html = re.sub(r"\s+", " ", _read("index.html"))
+    assert "does not change any public warning" in html
+    assert "Immutable, and stored with your name" in html

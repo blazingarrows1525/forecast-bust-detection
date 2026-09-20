@@ -71,6 +71,12 @@
   .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
   .sw.hatch{background-image:repeating-linear-gradient(45deg,
     var(--ood-ink) 0 3px, var(--ood-bg) 3px 7px)}
+  textarea,#ovrUser{width:100%;background:var(--panel2);color:var(--fg);
+    border:1px solid var(--line);border-radius:5px;padding:6px 8px;font:inherit;resize:vertical}
+  #ovrWarn{border-radius:6px;padding:8px 10px;margin-bottom:9px;font-size:12px;display:none}
+  #ovrWarn.hot{display:block;border:1px solid var(--c4);background:rgba(253,231,37,.10)}
+  .ovr-row{border-bottom:1px solid var(--line);padding:5px 0;font-size:11.5px}
+  .ovr-row:last-child{border-bottom:0}
   #help{position:fixed;inset:0;background:rgba(6,10,14,.78);display:grid;
     place-items:center;z-index:9999;padding:20px}
   #help[hidden]{display:none}
@@ -137,6 +143,29 @@
       <div class="muted" id="selProbSub"></div>
       <div id="selInterval" class="muted"></div>
       <div id="selReasons"></div>
+
+      <div id="ovrBar" style="display:none;margin-top:12px;gap:6px" class="controls">
+        <button id="btnDismiss">Dismiss flag</button>
+        <button id="btnEscalate">Escalate</button>
+      </div>
+
+      <form id="ovrForm" style="display:none;margin-top:10px">
+        <div id="ovrWarn"></div>
+        <label class="muted" for="ovrReason">Reason <span style="color:var(--c4)">*</span></label>
+        <textarea id="ovrReason" rows="3" required minlength="3" maxlength="500"
+          placeholder="Why are you overriding this? Recorded permanently."></textarea>
+        <label class="muted" for="ovrUser" style="margin-top:6px;display:block">Your name</label>
+        <input id="ovrUser" required minlength="1" maxlength="100" placeholder="duty forecaster" />
+        <div class="controls" style="margin-top:8px">
+          <button type="submit" id="ovrSubmit">Record</button>
+          <button type="button" id="ovrCancel">Cancel</button>
+        </div>
+        <div class="muted" style="margin-top:6px;font-size:11px">
+          Immutable, and stored with your name. The system does not change any
+          public warning either way — you are the authority, this is the record.
+        </div>
+      </form>
+      <div id="ovrResult" class="muted" style="margin-top:8px"></div>
     </div>
     <div class="card" id="regimeCard" style="display:none">
       <h2>Regime (soft probabilities)</h2>
@@ -150,6 +179,10 @@
       <table id="queue"><thead>
         <tr><th>#</th><th>Region</th><th>Day</th><th>P(bust)</th></tr>
       </thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Override log</h2>
+      <div id="ovrLog" class="muted">—</div>
     </div>
     <div class="card">
       <h2>Legend</h2>
@@ -182,7 +215,7 @@
 <script src="/vendor/leaflet.js"></script>
 <script>
 const API = "";
-let map, layer, geo=null, dates=[], cur={init:null, lead:5, view:"model", truth:false};
+let map, layer, geo=null, dates=[], cur={init:null, lead:5, view:"model", truth:false, selected:null};
 let rows=[], byRegion={};
 
 // Refusal is returned as an SVG pattern reference rather than a colour. A
@@ -245,11 +278,109 @@ async function boot(){
   document.getElementById("btnPlay").onclick = toggleScrub;
   document.getElementById("btnTheme").onclick = toggleTheme;
   document.getElementById("btnHelp").onclick = () => toggleHelp(true);
+  document.getElementById("btnDismiss").onclick = () => openOverride("dismiss");
+  document.getElementById("btnEscalate").onclick = () => openOverride("escalate");
+  document.getElementById("ovrForm").onsubmit = submitOverride;
+  document.getElementById("ovrCancel").onclick = () => {
+    document.getElementById("ovrForm").style.display = "none"; };
+  loadOverrides();
+
   applyStoredTheme();
   bindKeys();
 
   loadMetrics();
   await load(dates[idx]);
+}
+
+// --------------------------------------------------------------- overrides
+// POST /api/override exists and had no interface. The reason field is the
+// entire point of the endpoint -- every override is stored immutably with a
+// user so a decision can be reconstructed after an event -- so it is required
+// here and never prefilled.
+let ovrAction = null;
+
+function showOverrideBar(r){
+  ovrAction = null;
+  document.getElementById("ovrBar").style.display = r ? "flex" : "none";
+  document.getElementById("ovrForm").style.display = "none";
+  document.getElementById("ovrResult").textContent = "";
+}
+
+function openOverride(action){
+  const r = byRegion[cur.selected];
+  if(!r) return;
+  ovrAction = action;
+  const warn = document.getElementById("ovrWarn");
+
+  // Dismissing a REFUSED row is the one genuinely dangerous action in this UI.
+  // A refusal is unknown, ELEVATED risk -- those region-days busted 23.4% of
+  // the time against 3.4% for scored ones -- so "nothing to see here" is being
+  // said about the highest-risk class of row on the map. The forecaster is
+  // still the authority and this does not block them; it makes sure the thing
+  // being dismissed is stated plainly first.
+  if(action === "dismiss" && r.status !== "OK"){
+    warn.className = "hot";
+    warn.innerHTML =
+      "<strong>This region was refused, not scored.</strong> That is not a low " +
+      "reading — refused region-days busted <strong>23.4%</strong> of the time " +
+      "in the held-out year, against 3.4% for scored ones. You are dismissing a " +
+      "row whose risk is unknown and historically elevated.";
+  } else {
+    warn.className = ""; warn.innerHTML = "";
+  }
+
+  document.getElementById("ovrForm").style.display = "block";
+  document.getElementById("ovrSubmit").textContent =
+    action === "dismiss" ? "Record dismissal" : "Record escalation";
+  try { document.getElementById("ovrUser").value =
+          localStorage.getItem("fbd-user") || ""; } catch(e) {}
+  document.getElementById("ovrReason").focus();
+}
+
+async function submitOverride(ev){
+  ev.preventDefault();
+  const r = byRegion[cur.selected];
+  if(!r || !ovrAction) return;
+  const reason = document.getElementById("ovrReason").value.trim();
+  const user = document.getElementById("ovrUser").value.trim();
+  if(reason.length < 3 || !user){ return; }
+  try { localStorage.setItem("fbd-user", user); } catch(e) {}
+
+  const btn = document.getElementById("ovrSubmit");
+  btn.disabled = true;
+  try{
+    const res = await fetch(API + "/api/override", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({region_id: r.region_id, init_date: r.init_date,
+                            lead_day: r.lead_day, action: ovrAction,
+                            reason, user}),
+    });
+    const body = await res.json();
+    document.getElementById("ovrResult").textContent = res.ok
+      ? body.note || "Recorded."
+      : "Not recorded: " + (body.detail ? JSON.stringify(body.detail) : res.status);
+    if(res.ok){
+      document.getElementById("ovrForm").style.display = "none";
+      document.getElementById("ovrReason").value = "";
+      loadOverrides();
+    }
+  }catch(e){
+    document.getElementById("ovrResult").textContent = "Not recorded: " + e.message;
+  }finally{ btn.disabled = false; }
+}
+
+async function loadOverrides(){
+  const el = document.getElementById("ovrLog");
+  try{
+    const d = await (await fetch(API + "/api/overrides?limit=8")).json();
+    if(!d.overrides.length){ el.textContent = "No overrides recorded."; return; }
+    el.innerHTML = d.overrides.map(o => `
+      <div class="ovr-row">
+        <strong>${o.action === "dismiss" ? "dismissed" : "escalated"}</strong>
+        ${o.region_id} · Day ${o.lead_day} · ${o.init_date}<br>
+        <span style="color:var(--muted)">${o.user} — ${o.reason}</span>
+      </div>`).join("");
+  }catch(e){ el.textContent = "override log unavailable"; }
 }
 
 // ------------------------------------------------------------------ theme
@@ -327,7 +458,14 @@ function bindKeys(){
       case "t": toggleTheme(); break;
       case "?": toggleHelp(true); break;
       case "/": document.getElementById("datePick").focus(); break;
-      case "Escape": toggleHelp(false); break;
+      case "Escape":
+        if(!document.getElementById("help").hidden){ toggleHelp(false); break; }
+        if(document.getElementById("ovrForm").style.display === "block"){
+          document.getElementById("ovrForm").style.display = "none"; break;
+        }
+        cur.selected = null; showOverrideBar(null);
+        document.getElementById("selName").textContent = "Click a subdivision";
+        break;
       default: return;
     }
     e.preventDefault();
@@ -384,7 +522,10 @@ function render(){
 function baselineOf(r){ return r.baseline_probability ?? null; }
 
 async function select(rid){
-  const r = byRegion[rid]; if(!r) return;
+  const r = byRegion[rid];
+  cur.selected = r ? rid : null;
+  showOverrideBar(r);
+  if(!r) return;
   document.getElementById("selName").textContent = r.region;
   document.getElementById("selMeta").textContent =
     `Day ${r.lead_day} · valid ${r.valid_date} · init ${r.init_date}`;

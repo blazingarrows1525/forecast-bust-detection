@@ -148,3 +148,26 @@ def test_convergence_refused_rows_carry_no_probability(client):
 def test_convergence_unknown_region_day_is_404_not_empty(client):
     r = client.get("/api/convergence?region_id=NOT_A_REGION&valid_date=2022-06-17")
     assert r.status_code == 404
+
+
+# ------------------------------------------------------------- overrides
+def test_override_rejects_a_reason_too_short_to_reconstruct_a_decision(client):
+    """Server-side backstop, independent of any HTML attribute.
+
+    The UI guards this too, but the reason requirement is the point of the
+    endpoint and must not depend on the client that happens to call it.
+    """
+    r = client.post("/api/override", json={
+        "region_id": "CHHATTISGARH", "init_date": "2022-06-21", "lead_day": 9,
+        "action": "escalate", "reason": "no", "user": "x",
+    })
+    assert r.status_code == 422
+    assert "at least 3 characters" in str(r.json())
+
+
+def test_override_rejects_an_action_it_does_not_define(client):
+    r = client.post("/api/override", json={
+        "region_id": "CHHATTISGARH", "init_date": "2022-06-21", "lead_day": 9,
+        "action": "delete", "reason": "trying an undefined action", "user": "x",
+    })
+    assert r.status_code == 422
