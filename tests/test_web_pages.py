@@ -300,3 +300,69 @@ def test_override_ui_states_that_nothing_public_changes():
     html = re.sub(r"\s+", " ", _read("index.html"))
     assert "does not change any public warning" in html
     assert "Immutable, and stored with your name" in html
+
+
+# --------------------------------------------------------------------------
+# Satellite imagery (D-023)
+# --------------------------------------------------------------------------
+# The only external origin in the product. Two properties have to hold, and
+# both are the kind that rot quietly: it must stay opt-in, and it must stay
+# date-matched rather than "live".
+IMAGERY_ORIGIN = "https://gibs.earthdata.nasa.gov"
+
+
+def test_imagery_is_off_by_default():
+    """The offline property is the default, not a mode you can select.
+
+    CI asserts this too. Duplicated deliberately: this is the single line that
+    decides whether "runs with the network unplugged" is true of a fresh
+    checkout.
+    """
+    html = _read("index.html")
+    assert "enabled: false" in html, "the imagery layer must default to off"
+    assert "IMAGERY.enabled = on" in html, "it must only turn on via the toggle"
+
+
+def test_imagery_is_confined_to_the_dashboard():
+    """No other page may reach the network at all."""
+    for page in PAGES:
+        if page.name == "index.html":
+            continue
+        assert IMAGERY_ORIGIN not in page.read_text(encoding="utf-8"), (
+            f"{page.name} must stay fully offline"
+        )
+
+
+def test_imagery_date_comes_from_the_row_not_from_the_clock():
+    """The distinction the whole feature turns on.
+
+    Showing today's satellite over a 2022 risk field would imply the two
+    describe the same moment. The tile date is the VALID DATE of the lead on
+    screen, read off the row rather than computed, so there is one definition
+    of what "Day N" means.
+    """
+    html = _read("index.html")
+    assert "function validDateForLead" in html
+    assert "r.valid_date" in html
+    body = html[html.index("function validDateForLead"):]
+    body = body[:body.index("function imageryNote")]
+    for forbidden in ("new Date()", "Date.now()", "toISOString"):
+        assert forbidden not in body, (
+            f"the tile date must not come from the clock ({forbidden})"
+        )
+
+
+def test_imagery_says_it_is_not_current_conditions():
+    html = re.sub(r"\s+", " ", _read("index.html"))
+    assert "not current conditions" in html.lower()
+    assert "gaps between orbital passes" in html, (
+        "unexplained black bands on a risk map invite the worst reading"
+    )
+
+
+def test_imagery_credits_nasa_and_degrades_when_unreachable():
+    html = _read("index.html")
+    assert "NASA EOSDIS GIBS" in html, "GIBS requires attribution"
+    assert "attributionControl:true" in html
+    assert 'on("tileerror"' in html, "offline is the expected case, not an error"
+    assert "setImagery(false)" in html, "a broken basemap must switch itself off"

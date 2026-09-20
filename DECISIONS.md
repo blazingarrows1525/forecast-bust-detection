@@ -1078,3 +1078,62 @@ Both are open items, and neither is claimed as done.
 dates three days apart are themselves correlated on a synoptic timescale, so
 even 122 dates overstate the independent information in one monsoon season. The
 honest fix is more test years, not a cleverer resampling scheme.
+
+## D-023 — Date-matched satellite imagery, opt-in, as the only external origin — LOCKED
+
+The frontend contract asked for "live Earth/satellite imagery" alongside
+"offline fallback" and a preamble forbidding "fake live imagery". Those three
+cannot all be satisfied literally, so this records how they were reconciled.
+
+**Not live. Date-matched.** There is no real-time weather in this system: the
+build serves a 2016-2022 reanalysis archive and `mode=live` reports STALE by
+design. Overlaying *today's* satellite on a 2022 risk field would imply the two
+describe the same moment, which is precisely the "fake live imagery" the
+contract prohibits and the sort of thing this project exists to catch.
+
+So the tile date is the **valid date of the lead on screen** -- what the
+satellite actually saw on the day being forecast. Viewing the flagship case at
+init 2022-06-14, Day 4 shows the imagery from 17 June 2022, and the cloud mass
+over the northeast sits exactly where the model put Assam & Meghalaya at 74.2%.
+That is more useful than a live feed would have been, and it cannot mislead
+about what moment it depicts.
+
+The date is read off the row (`r.valid_date`), never computed from the clock,
+so there is one definition of what "Day N" means. Asserted.
+
+**Opt-in, and the default is enforced.** `IMAGERY.enabled = false`. On a fresh
+load the map holds **zero tile layers** and issues no external request --
+verified in the browser, not just reasoned about. Imagery is one toggle away
+and switches itself off after four consecutive tile errors, because offline is
+the expected case here rather than an exceptional one.
+
+**Source.** NASA EOSDIS GIBS, `MODIS_Terra_CorrectedReflectance_TrueColor`,
+WMTS EPSG:3857. No account, no key, no cost, historical back to 2000.
+Attribution is required and the Leaflet attribution control was turned on for
+it. Dark diagonal bands are gaps between orbital passes, and the UI says so:
+unexplained black on a risk map invites the worst available reading.
+
+**The CI rule was made explicit rather than evaded.** The previous gate grepped
+`src`/`href` attributes, so a URL built in JavaScript -- which is exactly what a
+Leaflet tile layer needs -- would have slipped past silently. Taking that route
+would have left the guard technically green and actually worthless.
+
+The gate now scans every page for any external origin and checks it against a
+documented allowlist, excluding XML namespace URIs by name (they are
+identifiers, never fetched). `volume.html`, `command.html` and `landing.html`
+remain allowed **zero** external origins of any kind; only the dashboard may
+reference the one allowlisted host, and only behind the toggle. The gate also
+asserts the `enabled: false` literal, so flipping the default breaks the build
+rather than merely breaking the claim.
+
+**What this costs.** The honest statement is no longer "the product contacts
+nothing". It is: *"air-gapped by default; one optional layer, from one
+allowlisted host, that the operator turns on and that degrades cleanly when it
+cannot be reached."* That is a weaker claim than before and it is the true one.
+
+**A layout bug worth noting**, because it is the kind that looks like a styling
+nit and is not: the imagery status line was added as a direct child of the
+`#app` grid, which consumed the map's cell and squeezed the map to 380x25 px
+while every functional check still passed -- tiles loaded, no errors, correct
+date. Only looking at it caught it. It now spans `grid-column: 1/-1` like the
+header and banner.
