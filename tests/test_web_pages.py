@@ -230,6 +230,41 @@ def test_refusal_is_a_pattern_not_a_hue():
     assert "oodHatch" in html and "<pattern" in html
 
 
+def _root_stops(page: str) -> list:
+    css = _read(page)
+    root = re.search(r":root\{(.*?)\}", css, re.S).group(1)
+    return [re.search(rf"--c{i}\s*:\s*(#[0-9a-fA-F]{{6}})", root).group(1).lower()
+            for i in range(5)]
+
+
+def test_column_view_uses_the_dashboard_ramp():
+    """One risk encoding across the product.
+
+    command.html kept the green -> red ramp after the dashboard was fixed:
+    protanopia dE 10.0 between its safest and most dangerous bands. The CVD
+    test above covers index.html; equality carries that guarantee here.
+    """
+    assert _root_stops("command.html") == _root_stops("index.html")
+    html = _read("command.html")
+    for old in ("#1a4d2e", "#3d7c47", "#c9a227", "#e07b39", "#c0392b", "#7d5bbe"):
+        assert old not in html.lower(), f"old ramp / refusal colour {old} still present"
+
+
+def test_column_view_refusal_is_a_stripe_not_a_hue():
+    html = _read("command.html")
+    assert re.search(r"--ood\s*:", html) is None, "refusal must not be a colour token"
+    assert "function refusalTexture()" in html and "map: refusalTexture()" in html
+    assert "wireframe: isOOD" not in html, "a wireframe reads as less there than a solid low column"
+    assert "23.4%" in html and "3.4%" in html
+
+
+def test_column_view_is_seen_from_the_south():
+    """It defaulted to the north side: correct handedness, India upside down."""
+    html = _read("command.html")
+    assert "theta: Math.PI/2," in html and "orbit.theta=Math.PI/2;" in html
+    assert "theta: -Math.PI/2" not in html and "orbit.theta=-Math.PI/2" not in html
+
+
 def test_dashboard_legend_states_that_a_refusal_is_not_low_risk():
     html = _read("index.html")
     assert "23.4" in html and "3.4" in html, (

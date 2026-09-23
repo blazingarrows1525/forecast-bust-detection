@@ -5,10 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Bust Risk Command Centre — India</title>
 <style>
+  /* The same five viridis stops as index.html -- one risk encoding across the
+     product. This page used to run dark-green -> green -> amber -> orange ->
+     red, whose safest and most dangerous bands sit at CIELAB dE 10.0 under
+     simulated protanopia: confusable. It also borrowed IMD's warning colours,
+     and this system issues no warnings. tests/test_web_pages.py compares the
+     stops here against index.html's.
+
+     Refusal is not in the ramp. It is a stripe (ink on ground), never a hue:
+     a refused day busts 23.4% of the time against 3.4% for a scored one, so
+     it must not read as a point on the ramp or as quieter than one. */
   :root{
     --bg:#0b0f14; --panel:#171e26; --panel2:#1e2732; --line:#2a3644;
     --fg:#e6edf3; --muted:#8b98a5; --accent:#4a9eff;
-    --c0:#1a4d2e; --c1:#3d7c47; --c2:#c9a227; --c3:#e07b39; --c4:#c0392b; --ood:#7d5bbe;
+    --c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725;
+    --ood-ink:#e8edf2; --ood-bg:#2b333d; --truth-bust:#e5534b; --truth-ok:#26343f;
+    --nodata:#39434f;
   }
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -42,6 +54,7 @@
   tr.sel{background:#243141}
   .legend{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
   .sw{width:14px;height:11px;border-radius:2px;display:inline-block}
+  .sw.ood{background:repeating-linear-gradient(45deg,var(--ood-ink) 0 2px,var(--ood-bg) 2px 4px)}
   ul.reasons{margin:6px 0 0;padding-left:17px} ul.reasons li{margin-bottom:5px;font-size:12px}
   #banner{grid-column:1/-1;display:none;background:#4a2c00;border-bottom:1px solid #7a4a00;
           color:#ffd591;padding:7px 16px;font-size:12.5px;font-weight:500}
@@ -95,11 +108,12 @@
         <span class="sw" style="background:var(--c2)"></span><span>10–20%</span>
         <span class="sw" style="background:var(--c3)"></span><span>20–35%</span>
         <span class="sw" style="background:var(--c4)"></span><span>&gt;35%</span>
-        <span class="sw" style="background:var(--ood)"></span><span>refused (OOD)</span>
+        <span class="sw ood"></span><span>refused — not scored</span>
       </div>
       <div class="muted" style="margin-top:7px">
-        Purple columns are subdivisions where the atmospheric state is unlike anything
-        in training, so the system refuses to emit a number rather than guess.
+        Striped columns are subdivision-days where the atmospheric state is unlike
+        anything in training, so the model declined to score them. That is not a low
+        reading: refused days bust 23.4% of the time against 3.4% for scored ones.
       </div>
     </div>
   </aside>
@@ -112,8 +126,23 @@
 const LEAD_H = 1.15;          // world units per lead day
 const COL_W  = 0.62;          // column footprint
 const DEG    = 1.0;           // world units per degree of lon/lat
-const COLORS = ["#1a4d2e","#3d7c47","#c9a227","#e07b39","#c0392b"];
-const OOD_COLOR = "#7d5bbe", NULL_COLOR = "#39434f";
+const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+// Read from the CSS tokens so the page has one source of colour.
+const COLORS = ["--c0","--c1","--c2","--c3","--c4"].map(getCSS);
+const NULL_COLOR = getCSS("--nodata");
+// Refusal is a texture, not a colour: built once, shared by every refused column.
+let stripeTex = null;
+function refusalTexture(){
+  if(stripeTex) return stripeTex;
+  const c = document.createElement("canvas"); c.width = c.height = 32;
+  const g = c.getContext("2d");
+  g.fillStyle = getCSS("--ood-bg"); g.fillRect(0, 0, 32, 32);
+  g.strokeStyle = getCSS("--ood-ink"); g.lineWidth = 6;
+  for(let k = -32; k <= 64; k += 12){ g.beginPath(); g.moveTo(k, 0); g.lineTo(k + 32, 32); g.stroke(); }
+  stripeTex = new THREE.CanvasTexture(c);
+  stripeTex.wrapS = stripeTex.wrapT = THREE.RepeatWrapping;
+  return stripeTex;
+}
 // Assam & Meghalaya floods, June 2022 -- a real bust in the held-out test year.
 const CASE_STUDY = "2022-06-14";
 
@@ -121,12 +150,15 @@ let scene, camera, renderer, raycaster, pointer;
 let mapGroup, colGroup, bandGroup;
 let geo=null, cube=null, dates=[], lonMid=0, latMid=0;
 let cur = {init:null, lead:5, view:"model", sel:null};
-let orbit = {theta: -Math.PI/2, phi: 0.95, r: 46, target:new THREE.Vector3(0,4,0)};
+// theta = +pi/2 puts the camera on the SOUTH side looking north. It was -pi/2,
+// which viewed India from the north: correct handedness, but upside down, with
+// Kerala at the top and Assam on the left. proj() puts north at -z.
+let orbit = {theta: Math.PI/2, phi: 0.95, r: 46, target:new THREE.Vector3(0,4,0)};
 
 const pct = x => (x==null ? "—" : (100*x).toFixed(1)+"%");
 
 function colourFor(p, status){
-  if(status && status !== "OK") return OOD_COLOR;
+  if(status && status !== "OK") return null;   // refused: drawn as a stripe, see refusalTexture()
   if(p==null) return NULL_COLOR;
   if(p<0.05) return COLORS[0];
   if(p<0.10) return COLORS[1];
@@ -334,7 +366,8 @@ function buildColumns(){
 
       let colour;
       if(cur.view === "truth"){
-        colour = r.actual[i]==null ? NULL_COLOR : (r.actual[i] ? "#c0392b" : "#26343f");
+        colour = r.actual[i]==null ? NULL_COLOR
+               : (r.actual[i] ? getCSS("--truth-bust") : getCSS("--truth-ok"));
       } else {
         colour = colourFor(value, isOOD ? status : null);
       }
@@ -343,12 +376,16 @@ function buildColumns(){
       const geom = new THREE.BoxGeometry(
         COL_W*(emphasise?1.28:1), LEAD_H*0.86, COL_W*(emphasise?1.28:1)
       );
-      const mat = new THREE.MeshLambertMaterial({
-        color: new THREE.Color(colour),
-        transparent: true,
-        opacity: emphasise ? 1.0 : 0.82,
-        wireframe: isOOD
-      });
+      // Refused: an achromatic stripe at full presence -- never a hue, never a
+      // wireframe (which read as "less there" than a solid low-risk column).
+      const mat = (isOOD && cur.view !== "truth")
+        ? new THREE.MeshLambertMaterial({ map: refusalTexture(), transparent: true,
+                                          opacity: emphasise ? 1.0 : 0.9 })
+        : new THREE.MeshLambertMaterial({
+            color: new THREE.Color(colour),
+            transparent: true,
+            opacity: emphasise ? 1.0 : 0.82
+          });
       const box = new THREE.Mesh(geom, mat);
       box.position.set(x, (L-0.5)*LEAD_H, z);
       box.userData = {region_id:r.region_id, region:r.region, lead:L, idx:i, kind:"col"};
@@ -382,13 +419,15 @@ async function select(rid, lead){
   document.getElementById("selName").textContent = r.region;
   document.getElementById("selMeta").textContent =
     `Day ${lead} · valid ${r.valid_date[i] ?? "—"} · init ${cube.init_date}`;
+  // Plain ink, not the risk colour: viridis's lowest stop is near-black
+  // purple and would be unreadable as text on this panel.
   document.getElementById("selProb").textContent =
-    status==="OK" ? pct(p) : "confidence unavailable";
-  document.getElementById("selProb").style.color =
-    status==="OK" ? colourFor(p,"OK") : OOD_COLOR;
+    status==="OK" ? pct(p) : "not scored";
+  document.getElementById("selProb").style.color = "var(--fg)";
   document.getElementById("selProbSub").textContent =
     status==="OK" ? `baseline says ${pct(r.baseline[i])}`
-                  : "state outside training experience — system refuses to guess";
+                  : "refused — unknown, elevated risk: refused days bust 23.4% " +
+                    "of the time vs 3.4% for scored ones";
 
   const tb = document.querySelector("#profile tbody"); tb.innerHTML="";
   cube.lead_days.forEach((L,j)=>{
@@ -506,7 +545,7 @@ async function boot(){
   document.getElementById("btnBaseline").onclick= ()=>setView("baseline");
   document.getElementById("btnTruth").onclick   = ()=>setView("truth");
   document.getElementById("btnReset").onclick   = ()=>{
-    orbit.theta=-Math.PI/2; orbit.phi=0.95; orbit.r=46; orbit.target.set(0,4,0);
+    orbit.theta=Math.PI/2; orbit.phi=0.95; orbit.r=46; orbit.target.set(0,4,0);
   };
 
   await loadCube(cur.init);
