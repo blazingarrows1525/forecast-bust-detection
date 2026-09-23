@@ -56,10 +56,12 @@ def verdict(lo: float, hi: float) -> str:
     return "indistinguishable"
 
 
+#: "ENS spread", not "raw ENS spread": the registered comparator is whichever
+#: of raw and relative spread ranks busts better; the output names which.
 VERDICT_TEXT = {
-    "model_better": "the model outranks raw ENS spread over the full held-out season",
-    "ens_better": "raw ENS spread outranks the model over the full held-out season",
-    "indistinguishable": "the model is not distinguishable from raw ENS spread over the "
+    "model_better": "the model outranks ENS spread over the full held-out season",
+    "ens_better": "ENS spread outranks the model over the full held-out season",
+    "indistinguishable": "the model is not distinguishable from ENS spread over the "
                          "full held-out season",
 }
 

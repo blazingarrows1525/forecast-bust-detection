@@ -51,6 +51,10 @@ jobs:
           tests/test_command_centre.py
           tests/test_voxel_grid.py
           tests/test_web_pages.py
+          tests/test_ens_loader.py
+          tests/test_fetch_ens_resume.py
+          tests/test_settle_ens.py
+          tests/test_metrics_endpoint.py
 
   invariants:
     name: Decision-log invariants
