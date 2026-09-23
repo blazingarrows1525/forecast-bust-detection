@@ -25,7 +25,6 @@ the difference is bootstrapped directly rather than eyeballed from the margins.
 from __future__ import annotations
 
 import argparse
-import glob
 import json
 import sys
 import time
@@ -38,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fbd import config  # noqa: E402
+from fbd.evaluate import ens as E  # noqa: E402
 from fbd.evaluate import metrics as M, uncertainty as U  # noqa: E402
 
 OUT = config.ARTIFACTS / "confidence_intervals.json"
@@ -101,39 +101,29 @@ def margin(df: pd.DataFrame, a: str, b: str, n_boot: int) -> dict:
 # --------------------------------------------------------------------------
 # The comparison that matters: a real 50-member operational ensemble
 # --------------------------------------------------------------------------
-def ens_margin(n_boot: int) -> dict | None:
+def ens_margin(n_boot: int, ens: pd.DataFrame | None = None) -> dict | None:
     """Paired interval on model vs true IFS ENS spread, on rows where both exist.
 
     This is the number the README leads with, and the one with the least data
     behind it: the full ENS archive costs ~105 GB (D-007), so only a stratified
     subsample was pulled.  If any margin in this project is going to turn out
     indistinguishable from zero, it is this one, and that is worth knowing.
+
+    Loading and the row rule live in fbd.evaluate.ens, so this, the S1 audit
+    and the registered settlement cannot disagree about which rows count. Pass
+    ``ens`` to score a specific subset (the audit passes legacy files only).
     """
-    ens_dir = config.WB2_RAW / "ens"
-    paths = sorted(glob.glob(str(ens_dir / "ens_spread_*.parquet")))
-    if not paths:
-        print("  [skip] no ENS subsample locally; run scripts/fetch_ens.py")
-        return None
+    if ens is None:
+        try:
+            ens = E.load_ens()
+        except FileNotFoundError:
+            print("  [skip] no ENS data locally; run scripts/fetch_ens.py")
+            return None
 
     from fbd.model import train as T
 
     ds = pd.read_parquet(config.PROCESSED / "dataset.parquet")
-    ens = pd.concat([pd.read_parquet(p) for p in paths], ignore_index=True)
-    ens["init_date"] = pd.to_datetime(ens.init_date)
-    ds["init_date"] = pd.to_datetime(ds.init_date)
-
-    merged = ds.merge(
-        ens[["subdivision_id", "init_date", "lead_day", "ens_spread", "ens_mean"]],
-        on=["subdivision_id", "init_date", "lead_day"], how="inner",
-    ).dropna(subset=["bust", "ens_spread"])
-    if merged.empty:
-        print("  [skip] no overlap between ENS subsample and dataset")
-        return None
-
-    merged["ens_spread_rel"] = merged.ens_spread / (merged.ens_mean + 1.0)
-    test = merged[merged.split == "test"]
-    test = test[test.lead_day.isin(config.DECISION_BAND)]
-    fit = merged[merged.split.isin(["train", "val"])]
+    test, fit = E.comparison_rows(ds, ens)
     if test.empty or fit.empty:
         print("  [skip] ENS subsample has no usable test/fit split")
         return None
