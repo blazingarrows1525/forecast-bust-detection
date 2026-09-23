@@ -40,6 +40,28 @@
   can never be read as a point on the risk ramp. Cells with no data at all are
   rendered as nothing, which is a different statement.
 
+  HANDEDNESS
+  ----------
+  North is -z. An earlier version put north at +z with the camera on the
+  south side, and three.js's right-hand vector for that camera is -x: east
+  rendered on the LEFT, a mirror image of India. Nothing caught it because the
+  pick pass shared the swizzle -- picture and readout agreed with each other
+  and were both mirrored -- and there was no geography in the scene to
+  disagree with. lonLatToWorld() is now the only place a coordinate becomes a
+  scene position, and both shaders sample (x, 1 - z, y). See D-024.
+
+  GEOGRAPHY -- TWO OF THEM, ON PURPOSE
+  -------------------------------------
+    * Floor: a smooth outline of India on a ground plane just below Day 1,
+      for orientation. Finer than the grid by design.
+    * In the volume: staircase edges derived from the model's own 0.25-degree
+      grid, packed into the texture's spare A channel and drawn on the sliced
+      lead layer only. These are the boundaries the model actually uses.
+  The two do not coincide at the coast. The outline sits below the data so an
+  offset reads as perspective rather than risk leaking into the sea, a test
+  bounds the disagreement at one cell in both directions, and the legend says
+  which geography is which.
+
   Requires WebGL2 (sampler3D). Vendored three.js r128 already ships
   DataTexture3D, RawShaderMaterial and GLSL3 -- no upgrade needed.
 -->
@@ -96,6 +118,35 @@
     padding: 24px; background: var(--bg); }
   #msg div { max-width: 460px; }
   a { color: var(--accent); }
+
+  button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; }
+  #btnFly { background: #17324f; border-color: var(--accent); font-weight: 600; }
+  #btnFly.playing { background: var(--accent); color: #06101c; }
+  .val { margin: 3px 0 0 82px; color: var(--ink);
+    font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .keys { color: var(--muted); font-size: 10.5px; margin-top: 10px; line-height: 1.7; }
+  kbd { font: 10px/1 ui-monospace, Consolas, monospace; padding: 2px 4px;
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px;
+    color: var(--ink); background: #131b25; }
+  #outlineNote { display: none; color: var(--muted); font-size: 10.5px;
+    margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+
+  /* The fly-through narrates in words, not just motion, so it is usable with
+     reduced motion and by a screen reader (aria-live on the element). */
+  #caption { left: 50%; bottom: 22px; transform: translateX(-50%);
+    max-width: min(640px, calc(100vw - 580px)); min-width: 280px;
+    text-align: center; font-size: 14px; line-height: 1.45;
+    opacity: 0; transition: opacity .35s ease; pointer-events: none; }
+  #caption.on { opacity: 1; }
+  #caption .k { display: block; color: var(--muted); font-size: 10.5px;
+    letter-spacing: .6px; text-transform: uppercase; margin-bottom: 3px; }
+  @media (max-width: 900px) {
+    #caption { max-width: calc(100vw - 28px); bottom: 170px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #caption { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -119,13 +170,28 @@
     <input type="range" id="density" min="10" max="600" value="180" />
   </div>
   <div class="row">
-    <button id="btnIso" class="on">Review isosurface</button>
+    <label for="slice">Slice</label>
+    <input type="range" id="slice" min="0" max="10" step="1" value="0"
+           aria-describedby="sliceVal" />
+  </div>
+  <div id="sliceVal" class="val">all lead days</div>
+  <div class="row">
+    <button id="btnIso" class="on" title="Outline, on the sliced day, the cells at or above the cost-optimal review threshold">Review boundary</button>
     <button id="btnRefuse" class="on">Refusals</button>
+  </div>
+  <div class="row">
+    <button id="btnFly" aria-pressed="false">▶ Fly-through</button>
   </div>
   <div class="row" style="color:var(--muted);font-size:11px">
     <span id="status">loading…</span>
   </div>
+  <div class="keys">
+    <kbd>←</kbd><kbd>→</kbd> slice &nbsp; <kbd>S</kbd> slice off/on &nbsp;
+    <kbd>Space</kbd> fly-through &nbsp; <kbd>Esc</kbd> stop
+  </div>
 </div>
+
+<div id="caption" class="panel" role="status" aria-live="polite"></div>
 
 <div id="readout" class="panel">
   <div class="name" id="rName">—</div>
@@ -142,6 +208,8 @@
   <div class="key"><span class="sw refuse"></span>
     <span><strong>Refused</strong> — not scored. Unknown, elevated risk (23.4% bust vs 3.4%).</span></div>
   <div class="key"><span class="sw none"></span><span>No data</span></div>
+  <div id="outlineNote">Outline smoothed for orientation. Edges inside the
+    volume are the model's own 0.25° cells — never more than one cell apart.</div>
 </div>
 
 <div id="perf" class="panel"></div>
@@ -155,21 +223,60 @@
 // parameter: C_fa / (C_fa + C_miss) with a 10:1 cost ratio.
 const REVIEW_THRESHOLD = 0.0909;
 
-// Status codes packed into the texture's green channel.
+// Status codes packed into the texture's green channel (low two bits).
 const S_OK = 0, S_REFUSED = 1, S_NONE = 2;
+// G bit 2: "this scored cell is at or above REVIEW_THRESHOLD", decided here
+// from the REAL probability. The shader cannot decide it from R: at 8 bits,
+// p = 0.092 stores as 23/255 = 0.0902, below 0.0909, while the readout --
+// working from the real value -- calls the same cell REVIEW.
+const F_REVIEW = 4;
 
 const $ = (id) => document.getElementById(id);
-let renderer, scene, camera, volumeMesh, material, frame = null;
-let grid = null, cube = null;
+// Box size in world units. Geography on x/z, lead day on y.
+const W = 40, H = 15;
+let D = 40;                              // set from the grid's aspect in boot()
+
+let renderer, scene, camera, volumeMesh, material, frame = null, ground = null;
+let sliceFrame = null;
+let grid = null, cube = null, edgeBits = null;
 let pickTarget = null, pickMaterial = null, pickScene = null;
 let pickPending = null, lastPick = 0;
-let frames = 0, fpsClock = performance.now();
-const orbit = { theta: -Math.PI / 2, phi: 0.95, r: 62, min: 24, max: 160 };
+let frames = 0, fpsClock = performance.now(), lastFrame = performance.now();
+
+// THE view state. Explore tools and the fly-through both write here; the
+// renderer only reads it. The fly-through is therefore a script over the same
+// controls a person uses, not a second camera system that could disagree.
+//   theta/phi/r  orbit about `target`. theta = +pi/2 puts the camera on the
+//                south side (+z), looking north.
+//   slice        0 = every lead day; 1..10 = that lead at full density.
+//                An integer, always -- the data never shows a Day 3.5.
+//   hover        region index under focus, -1 for none.
+//   focus        0..1, how far every OTHER region is dimmed. Focus dims the
+//                rest rather than brightening the subject: brightening pushes
+//                a colour towards white, which on viridis reads as higher risk.
+const view = {
+  theta: Math.PI / 2, phi: 0.95, r: 62, min: 24, max: 160,
+  target: new THREE.Vector3(0, 0, 0),
+  slice: 0, lastSlice: 4,
+  hover: -1, focus: 0, focusGoal: 0,
+};
 
 function fail(html) {
   $("msgText").innerHTML = html;
   $("msg").style.display = "grid";
 }
+
+// The ONLY conversion from geography to scene coordinates. Texture cell j
+// spans [lon0 - dlon/2 + j*dlon, +dlon), so u = (lon - lon0 + dlon/2) / (nx*dlon).
+// North is -z, which with a south-side camera puts east on the right.
+function lonLatToWorld(lon, lat) {
+  const u = (lon - grid.lon0 + grid.dlon / 2) / (grid.nx * grid.dlon);
+  const v = (lat - grid.lat0 + grid.dlat / 2) / (grid.ny * grid.dlat);
+  return { x: (u - 0.5) * W, z: -(v - 0.5) * D };
+}
+
+// World y of the TOP face of lead layer `lead` (1-based).
+const layerTop = (lead, nz) => -H / 2 + (lead / nz) * H;
 
 // ---------------------------------------------------------------- shaders
 const VERT = /* glsl */`
@@ -187,23 +294,121 @@ void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`;
 
-const FRAG = /* glsl */`
+// Shared, VERBATIM, by the display pass and the pick pass. Both shaders are
+// built by concatenating this string, so they cannot walk the grid
+// differently: there is one traversal in this file, not two copies of it.
+//
+// EXACT VOXEL TRAVERSAL, NOT SAMPLING
+// The field is constant inside every voxel -- that is the NEAREST principle
+// -- so instead of sampling at fixed steps the ray walks the grid voxel by
+// voxel (Amanatides & Woo DDA) and integrates the exact length it spends in
+// each one. Fixed-step sampling put 3 or 4 samples into a slab depending on
+// the ray's phase, which showed as stripes; jittering the phase turned the
+// stripes into grain, and grain is the refusal medium's visual language. Exact
+// traversal has neither, and it is the one rendering method that literally
+// shows the model's own resolution: one value per voxel, weighted by exactly
+// how much of it the ray crosses.
+const PRELUDE = /* glsl */`
 precision highp float;
+precision highp int;
 precision highp sampler3D;
 
 in vec3 vOrigin;
 in vec3 vDirection;
 out vec4 fragColor;
 
-uniform sampler3D uField;   // R = probability, G = status code /255
+// Slab test against the unit box centred on the origin.
+vec2 hitBox(vec3 orig, vec3 dir) {
+  const vec3 lo = vec3(-0.5), hi = vec3(0.5);
+  vec3 inv = 1.0 / dir;
+  vec3 tLo = (lo - orig) * inv, tHi = (hi - orig) * inv;
+  vec3 tMin = min(tLo, tHi), tMax = max(tLo, tHi);
+  return vec2(max(max(tMin.x, tMin.y), tMin.z), min(min(tMax.x, tMax.y), tMax.z));
+}
+
+// Local box space (x = lon, y = LEAD, z = SOUTH) -> grid index space
+// (i = lon, j = lat, k = lead). North is -z; see HANDEDNESS at the top.
+vec3 toGrid(vec3 p, vec3 size) {
+  return vec3((p.x + 0.5) * size.x, (0.5 - p.z) * size.y, (p.y + 0.5) * size.z);
+}
+vec3 dirToGrid(vec3 d, vec3 size) {
+  return vec3(d.x * size.x, -d.z * size.y, d.y * size.z);
+}
+
+// DDA state for a ray g(t) = g0 + gd * t entering the grid at tEnter.
+void ddaInit(vec3 g0, vec3 gd, float tEnter, vec3 size,
+             out ivec3 cell, out ivec3 stp, out vec3 tNext, out vec3 tDelta) {
+  vec3 gp = g0 + gd * tEnter;
+  cell = ivec3(clamp(floor(gp), vec3(0.0), size - 1.0));
+  stp = ivec3(sign(gd));
+  for (int a = 0; a < 3; a++) {
+    if (abs(gd[a]) < 1e-9) {           // parallel to this axis: never crosses it
+      tNext[a] = 1e30; tDelta[a] = 1e30;
+    } else {
+      float boundary = float(cell[a]) + (gd[a] > 0.0 ? 1.0 : 0.0);
+      tNext[a] = (boundary - g0[a]) / gd[a];
+      tDelta[a] = abs(1.0 / gd[a]);
+    }
+  }
+}
+
+// Leave the current voxel. Returns the t at which it was left.
+float ddaStep(inout ivec3 cell, ivec3 stp, inout vec3 tNext, vec3 tDelta) {
+  float tExit;
+  if (tNext.x <= tNext.y && tNext.x <= tNext.z) {
+    tExit = tNext.x; cell.x += stp.x; tNext.x += tDelta.x;
+  } else if (tNext.y <= tNext.z) {
+    tExit = tNext.y; cell.y += stp.y; tNext.y += tDelta.y;
+  } else {
+    tExit = tNext.z; cell.z += stp.z; tNext.z += tDelta.z;
+  }
+  return tExit;
+}
+
+bool inGrid(ivec3 c, vec3 size) {
+  return all(greaterThanEqual(c, ivec3(0))) && all(lessThan(c, ivec3(size)));
+}
+
+// Longest possible walk: one voxel per boundary crossed, nx + ny + nz.
+const int MAX_VOXELS = 320;
+
+// Cheap hash noise. Used only for the refusal medium, never for data.
+float hash(vec3 p) {
+  p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
+  p *= 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+// Opacity of one voxel over an exact path length. In the prelude so the pick
+// pass asks "which voxel did you see" using the very opacities the picture
+// was drawn with -- not a second, merely similar, rule.
+//   scored   Beer-Lambert, with an ambient floor so an assessed low-risk cell
+//            still has presence ("looked, found little" is not "nothing")
+//   refused  achromatic noise medium, dense on purpose
+float voxelAlpha(float prob, int stat, float n, float seg,
+                 float density, float ambient, float floorP, int showRefused) {
+  if (stat == 0 && prob >= floorP)
+    return clamp(1.0 - exp(-(prob * density + ambient) * seg), 0.0, 1.0);
+  if (stat == 1 && showRefused == 1)
+    return clamp(1.0 - exp(-(0.35 + 0.65 * step(0.45, n)) * density * seg * 0.8), 0.0, 1.0);
+  return 0.0;
+}
+`;
+
+const FRAG = /* glsl */`${PRELUDE}
+uniform sampler3D uField;   // R prob, G status|flags, B region index, A edge bits (all /255)
 uniform vec3  uSize;        // nx, ny(lat), nz(lead) in voxels
 uniform float uDensity;     // opacity scaling
 uniform float uFloor;       // hide probabilities below this
 uniform float uTime;
-uniform int   uShowIso;
+uniform int   uShowIso;     // review boundary on the sliced layer
 uniform int   uShowRefused;
 uniform float uThreshold;
 uniform float uAmbient;   // faint floor for assessed-but-low-risk cells
+uniform int   uSlice;     // 0 = all lead days; 1..nz = only that day at full density
+uniform float uSliceDim;  // opacity kept by every other layer while slicing
+uniform int   uHover;     // region index in focus, -1 = none
+uniform float uFocus;     // 0..1: how far every OTHER region is dimmed
 
 // Viridis, polynomial fit. Perceptually uniform and colour-blind safe, which
 // matters more here than prettiness: this ramp encodes risk.
@@ -219,125 +424,161 @@ vec3 viridis(float t) {
   return c0 + t*(c1 + t*(c2 + t*(c3 + t*(c4 + t*(c5 + t*c6)))));
 }
 
-// Cheap hash noise. Used only for the refusal medium, never for data.
-float hash(vec3 p) {
-  p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
-  p *= 17.0;
-  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-}
-
-// Slab test against the unit box centred on the origin.
-vec2 hitBox(vec3 orig, vec3 dir) {
-  const vec3 lo = vec3(-0.5), hi = vec3(0.5);
-  vec3 inv = 1.0 / dir;
-  vec3 tLo = (lo - orig) * inv;
-  vec3 tHi = (hi - orig) * inv;
-  vec3 tMin = min(tLo, tHi), tMax = max(tLo, tHi);
-  return vec2(max(max(tMin.x, tMin.y), tMin.z),
-              min(min(tMax.x, tMax.y), tMax.z));
-}
-
 void main() {
   vec3 dir = normalize(vDirection);
   vec2 t = hitBox(vOrigin, dir);
   if (t.x > t.y) discard;
   t.x = max(t.x, 0.0);
 
-  // Local box axes are (x = longitude, y = LEAD DAY, z = latitude); the
-  // texture is (u = lon, v = lat, w = lead). uSize is given in texture order,
-  // so reorder it to local order before reasoning about step size.
-  vec3 nLocal = vec3(uSize.x, uSize.z, uSize.y);
+  // --- Edges of the sliced layer, evaluated ANALYTICALLY. -------------------
+  // One ray-plane intersection with the top face of the sliced layer, one
+  // texel fetch there, and a line at every face the A channel flags. Lines
+  // cannot come from the traversal itself: it visits each voxel once, and a
+  // line is a fraction of a voxel wide.
+  //
+  // Everything feeding fwidth() is computed unconditionally, because
+  // derivatives are undefined inside non-uniform control flow.
+  float yPlane = float(uSlice) / uSize.z - 0.5;
+  float dy = abs(dir.y) < 1e-5 ? 1e-5 : dir.y;
+  float tPlane = (yPlane - vOrigin.y) / dy;
+  vec3 gq = toGrid(vOrigin + dir * tPlane, uSize);
+  vec2 cellPos = gq.xy;                            // in cells: (lon, lat)
+  vec2 px = max(fwidth(cellPos), vec2(1e-4));      // one pixel, in cells
+  vec4 edge = vec4(0.0);
+  bool edgePending = false;
+  if (uSlice > 0 && tPlane >= t.x && tPlane <= t.y) {
+    ivec3 c = ivec3(clamp(floor(cellPos), vec2(0.0), uSize.xy - 1.0), uSlice - 1);
+    vec4 me = texelFetch(uField, c, 0);
+    int bits = int(me.a * 255.0 + 0.5);
+    int meG = int(me.g * 255.0 + 0.5);
+    bool meFlag = (meG & 3) == 0 && (meG & 4) != 0;
+    vec2 f = fract(cellPos);
+    // Distance to each face, in pixels. Faces: east, west, north, south.
+    vec4 dPx = vec4((1.0 - f.x) / px.x, f.x / px.x, (1.0 - f.y) / px.y, f.y / px.y);
+    ivec2 step4[4] = ivec2[4](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
+    ivec2 lim = ivec2(uSize.xy) - 1;
+    float border = 0.0, coast = 0.0, review = 0.0;
+    for (int k = 0; k < 4; k++) {
+      // Each face between two subdivisions is drawn from both sides, so half
+      // a pixel each; an outline face has nothing on the far side, so it gets
+      // the full width from this side alone.
+      float line = 1.0 - smoothstep(0.35, 1.25, dPx[k]);
+      if ((bits & (1 << k)) != 0)        border = max(border, line);
+      if ((bits & (16 << k)) != 0)       coast  = max(coast, 1.0 - smoothstep(0.9, 1.9, dPx[k]));
+      // The REVIEW BOUNDARY: a face where a flagged cell meets one that is not
+      // (lower risk, refused, or no data). Drawn from the flagged side only,
+      // as a line -- never as a tint, which would change the value's colour.
+      if (uShowIso == 1 && meFlag) {
+        ivec2 n = c.xy + step4[k];
+        bool nFlag = false;
+        if (all(greaterThanEqual(n, ivec2(0))) && all(lessThanEqual(n, lim))) {
+          int nG = int(texelFetch(uField, ivec3(n, c.z), 0).g * 255.0 + 0.5);
+          nFlag = (nG & 3) == 0 && (nG & 4) != 0;
+        }
+        if (!nFlag) review = max(review, 1.0 - smoothstep(1.2, 2.2, dPx[k]));
+      }
+    }
+    // Geography is achromatic, so an edge is never read as a point on the
+    // risk ramp. The review boundary is the accent colour and drawn on top.
+    float a = max(coast * 0.92, border * 0.62);
+    vec3 col = mix(vec3(0.72, 0.78, 0.85), vec3(0.97), coast);
+    if (review > 0.0) {
+      col = mix(col, vec3(0.29, 0.62, 1.0), review);
+      a = max(a, review * 0.95);
+    }
+    if (a > 0.002) {
+      edge = vec4(col, a);
+      edgePending = true;
+    }
+  }
 
-  // One sample per voxel on whichever axis the ray crosses MOST voxels --
-  // max, not min. Using min undersamples a diagonal ray by ~4x and drops
-  // whole slabs, which on this data means silently hiding risk.
-  vec3 crossed = nLocal * abs(dir);
-  float steps = max(max(crossed.x, crossed.y), crossed.z);
-  float dt = (t.y - t.x) / clamp(steps, 1.0, 512.0);
-
-  vec3 p = vOrigin + dir * t.x;
+  // --- Exact traversal. -----------------------------------------------------
+  vec3 g0 = toGrid(vOrigin, uSize);
+  vec3 gd = dirToGrid(dir, uSize);
+  ivec3 cell, stp; vec3 tNext, tDelta;
+  ddaInit(g0, gd, t.x + 1e-5, uSize, cell, stp, tNext, tDelta);
+  float tCur = t.x;
   vec4 acc = vec4(0.0);
 
-  for (float i = 0.0; i < 512.0; i += 1.0) {
-    if (acc.a > 0.98) break;
-    float travelled = t.x + dt * i;
-    if (travelled > t.y) break;
+  for (int i = 0; i < MAX_VOXELS; i++) {
+    if (acc.a > 0.98 || tCur >= t.y || !inGrid(cell, uSize)) break;
 
-    // local (x, y, z) = (lon, lead, lat)  ->  texture (u, v, w) = (lon, lat, lead)
-    vec3 local = p + 0.5;
-    vec3 uvw = vec3(local.x, local.z, local.y);
-    vec2 s = texture(uField, uvw).rg;
-    float prob = s.r;
-    int   stat = int(s.g * 255.0 + 0.5);
-
-    vec4 src = vec4(0.0);
-
-    if (stat == 0 && prob >= uFloor) {
-      // Scored. Colour by the ramp; opacity by probability so the eye is
-      // drawn to mass, not to the mere presence of land.
-      vec3 col = viridis(prob / max(uThreshold * 4.0, 0.25));
-      // Beer-Lambert absorption. Opacity depends on the distance travelled
-      // through the medium, not on how many samples we happened to take, so
-      // the Density slider means the same thing from every viewing angle.
-      // uAmbient gives every ASSESSED cell a faint presence even at
-      // probability ~0. That is not decoration: "the model looked at this and
-      // returned a low number" is different information from "nothing here",
-      // and without it the landmass vanishes and all orientation is lost.
-      float a = 1.0 - exp(-(prob * uDensity + uAmbient) * dt);
-      if (uShowIso == 1) {
-        // Thin bright shell where the field crosses the review threshold.
-        float d = abs(prob - uThreshold);
-        if (d < 0.006) { col = mix(col, vec3(1.0), 0.75); a = min(a * 6.0, 1.0); }
-      }
-      src = vec4(col, clamp(a, 0.0, 1.0));
-    } else if (stat == 1 && uShowRefused == 1) {
-      // Refused. Achromatic and NOISY: loud enough to draw attention, with
-      // no hue at all so it can never be read as a point on the risk ramp.
-      // A refusal is unknown, elevated risk -- never a low reading.
-      float n = hash(floor(uvw * uSize * 2.0));
-      float a = 1.0 - exp(-(0.35 + 0.65 * step(0.45, n)) * uDensity * dt * 0.8);
-      src = vec4(vec3(0.80 + 0.20 * n), clamp(a, 0.0, 1.0));
+    // The slice's top face is a voxel boundary, so it coincides with the
+    // start of a step. Composite the edge layer there, at its own depth.
+    if (edgePending && tPlane <= tCur + 1e-4) {
+      acc.rgb += (1.0 - acc.a) * edge.rgb * edge.a;
+      acc.a   += (1.0 - acc.a) * edge.a;
+      edgePending = false;
     }
+
+    ivec3 here = cell;
+    float tExit = min(ddaStep(cell, stp, tNext, tDelta), t.y);
+    float seg = max(tExit - tCur, 0.0);        // exact length inside this voxel
+    tCur = tExit;
+
+    vec4 s = texelFetch(uField, here, 0);
+    float prob = s.r;
+    int   stat = int(s.g * 255.0 + 0.5) & 3;   // low bits; bit 2 is the review flag
+    int   rid  = int(s.b * 255.0 + 0.5);
+    int   lead = here.z + 1;
+
+    // How much of this voxel survives slicing and focus. Applied to opacity
+    // only -- never to colour, which is the value.
+    float keep = 1.0;
+    if (uSlice > 0 && lead != uSlice) keep *= uSliceDim;
+    if (uHover >= 0 && rid != uHover) keep *= 1.0 - uFocus;
+
+    // Opacity from the shared rule (voxelAlpha, in the prelude): Beer-Lambert
+    // over the exact path length, so the Density control means the same
+    // thing from every viewing angle.
+    float n = hash(vec3(here) + 0.5);
+    float a = voxelAlpha(prob, stat, n, seg, uDensity, uAmbient, uFloor, uShowRefused);
+    // Scored: colour by the ramp. Refused: achromatic and NOISY -- loud, with
+    // no hue at all, so it can never be read as a point on the risk ramp. The
+    // noise varies per voxel and scored voxels never vary, so noise stays
+    // the refusal medium's alone.
+    //
+    // No threshold "shell". The earlier one lit every voxel within 0.006 of
+    // the threshold: on piecewise-constant data that is whole regions that
+    // happen to sit near 9.09%, not a surface, and it tinted them near-white,
+    // the refusal colour family. The review boundary is a line on the sliced
+    // layer instead (the edge block above).
+    vec3 col = stat == 0 ? viridis(prob / max(uThreshold * 4.0, 0.25))
+                         : vec3(0.80 + 0.20 * n);
+    vec4 src = vec4(col, a * keep);
 
     // Front-to-back compositing.
     acc.rgb += (1.0 - acc.a) * src.rgb * src.a;
     acc.a   += (1.0 - acc.a) * src.a;
-
-    p += dir * dt;
+  }
+  // A ray that stops before reaching the plane never composited the edge.
+  if (edgePending) {
+    acc.rgb += (1.0 - acc.a) * edge.rgb * edge.a;
+    acc.a   += (1.0 - acc.a) * edge.a;
   }
 
   if (acc.a < 0.003) discard;
   fragColor = acc;
 }`;
 
-// Picking pass. Same march, different output: instead of a colour it writes
-// the identity of the first voxel the ray "lands on".
+// Picking pass. Same traversal (the PRELUDE, verbatim), different output:
+// instead of a colour it writes the identity of the first voxel the ray
+// "lands on".
 //
 // A volume has no surface to raycast against, so picking cannot be a mesh
 // intersection. The rule here is the same one the eye uses -- the first voxel
 // that actually contributes visible opacity -- so what you click is what you
-// saw. Marching on the GPU also guarantees the pick and the picture agree:
-// one shader edit cannot desynchronise them.
-const PICK_FRAG = /* glsl */`
-precision highp float;
-precision highp sampler3D;
-
-in vec3 vOrigin;
-in vec3 vDirection;
-out vec4 fragColor;
-
+// saw. Walking the grid on the GPU with the display pass's own traversal
+// means one shader edit cannot desynchronise them.
+const PICK_FRAG = /* glsl */`${PRELUDE}
 uniform sampler3D uField;
 uniform vec3  uSize;
 uniform float uFloor;
 uniform int   uShowRefused;
-
-vec2 hitBox(vec3 orig, vec3 dir) {
-  const vec3 lo = vec3(-0.5), hi = vec3(0.5);
-  vec3 inv = 1.0 / dir;
-  vec3 tLo = (lo - orig) * inv, tHi = (hi - orig) * inv;
-  vec3 tMin = min(tLo, tHi), tMax = max(tLo, tHi);
-  return vec2(max(max(tMin.x, tMin.y), tMin.z), min(min(tMax.x, tMax.y), tMax.z));
-}
+uniform int   uSlice;     // same meaning as in the display shader
+uniform float uDensity;
+uniform float uAmbient;
+uniform float uSliceDim;
 
 void main() {
   vec3 dir = normalize(vDirection);
@@ -345,28 +586,46 @@ void main() {
   if (t.x > t.y) discard;
   t.x = max(t.x, 0.0);
 
-  vec3 nLocal = vec3(uSize.x, uSize.z, uSize.y);
-  vec3 crossed = nLocal * abs(dir);
-  float steps = max(max(crossed.x, crossed.y), crossed.z);
-  float dt = (t.y - t.x) / clamp(steps, 1.0, 512.0);
+  vec3 g0 = toGrid(vOrigin, uSize);
+  vec3 gd = dirToGrid(dir, uSize);
+  ivec3 cell, stp; vec3 tNext, tDelta;
+  ddaInit(g0, gd, t.x + 1e-5, uSize, cell, stp, tNext, tDelta);
+  float tCur = t.x;
 
-  vec3 p = vOrigin + dir * t.x;
-  for (float i = 0.0; i < 512.0; i += 1.0) {
-    if (t.x + dt * i > t.y) break;
-    vec3 local = p + 0.5;
-    vec4 s = texture(uField, vec3(local.x, local.z, local.y));
-    int stat = int(s.g * 255.0 + 0.5);
-    bool hit = (stat == 0 && s.r >= uFloor && s.r > 0.004)
-            || (stat == 1 && uShowRefused == 1);
-    if (hit) {
-      // R region index, G lead index, B probability, A = hit marker.
-      float lead = floor(clamp(local.y, 0.0, 0.9999) * uSize.z);
-      fragColor = vec4(s.b, lead / 255.0, s.r, 1.0);
-      return;
-    }
-    p += dir * dt;
+  // The voxel that contributed MOST to this pixel, not the first one with any
+  // opacity. "First" named a faint Day 9 layer while the eye was on the
+  // bright Day 3 mass beneath it. Contribution is (1 - accumulated) * alpha,
+  // with alpha from the shared voxelAlpha(), so this is the picture's own
+  // arithmetic. Focus is deliberately left out: focus follows the pick, and
+  // letting it feed back would make hover sticky.
+  float acc = 0.0, best = 0.0;
+  vec4 bestS = vec4(0.0);
+  int bestLead = 0;
+  for (int i = 0; i < MAX_VOXELS; i++) {
+    if (acc > 0.98 || tCur >= t.y || !inGrid(cell, uSize)) break;
+    ivec3 here = cell;
+    float tExit = min(ddaStep(cell, stp, tNext, tDelta), t.y);
+    float seg = max(tExit - tCur, 0.0);
+    tCur = tExit;
+
+    vec4 s = texelFetch(uField, here, 0);
+    int stat = int(s.g * 255.0 + 0.5) & 3;   // low bits; bit 2 is the review flag
+    int lead = here.z + 1;
+    // While slicing, other layers are dimmed almost to nothing: they still
+    // occlude (by their dimmed amount) but can never be the answer.
+    // Otherwise a click aimed at Day 4 could name a Day 9 voxel you did not see.
+    bool candidate = uSlice == 0 || lead == uSlice;
+    float keep = candidate ? 1.0 : uSliceDim;
+    float a = voxelAlpha(s.r, stat, hash(vec3(here) + 0.5), seg,
+                         uDensity, uAmbient, uFloor, uShowRefused) * keep;
+    float w = (1.0 - acc) * a;
+    if (candidate && w > best) { best = w; bestS = s; bestLead = here.z; }
+    acc += w;
   }
-  discard;
+  // Below this, nothing on this pixel was visibly there to point at.
+  if (best < 0.02) discard;
+  // R region index, G lead index (0-based), B probability, A = hit marker.
+  fragColor = vec4(bestS.b, float(bestLead) / 255.0, bestS.r, 1.0);
 }`;
 
 // ------------------------------------------------------------------ setup
@@ -375,8 +634,9 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   if (!renderer.capabilities.isWebGL2) {
     fail("<h2>WebGL2 required</h2><p>This view raymarches a 3-D texture, which " +
-         "needs WebGL2 (<code>sampler3D</code>). The 2-D dashboard and the " +
-         "column view work without it.</p>");
+         "needs WebGL2 (<code>sampler3D</code>). The " +
+         '<a href="/">2-D dashboard</a> and the ' +
+         '<a href="command.html">column view</a> work without it.</p>');
     return false;
   }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -401,6 +661,7 @@ function init() {
   });
   renderer.domElement.addEventListener("pointerleave", () => {
     pickPending = null; $("readout").style.display = "none";
+    if (!flight.active) { view.hover = -1; view.focusGoal = 0; }
   });
   window.addEventListener("resize", resize);
   resize();
@@ -416,21 +677,90 @@ function resize() {
 
 function bindControls(el) {
   let dragging = false, lx = 0, ly = 0;
-  el.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; });
+  // Any direct manipulation takes control back from the fly-through at once,
+  // and the scene stays exactly where the flight left it -- no snap.
+  el.addEventListener("pointerdown", (e) => {
+    stopFlight("interrupted");
+    dragging = true; lx = e.clientX; ly = e.clientY;
+  });
   window.addEventListener("pointerup", () => { dragging = false; });
   window.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    orbit.theta -= (e.clientX - lx) * 0.006;
-    orbit.phi = Math.max(0.08, Math.min(1.52, orbit.phi - (e.clientY - ly) * 0.005));
+    view.theta -= (e.clientX - lx) * 0.006;
+    view.phi = Math.max(0.08, Math.min(1.52, view.phi - (e.clientY - ly) * 0.005));
     lx = e.clientX; ly = e.clientY;
   });
   el.addEventListener("wheel", (e) => {
     e.preventDefault();
-    orbit.r = Math.max(orbit.min, Math.min(orbit.max, orbit.r * (1 + Math.sign(e.deltaY) * 0.08)));
+    stopFlight("interrupted");
+    view.r = Math.max(view.min, Math.min(view.max, view.r * (1 + Math.sign(e.deltaY) * 0.08)));
   }, { passive: false });
 }
 
+function bindKeys() {
+  window.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = e.target && e.target.tagName;
+    // Leave native controls alone: arrows move a focused slider or select,
+    // and Space/Enter already click a focused button.
+    if (tag === "SELECT" || tag === "INPUT") { if (e.key !== "Escape") return; }
+    if (tag === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
+
+    if (e.key === " ") {
+      e.preventDefault();
+      flight.active ? stopFlight("stopped") : startFlight();
+      return;
+    }
+    const known = ["ArrowLeft", "ArrowRight", "s", "S", "Escape"];
+    if (!known.includes(e.key)) return;
+    stopFlight("interrupted");
+    const nz = cube ? cube.lead_days.length : 10;
+    switch (e.key) {
+      case "ArrowLeft":
+        e.preventDefault();
+        setSlice(view.slice === 0 ? nz : Math.max(1, view.slice - 1)); break;
+      case "ArrowRight":
+        e.preventDefault();
+        setSlice(view.slice === 0 ? 1 : Math.min(nz, view.slice + 1)); break;
+      case "s": case "S":
+        setSlice(view.slice === 0 ? view.lastSlice : 0); break;
+      case "Escape":
+        view.hover = -1; view.focusGoal = 0;
+        $("readout").style.display = "none";
+        break;
+    }
+  });
+}
+
 // --------------------------------------------------------------- the volume
+// Per-cell face flags for the A channel, from GEOGRAPHY alone (grid.ids), so
+// they exist even where a date has no risk data. Faces in texture space:
+//   bit k     (k = 0..3: east, west, north, south) a different subdivision
+//             lies across that face
+//   bit 4+k   nothing lies across it: the edge of India, or of the grid
+// Computed once per grid; the grid never changes at runtime.
+function computeEdgeBits(g) {
+  const { nx, ny, nodata, ids } = g;
+  const out = new Uint8Array(nx * ny);
+  const at = (x, y) =>
+    (x < 0 || y < 0 || x >= nx || y >= ny) ? nodata : ids[y * nx + x];
+  const faces = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // +y is north (lat_idx)
+  for (let y = 0; y < ny; y++) {
+    for (let x = 0; x < nx; x++) {
+      const me = ids[y * nx + x];
+      if (me === nodata) continue;
+      let b = 0;
+      for (let k = 0; k < 4; k++) {
+        const n = at(x + faces[k][0], y + faces[k][1]);
+        if (n === nodata) b |= 16 << k;
+        else if (n !== me) b |= 1 << k;
+      }
+      out[y * nx + x] = b;
+    }
+  }
+  return out;
+}
+
 function buildTexture(grid, cube) {
   const { nx, ny, nodata } = grid;
   const nz = cube.lead_days.length;
@@ -456,12 +786,15 @@ function buildTexture(grid, cube) {
         if (rid === nodata) continue;
         const region = byId.get(grid.region_ids[rid]);
         const o = ((z * ny + y) * nx + x) * STRIDE;
+        // Geography goes in whatever the risk data says, so an island with no
+        // forecast still has its outline when sliced.
+        data[o + 3] = edgeBits[y * nx + x];
         if (!region) { missing++; continue; }      // e.g. island territories
         const st = region.status[z];
         const p = region.p[z];
         if (st === "OK" && p !== null && p !== undefined) {
           data[o] = Math.round(Math.max(0, Math.min(1, p)) * 255);
-          data[o + 1] = S_OK; scored++;
+          data[o + 1] = S_OK | (p >= REVIEW_THRESHOLD ? F_REVIEW : 0); scored++;
         } else if (st === "OUT_OF_DISTRIBUTION") {
           data[o + 1] = S_REFUSED; refused++;
         } else {
@@ -497,12 +830,11 @@ function mount(v) {
     material.dispose();
     if (pickMaterial) { pickMaterial.dispose(); pickMaterial = null; }
   }
-  // Geographic extent maps to x/z; lead day is the vertical axis. The lead
-  // axis is given real height so each of the 10 days reads as its own slab.
+  // Geographic extent maps to x/z (W, D); lead day is the vertical axis (H),
+  // given real height so each of the 10 days reads as its own slab.
   // A UNIT box, scaled by the mesh. The shader intersects a box of half-extent
   // 0.5 in local space, so baking the size into the geometry would put every
   // vertex far outside that box and make almost every ray miss.
-  const W = 40, D = 40 * (v.ny / v.nx), H = 15;
   const geo = new THREE.BoxGeometry(1, 1, 1);
 
   material = new THREE.RawShaderMaterial({
@@ -522,6 +854,10 @@ function mount(v) {
       uShowRefused: { value: 1 },
       uThreshold: { value: REVIEW_THRESHOLD },
       uAmbient: { value: 0.45 },
+      uSlice: { value: view.slice },
+      uSliceDim: { value: 0.06 },
+      uHover: { value: -1 },
+      uFocus: { value: 0 },
       inverseModel: { value: new THREE.Matrix4() },
     },
   });
@@ -541,6 +877,12 @@ function mount(v) {
       uSize: material.uniforms.uSize,
       uFloor: material.uniforms.uFloor,
       uShowRefused: material.uniforms.uShowRefused,
+      // The same uniform object, not a copy: the pick can never be on a
+      // different slice from the picture.
+      uSlice: material.uniforms.uSlice,
+      uDensity: material.uniforms.uDensity,
+      uAmbient: material.uniforms.uAmbient,
+      uSliceDim: material.uniforms.uSliceDim,
       inverseModel: material.uniforms.inverseModel,
     },
   });
@@ -551,7 +893,8 @@ function mount(v) {
   pickScene.add(pickMesh);
 
   // Frame + lead-day rungs. The vertical axis is lead day, which is the one
-  // thing no viewer guesses from the volume alone.
+  // thing no viewer guesses from the volume alone, so it is labelled. Rungs
+  // sit on the south-west corner, the one nearest the default camera.
   frame = new THREE.Group();
   frame.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
@@ -559,13 +902,92 @@ function mount(v) {
   const rung = [];
   for (let i = 0; i < v.nz; i++) {
     const y = -H / 2 + (i + 0.5) * (H / v.nz);
-    rung.push(-W / 2, y, -D / 2, -W / 2 - 1.6, y, -D / 2);
+    rung.push(-W / 2, y, D / 2, -W / 2 - 1.6, y, D / 2);
   }
   const rg = new THREE.BufferGeometry();
   rg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(rung), 3));
   frame.add(new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0x3d5064 })));
+  for (const [lead, text] of [[1, "Day 1"], [v.nz, `Day ${v.nz}`]]) {
+    const s = makeLabel(text, "#8496a8");
+    s.position.set(-W / 2 - 4.2, -H / 2 + (lead - 0.5) * (H / v.nz), D / 2);
+    frame.add(s);
+  }
   scene.add(frame);
+
+  // A rectangle at the top face of the sliced layer, so "which day am I
+  // looking at" is answered by the picture and not only by the HUD.
+  const r = [-W / 2, 0, -D / 2, W / 2, 0, -D / 2, W / 2, 0, -D / 2, W / 2, 0, D / 2,
+             W / 2, 0, D / 2, -W / 2, 0, D / 2, -W / 2, 0, D / 2, -W / 2, 0, -D / 2];
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(r), 3));
+  sliceFrame = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({
+    color: 0x4a9eff, transparent: true, opacity: 0.8 }));
+  sliceFrame.visible = false;
+  frame.add(sliceFrame);
   applyControls();
+}
+
+// Text as a camera-facing sprite. Canvas-drawn, so no font file (and no
+// external origin) is involved.
+function makeLabel(text, colour, px = 34) {
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d");
+  const font = `600 ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  ctx.font = font;
+  c.width = Math.ceil(ctx.measureText(text).width) + 16;
+  c.height = px + 16;
+  ctx.font = font;
+  ctx.fillStyle = colour;
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 8, c.height / 2);
+  // Default (smooth) filtering is right for text. It is never used for data;
+  // the risk texture is NEAREST on every axis.
+  const tex = new THREE.CanvasTexture(c);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true,
+    depthWrite: false }));
+  const hWorld = 1.1;
+  s.scale.set(hWorld * c.width / c.height, hWorld, 1);
+  return s;
+}
+
+// ---------------------------------------------------------------- ground
+// The floor: a smooth outline of India and a dark land fill, just below Day 1.
+// Built once from the grid payload -- it does not change with the date. If the
+// payload has no outline (an older artifact), the volume renders without a
+// floor and the legend note stays hidden: orientation is lost, nothing lies.
+function buildGround() {
+  if (ground) { scene.remove(ground); ground = null; }
+  if (!Array.isArray(grid.outline) || !grid.outline.length) return;
+  ground = new THREE.Group();
+  const y = -H / 2 - 0.45;
+  const seg = [], shapes = [];
+  for (const ring of grid.outline) {
+    const pts = [];
+    for (let i = 0; i < ring.length; i += 2) pts.push(lonLatToWorld(ring[i], ring[i + 1]));
+    for (let i = 0; i < pts.length - 1; i++) {
+      seg.push(pts[i].x, y, pts[i].z, pts[i + 1].x, y, pts[i + 1].z);
+    }
+    // Shape space is (x, north); the ring is closed, so drop the repeat.
+    shapes.push(new THREE.Shape(pts.slice(0, -1).map((p) => new THREE.Vector2(p.x, -p.z))));
+  }
+  const fill = new THREE.ShapeGeometry(shapes);
+  fill.rotateX(-Math.PI / 2);                 // (x, north, 0) -> (x, 0, -north)
+  const land = new THREE.Mesh(fill, new THREE.MeshBasicMaterial({
+    color: 0x0f1822, side: THREE.DoubleSide }));
+  land.position.y = y - 0.02;
+  ground.add(land);
+
+  const lg = new THREE.BufferGeometry();
+  lg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(seg), 3));
+  ground.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
+    color: 0x6f8aa6, transparent: true, opacity: 0.9 })));
+
+  const n = makeLabel("N", "#8496a8", 40);
+  n.position.set(0, y + 0.6, -D / 2 - 2.2);
+  ground.add(n);
+
+  scene.add(ground);
+  $("outlineNote").style.display = "block";
 }
 
 function applyControls() {
@@ -576,6 +998,25 @@ function applyControls() {
   material.uniforms.uDensity.value = $("density").value / 10;
   material.uniforms.uShowIso.value = $("btnIso").classList.contains("on") ? 1 : 0;
   material.uniforms.uShowRefused.value = $("btnRefuse").classList.contains("on") ? 1 : 0;
+}
+
+// Slice is set through here and nowhere else, so the uniform, the HUD, the
+// slider and the frame can never disagree about which day is shown.
+function setSlice(n) {
+  const nz = cube ? cube.lead_days.length : 10;
+  n = Math.max(0, Math.min(nz, Math.round(n)));   // whole lead days only
+  view.slice = n;
+  if (n > 0) view.lastSlice = n;
+  if (material) material.uniforms.uSlice.value = n;
+  $("slice").value = String(n);
+  if (sliceFrame) {
+    sliceFrame.visible = n > 0;
+    sliceFrame.position.y = n > 0 ? layerTop(n, nz) : 0;
+  }
+  if (n === 0) { $("sliceVal").textContent = "all lead days"; return; }
+  // Valid date read from the data, not computed from the init date.
+  const r = cube && cube.regions.find((x) => x.valid_date && x.valid_date[n - 1]);
+  $("sliceVal").textContent = `Day ${n}` + (r ? ` · valid ${r.valid_date[n - 1]}` : "");
 }
 
 // ------------------------------------------------------------------- data
@@ -597,6 +1038,7 @@ async function loadDate(initDate) {
   cube = await getJSON(`/api/risk-cube?init_date=${initDate}`);
   const v = buildTexture(grid, cube);
   mount(v);
+  setSlice(view.slice);        // mount rebuilt the frame; keep the chosen day
 
   const maxP = Math.max(...cube.regions.flatMap((r) =>
     r.p.map((x) => (typeof x === "number" ? x : 0))));
@@ -612,6 +1054,9 @@ async function boot() {
   if (!init()) return;
   try {
     grid = decodeGrid(await getJSON("/api/voxel-grid"));
+    D = W * (grid.ny / grid.nx);
+    edgeBits = computeEdgeBits(grid);
+    buildGround();
   } catch (e) {
     fail("<h2>Voxel grid missing</h2><p>Run:<br><code>PYTHONPATH=src python " +
          "scripts/precompute_voxel_grid.py</code></p>");
@@ -633,12 +1078,25 @@ async function boot() {
   }
   // Default to the documented demo case when it is in the archive.
   sel.value = dates.includes("2022-06-14") ? "2022-06-14" : dates[dates.length - 1];
-  sel.addEventListener("change", () => loadDate(sel.value).catch(showErr));
+  sel.addEventListener("change", () => {
+    // Captions describe one date; none may survive onto another.
+    stopFlight("interrupted");
+    view.hover = -1; view.focusGoal = 0;
+    loadDate(sel.value).catch(showErr);
+  });
 
   for (const id of ["threshold", "density"]) $(id).addEventListener("input", applyControls);
   for (const id of ["btnIso", "btnRefuse"]) {
     $(id).addEventListener("click", () => { $(id).classList.toggle("on"); applyControls(); });
   }
+  $("slice").addEventListener("input", () => {
+    stopFlight("interrupted");
+    setSlice(Number($("slice").value));
+  });
+  $("btnFly").addEventListener("click", () => {
+    flight.active ? stopFlight("stopped") : startFlight();
+  });
+  bindKeys();
 
   await loadDate(sel.value);
   animate();
@@ -721,9 +1179,199 @@ function showErr(e) {
   $("status").textContent = String(e.message || e);
 }
 
+// ------------------------------------------------------------ fly-through
+// A script over the view state, built from the date on screen:
+//   hold target  <- /api/review-queue?top=1 (the product's own ranking)
+//   aim          <- that region's lon/lat, through lonLatToWorld
+//   captions     <- /api/risk-cube rows for that region and lead
+// No number in this file describes a particular case; the flight says what the
+// data for the chosen date says, including when the top flag was a false alarm.
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)");
+const flight = { active: false, segs: [], i: 0, segStart: 0, token: 0 };
+let captionTimer = null;
+
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const lerp = (a, b, t) => a + (b - a) * t;
+function lerpAngle(a, b, t) {
+  let d = ((b - a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  return a + d * t;
+}
+const snapPose = () => ({ theta: view.theta, phi: view.phi, r: view.r,
+                          target: view.target.clone() });
+function applyPose(a, b, t) {
+  view.theta = lerpAngle(a.theta, b.theta, t);
+  view.phi = lerp(a.phi, b.phi, t);
+  view.r = lerp(a.r, b.r, t);
+  view.target.lerpVectors(a.target, b.target, t);
+}
+
+function caption(kicker, text, holdMs) {
+  const el = $("caption");
+  clearTimeout(captionTimer);
+  if (!text) { el.classList.remove("on"); return; }
+  el.innerHTML = "";
+  const k = document.createElement("span");
+  k.className = "k"; k.textContent = kicker;
+  el.appendChild(k);
+  el.appendChild(document.createTextNode(text));
+  el.classList.add("on");
+  if (holdMs) captionTimer = setTimeout(() => el.classList.remove("on"), holdMs);
+}
+
+const pct1 = (p) => (p * 100).toFixed(1) + "%";
+const mm1 = (x) => x.toFixed(1) + " mm";
+
+// What the hold says. Refused -> never a number (FRONTEND_LOGIC.md 2.1).
+function holdText(region, i) {
+  const lead = cube.lead_days[i];
+  const where = `${region.region} · Day ${lead} · valid ${region.valid_date[i] || "—"}`;
+  if (region.status[i] === "OUT_OF_DISTRIBUTION") {
+    return `${where} — not scored. Refused days bust 23.4% of the time ` +
+           `against 3.4% for scored ones: unknown, elevated risk.`;
+  }
+  const p = region.p[i];
+  if (typeof p !== "number") return `${where} — no score for this day.`;
+  const tier = p >= REVIEW_THRESHOLD ? "flagged for review" : "below the review threshold";
+  return `${where} — ${pct1(p)} chance this forecast busts, ${tier}.`;
+}
+
+// What the finish says. Only when the replay row carries truth.
+function outcomeText(region, i) {
+  const a = region.actual && region.actual[i];
+  const obs = region.obs_mm && region.obs_mm[i];
+  const fc = region.fcst_mm && region.fcst_mm[i];
+  if ((a !== 0 && a !== 1) || typeof obs !== "number" || typeof fc !== "number") {
+    return "The archive has no observation for this day, so there is no outcome to show.";
+  }
+  const verdict = a === 1 ? "this forecast busted." : "this forecast held.";
+  return `Observed ${mm1(obs)} against a forecast of ${mm1(fc)} — ${verdict}`;
+}
+
+async function buildFlight() {
+  const nz = cube.lead_days.length;
+  let target = null;
+  try {
+    const q = await getJSON(`/api/review-queue?init_date=${cube.init_date}&top=1`);
+    if (q.length) {
+      const region = cube.regions.find((r) => r.region_id === q[0].region_id);
+      const i = region ? cube.lead_days.indexOf(q[0].lead_day) : -1;
+      if (region && i >= 0 && isFinite(region.lon) && isFinite(region.lat)) {
+        target = { region, i, lead: cube.lead_days[i],
+                   index: grid.region_ids.indexOf(region.region_id) };
+      }
+    }
+  } catch (e) { /* no hold; the flight still descends */ }
+
+  const high = { theta: Math.PI / 2, phi: 1.2, r: 76, target: new THREE.Vector3(0, H * 0.2, 0) };
+  const end = { theta: Math.PI / 2, phi: 0.95, r: 62, target: new THREE.Vector3(0, -H * 0.1, 0) };
+  let hold = null;
+  if (target) {
+    const w = lonLatToWorld(target.region.lon, target.region.lat);
+    // Turn at most 0.3 rad off due south, towards the target's side. Any more
+    // and north stops being "up", and the map stops reading as a map.
+    const turn = Math.max(-0.3, Math.min(0.3, (w.x / (W / 2)) * 0.3));
+    hold = { theta: Math.PI / 2 - turn, phi: 0.8, r: 40,
+             target: new THREE.Vector3(w.x * 0.8, layerTop(target.lead, nz) - H / nz / 2, w.z * 0.8) };
+  }
+  const holdLead = target ? target.lead : 1;
+  // Worded to stay true for the whole descent: it stays on screen while the
+  // slice walks down, so it must not name one day. The HUD names the day.
+  const issued = `Issued ${cube.init_date}. Stepping from Day ${nz} towards ` +
+                 `Day 1, one forecast lead at a time.`;
+  const finish = target
+    ? ["Outcome", outcomeText(target.region, target.i)]
+    : ["Fly-through", "No scored region-day in the Day 3–7 band on this date, " +
+                      "so there was nothing to hold on."];
+
+  if (REDUCED.matches) {
+    // Three cuts, no interpolated motion.
+    const segs = [{ ms: 3200, cut: high, slice: nz, cap: ["Fly-through", issued] }];
+    if (target) segs.push({ ms: 4200, cut: hold, slice: holdLead, focus: target.index,
+                            cap: ["Top of the review queue", holdText(target.region, target.i)] });
+    segs.push({ ms: 3600, cut: end, slice: 0, final: true, cap: finish });
+    return segs;
+  }
+
+  const segs = [];
+  segs.push({ ms: 1500, from: null, to: high, slice: nz, cap: ["Fly-through", issued] });
+  const down = Math.max(1, nz - holdLead);
+  segs.push({ ms: down * 900, from: high, to: hold || end,
+              slices: [nz, target ? holdLead : 1] });
+  if (target) {
+    segs.push({ ms: 3400, from: hold, to: hold, slice: holdLead, focus: target.index,
+                cap: ["Top of the review queue", holdText(target.region, target.i)] });
+    segs.push({ ms: Math.max(1, holdLead - 1) * 550, from: hold, to: end,
+                slices: [holdLead, 1] });
+  }
+  segs.push({ ms: 3800, from: end, to: end, slice: 0, final: true, cap: finish });
+  return segs;
+}
+
+async function startFlight() {
+  if (!cube || flight.active) return;
+  const token = ++flight.token;
+  const segs = await buildFlight();
+  if (token !== flight.token) return;           // cancelled while loading
+  flight.segs = segs; flight.i = -1; flight.active = true;
+  $("btnFly").classList.add("playing");
+  $("btnFly").setAttribute("aria-pressed", "true");
+  $("btnFly").textContent = "■ Stop";
+  $("readout").style.display = "none";
+  nextSegment(performance.now());
+}
+
+function nextSegment(now) {
+  flight.i++;
+  const s = flight.segs[flight.i];
+  if (!s) { stopFlight("finished"); return; }
+  flight.segStart = now;
+  if (!s.from && s.to) s.from = snapPose();     // start from wherever we are
+  if (s.cut) applyPose(s.cut, s.cut, 1);
+  if (typeof s.slice === "number") setSlice(s.slice);
+  if (typeof s.focus === "number" && s.focus >= 0) { view.hover = s.focus; view.focusGoal = 0.82; }
+  else { view.focusGoal = 0; }
+  if (s.cap && s.cap[1]) caption(s.cap[0], s.cap[1]);
+}
+
+function tickFlight(now) {
+  if (!flight.active) return;
+  const s = flight.segs[flight.i];
+  const t = Math.min(1, (now - flight.segStart) / s.ms);
+  if (s.from && s.to) applyPose(s.from, s.to, ease(t));
+  if (s.slices) {
+    // The camera glides; the data steps. One whole lead day at a time.
+    const [a, b] = s.slices;
+    const n = Math.abs(a - b);
+    const k = Math.min(n, Math.floor(t * (n + 1)));
+    setSlice(a + Math.sign(b - a) * k);
+  }
+  if (t >= 1) nextSegment(now);
+}
+
+function stopFlight(reason) {
+  flight.token++;                               // also cancels a pending start
+  if (!flight.active) return;
+  const finalSeg = flight.segs[flight.i] && flight.segs[flight.i].final;
+  flight.active = false;
+  view.focusGoal = 0; view.hover = -1;
+  $("btnFly").classList.remove("playing");
+  $("btnFly").setAttribute("aria-pressed", "false");
+  $("btnFly").textContent = "▶ Fly-through";
+  // A finished flight leaves its outcome up for a moment; an interrupted one
+  // clears at once, so no caption outlives the view it described.
+  if (reason === "finished" || finalSeg) {
+    clearTimeout(captionTimer);
+    captionTimer = setTimeout(() => $("caption").classList.remove("on"), 6000);
+  } else {
+    caption(null, null);
+  }
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const now = performance.now();
+  const dtSec = Math.min(0.1, (now - lastFrame) / 1000);
+  lastFrame = now;
   frames++;
   if (now - fpsClock > 500) {
     const fps = (frames * 1000) / (now - fpsClock);
@@ -731,27 +1379,42 @@ function animate() {
     frames = 0; fpsClock = now;
   }
 
-  const { theta, phi, r } = orbit;
+  tickFlight(now);
+
+  const { theta, phi, r, target } = view;
   camera.position.set(
-    r * Math.cos(phi) * Math.cos(theta),
-    r * Math.sin(phi),
-    r * Math.cos(phi) * Math.sin(theta)
+    target.x + r * Math.cos(phi) * Math.cos(theta),
+    target.y + r * Math.sin(phi),
+    target.z + r * Math.cos(phi) * Math.sin(theta)
   );
-  camera.lookAt(0, 0, 0);
+  camera.lookAt(target);
+
+  // Focus eases; the region it applies to switches instantly. Under reduced
+  // motion it snaps.
+  view.focus = REDUCED.matches
+    ? view.focusGoal
+    : view.focus + (view.focusGoal - view.focus) * Math.min(1, dtSec * 7);
 
   if (material && volumeMesh) {
     volumeMesh.updateMatrixWorld();
     material.uniforms.inverseModel.value.copy(volumeMesh.matrixWorld).invert();
     material.uniforms.uTime.value = now / 1000;
+    material.uniforms.uHover.value = view.focus > 0.01 ? view.hover : -1;
+    material.uniforms.uFocus.value = view.focus;
   }
   renderer.render(scene, camera);
 
   // Throttled: readRenderTargetPixels forces a GPU sync, so doing it on every
-  // pointermove would tie frame rate to mouse rate.
-  if (pickPending && now - lastPick > 70) {
+  // pointermove would tie frame rate to mouse rate. The flight owns focus
+  // while it runs, so hover picking waits.
+  if (!flight.active && pickPending && now - lastPick > 70) {
     lastPick = now;
     const at = pickPending; pickPending = null;
-    try { showReadout(pickAt(at.x, at.y)); } catch (e) { /* non-fatal */ }
+    let hit = null;
+    try { hit = pickAt(at.x, at.y); } catch (e) { /* non-fatal */ }
+    showReadout(hit);
+    view.hover = hit ? hit.regionIndex : -1;
+    view.focusGoal = hit ? 0.45 : 0;
   }
 }
 
