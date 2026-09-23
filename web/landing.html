@@ -178,7 +178,7 @@
         </p>
         <p>
           On the held-out 2022 test year, the days the model declined to score
-          busted <strong>6.9× more often</strong> than the days it accepted. A
+          busted <strong><span id="refuseRatio">—</span> more often</strong> than the days it accepted. A
           refusal is elevated, unknown risk — never a quiet result, and never
           shown as one.
         </p>
@@ -190,7 +190,7 @@
       </div>
       <figure class="fig" style="margin:0">
         <div id="refuseChart" role="img"
-             aria-label="Refused days busted 23.4 percent of the time against 3.4 percent for scored days"></div>
+             aria-label="Bust rate of refused days against scored days"></div>
         <figcaption>2022 test year, all lead days. Source:
           <code>bulletins.sqlite</code>, the same store the dashboard serves.</figcaption>
       </figure>
@@ -210,12 +210,8 @@
       too narrow.
     </p>
     <div class="cards" id="statCards"></div>
-    <p style="margin-top:20px">
-      The margin over a real 50-member operational ensemble is
-      <strong>+0.025 AUROC [−0.008, +0.058]</strong> on 40 init dates — an
-      interval that contains zero. Beating the cheap proxy is established;
-      beating a real ensemble <strong>is not</strong>. Said here rather than
-      left for someone to find.
+    <p style="margin-top:20px" id="ensClaim">
+      The margin over a real 50-member operational ensemble — loading…
     </p>
   </div>
 </section>
@@ -424,18 +420,66 @@ async function boot() {
       "The text below still describes the case.";
   }
 
-  // Refusal rates and headline metrics come from committed artifacts, so this
-  // section renders even when the bulletin store is absent.
-  try {
-    const ci = await getJSON("/api/metrics");
-    void ci;
-  } catch (e) { /* optional */ }
-  $("#refuseChart").innerHTML = drawRefusal(0.034, 0.234);
-  $("#statCards").innerHTML =
-    statCard("AUROC", "0.840", "[0.821, 0.859] — against 0.758 for the ensemble-spread baseline.") +
-    statCard("Brier skill", "0.088", "[0.053, 0.123] over climatology, on the decision band.") +
-    statCard("Calibration error", "0.0107", "Expected calibration error. Overconfident in the extreme tail — see the reliability diagram.") +
-    statCard("Refused vs scored", "6.9×", "Refused days bust 23.4% of the time against 3.4% for scored days.");
+  // Every headline number here comes from /api/metrics: results.json, the
+  // interval tables, the S1 settlement and the store's refusal rates. A
+  // missing piece renders "—", never a number remembered from an old run.
+  let m = null;
+  try { m = await getJSON("/api/metrics"); } catch (e) { /* rendered as — */ }
+  renderRefusal(m && m.refusal);
+  $("#statCards").innerHTML = statCardsHTML(m);
+  $("#ensClaim").innerHTML = ensClaimHTML(m);
+}
+
+const MODEL_KEY = "4 XGBoost + isotonic", LAGGED_KEY = "2 spread [lagged-ensemble]";
+const signed = (x, n) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(n);
+const pctOf = (x) => (100 * x).toFixed(1) + "%";
+
+function renderRefusal(r) {
+  if (!r) { $("#refuseRatio").textContent = "—"; return; }
+  $("#refuseRatio").textContent = r.ratio.toFixed(1) + "×";
+  $("#refuseChart").innerHTML = drawRefusal(r.scored.bust_rate, r.refused.bust_rate);
+}
+
+function statCardsHTML(m) {
+  const band = m && m.confidence_intervals && m.confidence_intervals.decision_band;
+  const mod = band && band[MODEL_KEY], lag = band && band[LAGGED_KEY];
+  const r = m && m.refusal;
+  const iv = (o, n) => `[${o.lo.toFixed(n)}, ${o.hi.toFixed(n)}]`;
+  const na = "Unavailable in this build.";
+  return (
+    statCard("AUROC", mod ? mod.auroc.point.toFixed(3) : "—",
+      mod ? `${iv(mod.auroc, 3)} — against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na) +
+    statCard("Brier skill", mod ? mod.bss.point.toFixed(3) : "—",
+      mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.` : na) +
+    statCard("Calibration error", mod ? mod.ece.point.toFixed(4) : "—",
+      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail — see the reliability diagram.` : na) +
+    statCard("Refused vs scored", r ? r.ratio.toFixed(1) + "×" : "—",
+      r ? `Refused days bust ${pctOf(r.refused.bust_rate)} of the time against ${pctOf(r.scored.bust_rate)} for scored days (${r.year}).` : "Needs the bulletin store.")
+  );
+}
+
+// The ENS claim, in the wording its interval earns. Prefers the registered S1
+// settlement; falls back to the 40-date margin in the interval tables.
+function ensClaimHTML(m) {
+  const s = m && m.ens_settlement && m.ens_settlement.primary;
+  const t = m && m.confidence_intervals && m.confidence_intervals.true_ens;
+  const lead = "The margin over a real 50-member operational ensemble is ";
+  const fmt = (o, n) => `<strong>${signed(o.point, 3)} AUROC [${signed(o.lo, 3)}, ${signed(o.hi, 3)}]</strong> on ${n} init dates`;
+  const words = {
+    model_better: "— an interval above zero. Over the full held-out season, the model outranks a real ensemble.",
+    ens_better: "— an interval below zero. Over the full held-out season, a real ensemble outranks the model.",
+    indistinguishable: "— an interval that contains zero. Beating the cheap proxy is established; beating a real ensemble <strong>is not</strong>.",
+  };
+  if (s) {
+    return lead + fmt(s, s.n_init_dates) + " " + words[s.verdict] +
+      " The test was registered before this data was fetched.";
+  }
+  const raw = t && t.margins && t.margins["raw ENS spread"];
+  if (raw) {
+    const v = raw.lo > 0 ? "model_better" : raw.hi < 0 ? "ens_better" : "indistinguishable";
+    return lead + fmt(raw, t.n_init_dates) + " " + words[v];
+  }
+  return lead + "unavailable in this build (—).";
 }
 
 boot();

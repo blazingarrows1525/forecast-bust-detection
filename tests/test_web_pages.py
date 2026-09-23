@@ -103,16 +103,38 @@ def test_landing_page_breaks_the_line_at_a_refusal():
     assert "url(#hatch)" in html, "refused leads must be marked, not left blank"
 
 
+#: Headline numbers the landing page used to write into its own markup. The
+#: previous test here *required* "+0.025" and "0.058" to appear, which meant
+#: the page could not be updated when the S1 settlement moved the margin.
+LANDING_HEADLINE_LITERALS = [
+    '"0.840"', "[0.821, 0.859]", '"0.088"', "[0.053, 0.123]", '"0.0107"',
+    "+0.025 AUROC", "−0.008", "+0.058", "drawRefusal(0.034, 0.234)",
+    "6.9× more often", "23.4 percent", '"6.9×"',
+]
+
+
 @pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")
-def test_landing_page_states_the_ensemble_margin_is_not_established():
-    """D-022: the margin over a real ensemble contains zero. Say so.
+@pytest.mark.parametrize("literal", LANDING_HEADLINE_LITERALS)
+def test_landing_page_reads_headline_numbers_from_the_api(literal: str):
+    """S1 changes the ENS margin whichever way it falls. A written-in number
+    would go on asserting the old one."""
+    html = _read(LANDING)
+    assert literal not in html, f"landing.html hardcodes {literal!r}; read it from /api/metrics"
+    assert 'getJSON("/api/metrics")' in html
+
+
+@pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")
+def test_landing_page_can_state_every_ens_verdict():
+    """D-022/D-025: whatever the interval says, the page says it plainly.
 
     This is the one claim the project is most tempted to overstate, and a
     landing page is where overstatement usually happens.
     """
     html = _read(LANDING)
-    assert "+0.025" in html and "0.058" in html, "the interval must be shown"
-    assert "is not" in html or "not</strong>" in html
+    assert "ens_settlement" in html and "true_ens" in html
+    for v in ("model_better", "ens_better", "indistinguishable"):
+        assert v in html, f"no wording for verdict {v}"
+    assert "<strong>is not</strong>" in html, "the undecided case must say so plainly"
 
 
 @pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")

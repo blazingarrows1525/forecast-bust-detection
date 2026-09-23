@@ -418,13 +418,57 @@ def verification(init_date: str = Query(...), lead_day: int = Query(..., ge=1, l
     }
 
 
+def _json_or_none(path: Path):
+    """A committed artifact, or None. Missing is a state the page renders, not an error."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _refusal_rates() -> dict | None:
+    """Bust rate of scored vs refused rows over the held-out year, from the store.
+
+    Computed, not quoted, so the landing page's "refused days bust N x more
+    often" cannot outlive a regenerated store.
+    """
+    if not Path(DB).exists():
+        return None
+    year = config.TEST_YEARS[0]
+    con = sqlite3.connect(DB)
+    try:
+        rows = {s: (int(n), float(r)) for s, n, r in con.execute(
+            "SELECT status, COUNT(*), AVG(actual_bust) FROM bulletins "
+            "WHERE init_date >= ? AND init_date < ? AND actual_bust IS NOT NULL "
+            "GROUP BY status", (f"{year}-01-01", f"{year + 1}-01-01"))}
+    except sqlite3.Error:
+        return None
+    finally:
+        con.close()
+    if "OK" not in rows or "OUT_OF_DISTRIBUTION" not in rows:
+        return None
+    (ns, rs), (nr, rr) = rows["OK"], rows["OUT_OF_DISTRIBUTION"]
+    return {"year": year, "scored": {"n": ns, "bust_rate": rs},
+            "refused": {"n": nr, "bust_rate": rr},
+            "ratio": rr / rs if rs else None}
+
+
 @app.get("/api/metrics")
 def metrics() -> dict:
-    """Held-out-year evaluation, so the UI can show it is not a cherry-pick."""
+    """Held-out-year evaluation, so the UI can show it is not a cherry-pick.
+
+    Also carries the interval tables, the S1 settlement and the refusal rates,
+    so every headline number on the landing page comes from one request. A
+    missing piece is null, never an error.
+    """
     path = config.ARTIFACTS / "results.json"
     if not path.exists():
         raise HTTPException(503, "results.json missing; run scripts/train_model.py")
-    return json.loads(path.read_text())
+    out = json.loads(path.read_text())
+    out["confidence_intervals"] = _json_or_none(config.ARTIFACTS / "confidence_intervals.json")
+    out["ens_settlement"] = _json_or_none(config.ARTIFACTS / "ens_settlement.json")
+    out["refusal"] = _refusal_rates()
+    return out
 
 
 @app.post("/api/override")
