@@ -1,7 +1,7 @@
 # Volume geography + fly-through — design
 
 **Date:** 2026-09-23
-**Status:** approved in chat (four sections), implementation in progress
+**Status:** implemented. Approved in chat in four sections; §10 records where the build departed from them and why.
 **Builds on:** [`2026-09-20-volumetric-risk-field-design.md`](2026-09-20-volumetric-risk-field-design.md)
 **Pages touched:** `web/volume.html`, `web/command.html`
 **Build step touched:** `scripts/precompute_voxel_grid.py`
@@ -39,11 +39,12 @@ readout always named the cell under the cursor correctly. The picture and the
 pick agreed with each other and both were mirrored. With no geography in the
 scene, there was nothing to disagree with.
 
-**Fix:** north becomes `−z`. Both shaders sample `vec3(local.x, 1.0 - local.z, local.y)`,
-one JavaScript function `lonLatToWorld` is the only place geography becomes
-scene coordinates, and the default camera moves to `+z` (the south side). The
-parity test pins the new swizzle in both shaders. Browser check after the fix:
-Assam's mean screen-x must exceed Gujarat's.
+**Fix:** north becomes `−z`. Both shaders map local space to the grid through
+one `toGrid` (latitude runs along `0.5 − z`) in a shared prelude, one
+JavaScript function `lonLatToWorld` is the only place geography becomes scene
+coordinates, and the default camera moves to `+z` (the south side).
+`test_north_is_minus_z_everywhere` pins all three. Browser check after the fix:
+Assam at mean screen-x 694, Gujarat at 320.
 
 ## 3. Geography: approach C, with its mismatch bounded
 
@@ -201,3 +202,16 @@ File-level, because a shader cannot assert on itself:
 Browser verification: handedness (Assam's mean x > Gujarat's), floor outline,
 Day-4 slice with edges, hover focus, the hold frame, `command.html` in viridis,
 an fps reading and a clean console.
+
+## 10. Departures found during implementation
+
+Each was a defect or a better-grounded choice uncovered by building and
+looking. Full measurements are in `DECISIONS.md` D-024.
+
+| approved | built | why |
+|---|---|---|
+| Keep the fixed-step march | Exact per-voxel traversal (DDA) in a shared `PRELUDE` | Slicing exposed banding. Jitter turned it into grain, the refusal medium's texture. |
+| Keep the review "isosurface" | Review **boundary** line on the slice, flag from the real *p* | The shell was a ±0.006 band that tinted regions near-white, and 8-bit *p* disagreed with the readout. |
+| Pick the first visible voxel | Pick the dominant contributor | The first-hit rule named a faint Day 9 layer while the eye was on the Day 3 mass. |
+| `command.html`: palette + refusal | Also: camera moved to the south side | Its default view showed India upside down (a rotation, not a mirror). |
+| Test bound "within one cell diagonal of a coast cell" | Two-way bound: 0.75 cells (outline→grid), 1.0 cell (grid→outline, to segments) | Measured as 0.70 and 0.94. Measuring to vertices overstated it as 1.52. |

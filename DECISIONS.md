@@ -1137,3 +1137,162 @@ nit and is not: the imagery status line was added as a direct child of the
 while every functional check still passed -- tiles loaded, no errors, correct
 date. Only looking at it caught it. It now spans `grid-column: 1/-1` like the
 header and banner.
+
+## D-024 — Geography in the volume, a fly-through, and five defects the geography exposed — DISCLOSED
+
+Spec: `docs/superpowers/specs/2026-09-23-volume-geography-flythrough-design.md`.
+
+The volume view was correct but disorienting: coloured blocks in a wireframe
+box, nothing to say it was India. This adds geography, a lead-day slice, hover
+focus and a data-driven fly-through. Adding geography is also what exposed most
+of what follows. Every one of those defects had passed every test, because
+each was internally consistent.
+
+### 1. The shipped volume showed India mirrored east–west
+
+Measured before any change, by sampling the pick pass across the default view:
+Arunachal Pradesh at mean screen-x 251, Assam 332, Gujarat 704, Saurashtra 746
+(1024 px wide). East rendered on the left and north–south was correct, so this
+was a **reflection**, not a rotation: a mirror image of India.
+
+Cause: the shader mapped `+x → east`, `+z → north`, and the default camera sat
+at `−z` looking north. For that camera three.js's right-hand vector is `−x`.
+
+Why nothing caught it: the pick pass used the same swizzle as the display pass,
+so picture and readout agreed with each other while both being mirrored. With
+no geography in the scene there was nothing for them to disagree with.
+
+Fix: north is `−z`. One function, `lonLatToWorld`, is the only place a
+coordinate becomes a scene position, both shaders go through one `toGrid`, and
+the default camera sits on the south side. After: Assam 694, Gujarat 320,
+Arunachal 772; Punjab above Tamil Nadu; Kerala west of Tamil Nadu.
+
+**The column view (`command.html`) was upside down**, which is a separate
+defect: its default camera sat on the north side. Handedness was correct, so it
+was a 180° rotation, with Kerala at the top and Assam on the left. The earlier
+review of that page said it "looked normal"; it did not. Fixed the same way
+(`theta = +π/2`, at both the initial orbit and the Reset button).
+
+### 2. Geography: two of them, on purpose, with the mismatch measured
+
+Chosen explicitly over the single-source alternative:
+
+- **Floor:** a smooth outline of India plus a land fill on a ground plane just
+  below Day 1. Built at build time by `precompute_voxel_grid.py` from the union
+  of the 36 subdivisions (repair → 200 m pre-simplify → 2.5 km close → exterior
+  rings → 1 km simplify; 47 rings, 2,512 vertices, payload 21 → 60 KB). The
+  pre-simplify takes the union from over two minutes to about six seconds and
+  changes nothing that matters: 15 parts over 50 km² and 31 over 5 km² either way.
+  It is called "outline", not "coastline", because the union includes land borders.
+- **Inside the volume:** staircase edges derived from the model's own 0.25°
+  grid, packed into the texture's unused A channel as eight face bits (a
+  different subdivision across this face / nothing across it).
+
+They do not coincide, and that is bounded rather than hidden:
+
+| direction | worst | p99 |
+|---|---|---|
+| outline vertex → nearest covered cell centre | **0.70 cells** | 0.66 |
+| grid edge cell → outline (to segments, not vertices) | **0.94 cells** | 0.68 |
+
+So the claim is "never more than one cell apart, in either direction", and that
+is what `tests/test_voxel_grid.py` enforces. Measuring to vertices instead of
+segments gave 1.52 cells, an artefact of sparse vertices on straight coast. The
+worst real cases are islands (Little Andaman; a Lakshadweep islet below the
+1 km² cut). The legend says which geography is which.
+
+### 3. Rendering: exact voxel traversal replaces fixed-step sampling
+
+Slicing to one lead day made the old sampler's banding plain: a slab got 3 or 4
+samples depending on the ray's phase, which showed as stripes. Per-pixel jitter
+turned the stripes into grain, and **grain is the refusal medium's visual
+language**, so that fix made scored data look like refusal. It was reverted.
+
+The field is constant within each voxel (the NEAREST principle), so each ray
+now walks the grid voxel by voxel (Amanatides & Woo) and integrates the exact
+path length in each one. There is no banding, no noise and no jitter, and it is
+the one method that literally renders the model's own resolution. The
+traversal, `hitBox`, `hash` and the opacity rule `voxelAlpha` live in one
+`PRELUDE` string included verbatim by both the display and pick shaders. That
+makes picture/pick parity structural rather than string-matched.
+
+Measured with a GPU sync after each frame, at 1024×768: 2.31 ms full volume,
+2.45 ms sliced, 6.44 ms worst case (camera close, volume filling the screen,
+≈155 fps). The budget was 60 fps.
+
+A caveat worth stating: in the full-volume view, emission–absorption
+compositing blends every value along a ray, so a pixel can land off the ramp
+(yellow through dark purple reads brown). That is inherent to volume rendering,
+not a bug, and it is why the slice exists. **Slice to read a value; use the
+full volume to see where mass is.**
+
+### 4. The "review isosurface" was not an isosurface
+
+It lit every voxel within ±0.006 of `REVIEW_THRESHOLD`. On piecewise-constant
+data that highlights whole regions that happen to sit near 9.09%, not the
+boundary between flagged and unflagged cells. It also tinted them **near-white,
+refusal's colour family**, so on 2022-06-14 Sub-Himalayan WB (not refused)
+rendered as a white blob beside Assam.
+
+And it had an **8-bit disagreement with the readout**. At 8 bits, p = 0.092
+stores as 23/255 = 0.0902, below 0.0909, while the readout, working from the
+real value, called the same cell REVIEW. Sub-Himalayan WB, Day 3, 2022-06-14 is
+one such cell.
+
+Replaced by a **review boundary**: a line on the sliced layer at faces where a
+flagged cell meets an unflagged one, in the accent colour, never as a tint. The
+flag is set in JavaScript from the real probability and stored in G bit 2, so
+the shader and the readout cannot disagree.
+
+### 5. Picking named a voxel you had not seen
+
+The pick took the *first* voxel with any opacity. Hovering the bright Day 3–4
+mass over Assam named "Day 9 · 2.2%", Assam's faint top layer. It now names the
+**dominant contributor**, `(1 − accumulated) × α`, using the display pass's own
+`voxelAlpha`. Verified by reading pixel colour next to each pick: bright yellow
+`rgb(187,181,44)` → Assam Day 4, 70.6%; olive `rgb(122,132,31)` → Assam Day 5,
+31.9%. Focus is excluded from the pick because focus follows the pick, and
+feeding it back would make hover sticky. While slicing, only the sliced layer
+can be the answer, and other layers still occlude by their dimmed amount.
+
+### Exploration and fly-through
+
+- **Slice** is an `int` uniform: whole lead days only. The camera may glide;
+  the data may not show a Day 3.5.
+- **Focus dims every other region** rather than brightening the hovered one.
+  This refines the approved design: brightening pushes a colour towards white,
+  which on viridis reads as higher risk.
+- **The fly-through is a script over the same view state a person drives.**
+  Hold target from `/api/review-queue?top=1`, aim from the region's lon/lat,
+  captions from `/api/risk-cube`. No case number appears in the page, and a test
+  forbids six of them.
+
+  That mattered at once. On 2022-06-14 the queue's top item is **Assam, Day 3,
+  74.2%, and that forecast held**: 99.4 mm observed against 110.5 mm forecast.
+  The flight ends by saying so. A scripted demo would have told the Day 4 bust
+  story instead, and the chat preview of this design mixed the two leads'
+  numbers, which is exactly the error data-driven captions exist to prevent.
+  On 2022-07-10 the same code holds on Madhya Maharashtra, Day 4, 74.2%, and
+  reports that it busted (15.1 mm observed against 61.9 mm forecast).
+- Any drag, wheel or key cancels, leaving state where it is; a date change
+  cancels and clears the caption; `prefers-reduced-motion` gives three cuts with
+  no interpolation; captions are `aria-live`. Each path was exercised in the
+  browser, including the defensive ones: a refused target, no observation, and
+  an empty queue.
+
+### `command.html`, the WebGL1 fallback
+
+It kept the green → red ramp after the dashboard was fixed (protanopia ΔE 10.0
+between its safest and most dangerous bands), and it rendered refusals as a
+purple wireframe, which is a hue, and one that reads as "less there" than a
+solid low-risk column. It now uses the dashboard's five viridis stops exactly
+(tested by equality), renders refused columns as an achromatic stripe texture at
+full presence, says "not scored" with the 23.4% vs 3.4% context, and uses plain
+ink for the selected probability. Viridis's lowest stop as text colour would
+have been unreadable on that panel.
+
+### Tests
+
+192 pass (from 169). Fourteen of the new tests were run against the pre-change
+pages and fail there, one per defect above. The rest (no glow, no case numbers,
+outline agreement) are guards that pass on both.

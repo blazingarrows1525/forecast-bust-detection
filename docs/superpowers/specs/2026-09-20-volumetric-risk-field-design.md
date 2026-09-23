@@ -95,6 +95,20 @@ never look like. Island territories absent from the risk cube
 
 ## 5. Shader
 
+> **Superseded in part, 2026-09-23** — see
+> [`2026-09-23-volume-geography-flythrough-design.md`](2026-09-23-volume-geography-flythrough-design.md)
+> and `DECISIONS.md` D-024. Kept as written for the record. Four things below
+> no longer hold:
+> - **The axis convention put India in mirror image.** North is now `−z`, and
+>   the default camera sits on the south side.
+> - **Fixed-step sampling is gone.** Each ray walks the grid voxel by voxel and
+>   integrates the exact path length. The step-count bugs described below
+>   cannot occur.
+> - **The isosurface "shell" is gone.** It was a ±0.006 coincidence band, not a
+>   surface, and it tinted regions near-white. It is now a review-boundary line
+>   on the sliced layer, flagged from the real probability.
+> - **Picking takes the dominant contributor, not the first hit** (§7a).
+
 Local box axes are `(x = lon, y = lead, z = lat)`; the texture is
 `(u = lon, v = lat, w = lead)`, so the sample swizzles `local.zy`.
 

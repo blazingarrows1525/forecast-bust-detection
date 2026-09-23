@@ -18,16 +18,19 @@ the fifth is blocked on a decision only the user can make.
 |---|---|---|---|
 | **A** | Narrative landing | `web/landing.html` (444 lines) | shipped |
 | **B** | Dashboard upgrades | `web/index.html` (684 lines) | shipped |
-| **C** | Volumetric risk field | `web/volume.html` (761 lines) | shipped |
+| **C** | Volumetric risk field | `web/volume.html` (1,424 lines) | shipped |
+| **C+** | Geography, slice, fly-through | `web/volume.html`, `web/command.html` | shipped (D-024) |
 | **D** | Date-matched imagery | `web/index.html` (opt-in layer) | shipped |
 | **E** | Deployment & hardening | — | blocked on hosting |
 
-**169 tests pass**, all five CI checks green. The four pages ship with three
-vendored files — Leaflet CSS/JS and `three.min.js` — and one 21 KB precomputed
-grid. No fonts, no CDN, no analytics, no framework.
+**192 tests pass.** The four pages ship with three vendored files (Leaflet
+CSS/JS and `three.min.js`) and one 60 KB precomputed grid-and-outline file. No
+fonts, no CDN, no analytics, no framework.
 
-The volume view has [its own design doc](superpowers/specs/2026-09-20-volumetric-risk-field-design.md);
-this file does not duplicate it.
+The volume view has two design docs:
+[the original](superpowers/specs/2026-09-20-volumetric-risk-field-design.md) and
+[geography + fly-through](superpowers/specs/2026-09-23-volume-geography-flythrough-design.md).
+This file does not duplicate them.
 
 ---
 
@@ -155,10 +158,53 @@ all. `test_volume_view_samples_nearest_on_every_axis` guards the shader — a
 shader cannot assert on itself.
 
 **Endpoint added for it.** `GET /api/voxel-grid` at `src/fbd/api/app.py:243`.
-21 KB, precomputed from `weights_129x135_*.parquet` — the same exact
-polygon-cell overlap the feature pipeline itself uses, so the rendered volume
-sits on precisely the grid the model was trained on rather than a second grid
-that merely resembles it. `test_grid_is_the_model_s_own_grid` asserts it.
+Precomputed from `weights_129x135_*.parquet`: the same exact polygon-cell
+overlap the feature pipeline itself uses, so the rendered volume sits on
+precisely the grid the model was trained on rather than a second grid that
+merely resembles it. `test_grid_is_the_model_s_own_grid` asserts it.
+
+### 4.1 C+: geography, slice, hover, fly-through (D-024)
+
+**It was a mirror image, and nothing could tell.** The shipped volume put east
+on the left. Picture and pick shared one axis swizzle, so they agreed with each
+other while both being wrong, and with no geography in the scene there was
+nothing to disagree with. North is now `−z`, one `lonLatToWorld` is the only
+coordinate conversion, and the camera sits on the south side. The column view
+had a different defect, a camera on the north side (India upside down), fixed
+the same way.
+
+**Two geographies, bounded.** A smooth outline on a ground plane below Day 1
+for orientation, and the model's own 0.25° cell faces (from the texture's spare
+A channel) drawn on the sliced layer. Measured: never more than one cell apart
+in either direction (0.70 and 0.94 cells), and the legend says so.
+
+**Exact traversal, not sampling.** The field is constant per voxel, so each ray
+walks the grid voxel by voxel and integrates exact path lengths. Fixed steps
+striped; jitter turned the stripes into grain, and grain is refusal's
+texture. Display and pick share one `PRELUDE`, so parity is structural.
+
+**Slice to read, full volume to see mass.** In the full view a pixel blends
+every value along its ray and can land off the ramp. The slice (an `int`, whole
+lead days only) shows one day's true values, its grid edges, and the review
+boundary.
+
+**The review boundary replaced a fake isosurface.** The old shell lit voxels
+within ±0.006 of 9.09%, which on this data meant whole regions, tinted
+near-white (refusal's colour family). The boundary is now a line where flagged
+meets unflagged, and the flag is set from the real probability because 8-bit
+*p* disagreed with the readout (0.092 → 0.0902).
+
+**Focus dims, never brightens.** Brightening moves a value up the viridis ramp.
+
+**Pick names what you saw**: the dominant contributor, from the display's own
+opacity rule, not the first voxel with any opacity (which named a faint Day 9
+layer over a bright Day 3 mass).
+
+**The fly-through is a script over the explore controls,** driven by
+`/api/review-queue?top=1` and `/api/risk-cube`. It reports what happened,
+including that 2022-06-14's top flag (Assam, Day 3, 74.2%) *held*, which a
+scripted demo would have got wrong. Cancelled by any input or a date change;
+three cuts under reduced motion; captions `aria-live`.
 
 ---
 
@@ -252,7 +298,15 @@ Docker-built for the registry, so the image size has never been measured.
 | `tests/test_web_pages.py` (21 tests) | dashboard `<title>`, viridis ramp present, hatch id, imagery default off, no CDNs, keyboard hint text |
 | `tests/test_voxel_grid.py` | volume renders the model's own grid, not a resembling one |
 | `test_volume_view_samples_nearest_on_every_axis` | `NearestFilter` on all three axes — a shader cannot assert on itself |
-| `test_pick_and_picture_march_the_same_way` | pick shader and display shader share step count and axis swizzle |
+| `test_pick_and_picture_march_the_same_way` | both shaders built from one `PRELUDE`; traversal and opacity defined once |
+| `test_north_is_minus_z_everywhere` | the mirror comes back |
+| `test_outline_never_runs_through_a_cell_the_grid_does_not_cover` / `test_grid_coast_is_never_more_than_one_cell_from_the_outline` | the two geographies drift apart |
+| `test_slice_is_a_whole_lead_day` | a float slice (a Day 3.5) |
+| `test_pick_names_the_voxel_that_was_seen` | first-hit picking returns |
+| `test_review_flag_comes_from_the_real_probability` | 8-bit *p* decides REVIEW again |
+| `test_focus_and_slice_dim_opacity_never_colour` | a highlight whitens a value |
+| `test_flythrough_hardcodes_no_case_number` | a scripted number in the flight |
+| `test_column_view_uses_the_dashboard_ramp` / `…_is_seen_from_the_south` | green→red or upside-down India in the fallback |
 | `test_readout_never_prints_a_probability_for_a_refused_cell` | refusal never reads as a number |
 | CI `invariants` job | GenAI off by default, no write-capable tool on the model, numeric grounding refuses invented probabilities |
 | CI `airgap` job | serving path opens no socket at import; no external origin outside the allowlist; `enabled: false` literal present |
@@ -270,5 +324,10 @@ The list, so the next contributor can check them:
 - No transformer, BERT, LSTM, RF or LightGBM appears anywhere. It is XGBoost +
   isotonic + TreeSHAP + Mahalanobis. Landing-page copy calls it that.
 - The 3-D volume is blocky on purpose. Smooth filtering is a bug.
+- India is not mirrored and not upside down in either 3-D view: north is `−z`
+  and the camera starts on the south side.
+- A full-volume pixel is a blend along the ray; only a slice shows a value.
+- Nothing in the fly-through is scripted. It says what the data for that date
+  says, including false alarms.
 
 If any of the above stops being true, this file is wrong before the code is.
