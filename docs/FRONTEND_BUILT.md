@@ -68,7 +68,7 @@ library. Everything else is static.
 is applied literally, and the ENS sentence is chosen by the verdict in
 `/api/metrics`, not written by hand. Since S1 (D-025) it reads "outranks a real
 ensemble over the full held-out season", with the interval **+0.032 [+0.014,
-+0.049]** and the date count beside it. Before S1 it said the margin was not
++0.048]** and the date count beside it. Before S1 it said the margin was not
 established, because the 40-date interval contained zero. The page can state
 any of the three registered verdicts and a test checks that it can.
 
@@ -284,7 +284,7 @@ dashboard cards, the review queue chips, the volume shader.
 `FRONTEND_LOGIC.md` §8 lists what the UI may and may not claim. The landing
 page is the only surface that states the ENS margin, and it states whatever
 the registered settlement says: since D-025, that the model outranks a real
-50-member ensemble over the full held-out season, +0.032 [+0.014, +0.049] on
+50-member ensemble over the full held-out season, +0.032 [+0.014, +0.048] on
 120 init dates. The interval is on the page, not tucked below the fold. The
 dashboard makes no skill claim at all. (An earlier version of this section
 said the dashboard used the "comparable" wording too; it never did.)
