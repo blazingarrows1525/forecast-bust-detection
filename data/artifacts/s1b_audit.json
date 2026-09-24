@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "check": "legacy fold 2022 reproduces dataset.parquet",
+      "ok": true,
+      "detail": "279,650 rows x 93 columns identical"
+    },
+    {
+      "check": "retrained AUROC within 0.001 of the frozen model",
+      "ok": true,
+      "frozen": 0.8399658839190121,
+      "retrained": 0.8399658839190121,
+      "difference": 0.0,
+      "same_features": true,
+      "n_features": 52
+    },
+    {
+      "check": "model minus proxy within 0.001 of the published margin",
+      "ok": true,
+      "published": 0.08210747864090262,
+      "reproduced": 0.08210747864090262,
+      "difference": 0.0
+    }
+  ],
+  "ok": true,
+  "hashes": {
+    "dataset_sha256": "9f8b4063a14aff844a24071d0d780b27445c9913b8d82e0974e33d906ae0a306",
+    "model_sha256": "577578e7391e42eac5bf5390b8f713ce811957e77ac30073ff9d3d15dfb3e020",
+    "params_sha256": "205d618ace558e0bc2a72b48feb5ac5f0455604602fb582931d80080d86403cf"
+  },
+  "tolerance": 0.001
+}
