@@ -1,4 +1,4 @@
-"""The S1 registration, read by machine, so the analysis cannot drift from it.
+"""The S1 and S1b registrations, read by machine, so neither analysis can drift from its own.
 
 docs/PREREGISTRATION_S1.md carries a fenced ```registration block of
 ``key: value`` lines. settle_ens.py refuses to run unless that file is
@@ -40,11 +40,11 @@ def verify_hashes(reg: dict, files: dict) -> list:
     return problems
 
 
-def check_complete(have: int, required: int) -> None:
+def check_complete(have: int, required: int, year: int = 2022) -> None:
     if have < required:
         raise RegistrationError(
-            f"{have} ENS init dates for 2022 on disk, {required} registered. "
-            "Re-run scripts/fetch_ens.py --year 2022; a partial season is never "
+            f"{have} ENS init dates for {year} on disk, {required} registered. "
+            f"Re-run scripts/fetch_ens.py --year {year}; a partial season is never "
             "reported as the full one.")
 
 
@@ -77,3 +77,23 @@ def guard(prereg: Path, files: dict, repo: Path) -> dict:
     if problems:
         raise RegistrationError("frozen inputs changed:\n  " + "\n  ".join(problems))
     return reg
+
+
+# ------------------------------------------------------------------ S1b
+BACKTEST_VERDICT_TEXT = {
+    "model_better": "the edge replicates in 2019–2021",
+    "ens_better": "ENS spread outranks the model in 2019–2021",
+    "indistinguishable": "the model is not distinguishable from ENS spread in 2019–2021",
+}
+
+
+def check_params(reg: dict, sha: str) -> None:
+    if reg.get("params_sha256") != sha:
+        raise RegistrationError(
+            f"hyperparameters changed: registered {reg.get('params_sha256')}, "
+            f"the code has {sha}")
+
+
+def year_statement(year: int, lo: float, hi: float, who: str = "ENS spread"):
+    """The registered per-year rule: a year the comparator wins is said plainly."""
+    return f"{who} outranks the model in {year}" if hi < 0 else None
