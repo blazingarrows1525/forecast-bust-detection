@@ -26,38 +26,51 @@ Held-out year **2022** (never touched during training or calibration),
 | Logistic regression (spread + lead) | 0.754 | 0.0310 | 0.031 | 293.4 | 0.112 |
 | **Ensemble spread — the baseline to beat** | **0.758** | 0.0310 | 0.031 | 293.5 | 0.112 |
 | **XGBoost + isotonic calibration** | **0.840** | **0.0291** | **0.088** | **237.1** | **0.282** |
-| **True IFS ENS spread (50 members, calibrated)** † | **0.792** | **0.0310** | **+0.045** | **287.0** | **0.145** |
+| **True IFS ENS spread (50 members, calibrated)** † | 0.799 | 0.0309 | +0.034 | 289.8 | 0.123 |
 
-† **The true-ensemble row is scored on a subsample and is the number that
-matters.** The full-archive ensemble costs ~105 GB (DECISIONS.md D-007), so the
-rows above it use a *lagged-ensemble proxy*. A stratified subsample of real
-50-member IFS ENS (41 init dates, JJAS 2022) was pulled to check that proxy.
-On the **6,732 decision-band rows where both exist**, scored identically:
+† **The true-ensemble row is the number that matters.** The full-archive
+ensemble costs ~105 GB (DECISIONS.md D-007), so the rows above it use a
+*lagged-ensemble proxy*. Real 50-member IFS ENS was fetched for **all 122 init
+dates of JJAS 2022** (and of 2021, for calibration); 120 of them have Day 3–7
+labels, so the ensemble now covers the **same 20,060 decision-band rows** as
+the table above. Scored identically on those rows:
 
-| on identical rows (n=6,732, bust rate 3.36%) | AUROC |
+| same rows (n=20,060, bust rate 3.31%) | AUROC |
 |---|---|
-| lagged-ensemble proxy | 0.731 |
-| **true IFS ENS spread** | **0.807** |
-| **our model** | **0.832** |
+| **true IFS ENS spread** | **0.808** |
+| **our model** | **0.840** |
 
-So the margin over a *real* operational ensemble is **+0.025 AUROC**, not the
-+0.082 measured against the proxy — and **+0.025 cannot be distinguished from
-zero on this subsample.** A cluster bootstrap over the 40 init dates puts it at
-**+0.0251 [−0.0083, +0.0580]**, an interval that contains zero. Against the
-lagged proxy the margin is solid (+0.0821 [+0.0615, +0.1039]); against a real
-50-member ensemble, on 40 days, it is not yet established. See
-[uncertainty](#uncertainty-every-number-above-has-an-interval) below and D-022.
+**The model outranks a real 50-member operational ensemble over the full
+held-out season:** a cluster bootstrap over the 120 init dates puts the margin
+at **+0.0316 [+0.0141, +0.0485]**, an interval above zero. The test was
+registered before this data was fetched and run once
+([`docs/PREREGISTRATION_S1.md`](docs/PREREGISTRATION_S1.md)): 122 ENS init
+dates fetched; 120 used (dates with Day 3–7 labels). The model scores every one
+of these rows, including those the served product would refuse as
+out-of-distribution, so this measures ranking skill rather than the served
+subset. The ensemble still carries information the model lacks: a two-term
+combination of the model and ENS spread, fitted on 2021, beats the model alone
+by +0.0154 [+0.0073, +0.0240]. Every interval is drawn in
+[`docs/figures/ens_settlement.png`](docs/figures/ens_settlement.png); the
+record is D-025.
 
-AUROC is rank-based and needs no
-calibration, so the true-ensemble comparison involves no fitting whatsoever.
-The calibrated cells above (Brier, BSS, cost, value) use isotonic maps fitted
-on **2019 + 2020** ENS subsamples -- training-year data, no leakage. Note that
-isotonic calibration slightly *lowers* true-ENS AUROC (0.807 raw -> 0.792
-calibrated) because monotone step-fits introduce rank ties on the test year.
-AUROC is rank-based so the honest AUROC comparison is the **raw** row above
-(0.807 vs 0.832, +0.025 in the model's favour); the calibrated numbers are for
-Brier, cost, and value. Both are reported so nothing gets cherry-picked. See
-D-014.
+The margin is not spread evenly. Broken down by month (exploratory, no claim
+drawn) it is clear in June and July and not distinguishable from zero in
+August or September; by lead it is largest at Days 1–2 and 8–10. The earlier
+40-date subsample gave +0.0251 [−0.0083, +0.0580], which could not be told from
+zero; the 80 dates added since give +0.0351 [+0.0157, +0.0539]. It is still one
+season: whether the edge holds in other years is open.
+
+AUROC is rank-based and needs no calibration, so the headline comparison
+involves no fitting whatsoever. The calibrated cells in the table (Brier, BSS,
+cost, value) use isotonic maps fitted on the training and validation years'
+ENS rows (2019 and 2020 every sixth date, all of 2021) — no test-year data.
+Isotonic calibration slightly *lowers* true-ENS AUROC (0.808 raw → 0.799
+calibrated) because monotone step-fits introduce rank ties on the test year,
+so the fair AUROC comparison is the **raw** one above. Fitted on 2021 alone,
+the model's own calibration year, the calibrated ENS still trails: ΔAUROC
++0.0439 [+0.0258, +0.0613] and 51 fewer cost units per 1,000 rows
+[36, 66]. See D-014 and D-025.
 
 Against the lagged proxy the margin is **+0.082 AUROC** with a 19% reduction in
 asymmetric decision cost, and every predictor is given the *same* isotonic
@@ -92,16 +105,18 @@ whether a difference is distinguishable from zero.
 | Comparison | ΔAUROC [95%] | Distinguishable from zero? |
 |---|---|---|
 | model − lagged-ensemble proxy (20,060 rows, 120 dates) | +0.0821 [+0.0615, +0.1039] | **yes** |
-| **model − true IFS ENS, raw spread** (6,732 rows, 40 dates) | **+0.0251 [−0.0083, +0.0580]** | **no** |
-| model − true IFS ENS, calibrated (6,732 rows, 40 dates) | +0.0403 [+0.0052, +0.0758] | yes, barely |
+| **model − true IFS ENS, raw spread** (20,060 rows, 120 dates; registered, 10,000 resamples) | **+0.0316 [+0.0141, +0.0485]** | **yes** |
+| model − true IFS ENS, calibrated (20,060 rows, 120 dates) | +0.0408 [+0.0226, +0.0573] | yes |
+| model − true IFS ENS, raw spread (superseded: 40-date subsample, 6,732 rows) | +0.0251 [−0.0083, +0.0580] | no |
 
-**The honest reading.** Beating the cheap proxy is established. Beating a real
-50-member operational ensemble **is not** — on 40 init dates the margin is
-+0.025 with an interval that contains zero. The calibrated comparison clears
-zero, but only because isotonic step-fits introduce rank ties that *lower* ENS
-AUROC (0.807 → 0.792); the raw spread is the stronger ENS variant and therefore
-the fair test. The fix is more init dates, not a better argument. Full method
-and the intervals for Brier and ECE: [`DECISIONS.md` D-022](DECISIONS.md).
+**The honest reading.** Beating the cheap proxy is established, and so is
+beating a real 50-member operational ensemble: over the full held-out season
+the margin is +0.0316 with an interval above zero, on a test registered before
+the data existed. It is about a third of the margin over the proxy, it is
+concentrated in June–July, and it comes from one season. The raw spread is
+still the fair comparator, because calibration lowers ENS AUROC; the calibrated
+comparisons clear zero as well. Full method and the intervals for Brier and
+ECE: [`DECISIONS.md` D-022](DECISIONS.md); the settlement: D-025.
 
 ### The two claims, drawn
 
@@ -311,10 +326,11 @@ These are reported because they are true, not because they help.
   are kept because the problem statement mandates regime-based explanation and
   because the classifier is independently validated — on its top-10% monsoon
   depression days, Odisha observes **25.1 mm/day vs 5.3 mm/day** otherwise.
-* **The real ensemble is a much stronger baseline than our proxy** (0.807 vs
-  0.731 AUROC on identical rows). Our margin over a genuine 50-member IFS ENS is
-  **+0.025 AUROC**, not the +0.082 the proxy comparison suggests. The model still
-  wins, by a modest and real amount. See D-014.
+* **The real ensemble is a much stronger baseline than our proxy.** Our margin
+  over a genuine 50-member IFS ENS is **+0.0316 [+0.0141, +0.0485] AUROC** over
+  the full held-out season, not the +0.082 the proxy comparison suggests. The
+  model wins by a modest and real amount, and the ensemble still adds
+  information on top of the model. See D-014 and D-025.
 * **The spread baseline is undefined at Day 10** because the HRES archive stops
   at 240 h, which inflates the all-lead comparison. That is why the headline
   number is the Day 3–7 band, where the baseline has full support.

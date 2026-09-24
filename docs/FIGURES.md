@@ -99,3 +99,42 @@ why the assistant's status-grounding guardrail (D-019 addendum 4) treats "the
 system declined to score this" as a claim that must be backed by a tool result:
 said about a scored row, it inverts the meaning of the most important cell on
 the map.
+
+---
+
+## 3. The ENS settlement — `ens_settlement.png`
+
+![S1 settlement](figures/ens_settlement.png)
+
+Every interval from the registered S1 analysis (D-025) on one axis, with zero
+marked. Regenerate with:
+
+```bash
+PYTHONPATH=src python scripts/plot_ens_settlement.py
+```
+
+Source: `data/artifacts/ens_settlement.json`, written once by
+`scripts/settle_ens.py`. The figure only reads it.
+
+Each row is a paired ΔAUROC with a 95% cluster-bootstrap interval over init
+dates, the model's AUROC minus the comparator's on the same resampled rows:
+
+| row | what it is | status |
+|---|---|---|
+| **PRIMARY** (blue, bold) | model − raw IFS ENS spread; 2022, Day 3–7, 120 init dates, 10,000 resamples | **the registered test; the only row the verdict rests on** |
+| (a) | model − ENS isotonic-calibrated on 2021 only | secondary |
+| (b) model+ENS − ENS | a two-term logistic combination, fitted on 2021, against raw ENS | secondary |
+| (b) model+ENS − model | the same combination against the model alone: does ENS add anything? | secondary |
+| (c) | model − ENS calibrated on pooled train + val rows, for continuity with D-022 | secondary |
+| Day 1 … Day 10 (grey) | the margin at each lead, all 2022 rows with ENS | exploratory, 2,000 resamples |
+| new / original 40 dates (grey) | the 80 dates fetched for S1 against the 40-date subsample of D-022 | exploratory, 2,000 resamples |
+
+Secondaries are reported but cannot overturn the primary; grey rows are
+exploratory and no claim is drawn from them. The monthly breakdown is in D-025
+and the JSON, not on the figure.
+
+**The honest reading.** The primary sits clear of zero: the model outranks the
+ensemble's spread over the full held-out season. Row (b) against the model is
+also clear of zero, so the ensemble still adds something the model lacks.
+Days 5 and 7 and the original 40 dates each straddle zero, which is why a
+40-date subsample could not settle the question and 120 dates could.

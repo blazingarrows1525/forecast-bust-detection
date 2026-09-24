@@ -349,18 +349,24 @@ clear. The landing page has the opposite job and may breathe.
 
 ## 8. Claims the UI may and may not make
 
-Copy has to match what the evidence supports (`DECISIONS.md` D-022).
+Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025).
 
 **May claim:**
 - AUROC **0.840 [0.821, 0.859]** on a held-out year never used in training.
 - Beats a cheap ensemble-spread proxy by **+0.082 AUROC [+0.062, +0.104]**.
+- **Outranks a real 50-member operational ensemble over the full held-out
+  season:** **+0.0316 AUROC [+0.0141, +0.0485]** on 120 init dates (122 ENS
+  dates fetched), from a test registered before the data was fetched (D-025).
+  Always with the interval and the date count, and always as *one season*.
 - Refused days bust **6.9×** more often than accepted ones (23.4% vs 3.4%).
 - Calibrated: ECE **0.0107**, with a stated overconfidence in the extreme tail.
 
 **May NOT claim:**
-- ~~"Beats a real operational 50-member ensemble."~~ Measured margin is
-  **+0.025 [−0.008, +0.058]** on 40 init dates — the interval contains zero.
-  It is **not established**. Say "comparable to, on the data we could afford".
+- That the edge over the real ensemble holds in other years, or in every part
+  of the season. It is one season, and by month it is not distinguishable from
+  zero in August or September (exploratory, D-025).
+- That the model replaces the ensemble. A model + spread combination beats the
+  model alone (+0.0154 [+0.0073, +0.0240], D-025 secondary b).
 - Any transformer, BERT, LSTM, Random Forest or LightGBM. **None exist in this
   codebase.** It is XGBoost + isotonic calibration + TreeSHAP + a Mahalanobis
   OOD detector. Claiming otherwise fails the first question a judge asks.

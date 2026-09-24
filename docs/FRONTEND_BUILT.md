@@ -23,7 +23,7 @@ the fifth is blocked on a decision only the user can make.
 | **D** | Date-matched imagery | `web/index.html` (opt-in layer) | shipped |
 | **E** | Deployment & hardening | — | blocked on hosting |
 
-**192 tests pass.** The four pages ship with three vendored files (Leaflet
+**241 tests pass.** The four pages ship with three vendored files (Leaflet
 CSS/JS and `three.min.js`) and one 60 KB precomputed grid-and-outline file. No
 fonts, no CDN, no analytics, no framework.
 
@@ -39,7 +39,14 @@ This file does not duplicate them.
 **Job:** tell the June 2022 story in a way a judge can read in under a minute,
 without a single number that isn't live from the API.
 
-**The invariant.** Every claim on the page reads live from `/api/convergence`.
+**The invariant.** Every claim on the page reads live from the API: the
+convergence chart from `/api/convergence`; the four headline numbers, the ENS
+sentence and the refusal chart from `/api/metrics`. Anything missing renders
+"—", never a number remembered from an old run. (This line used to say
+everything came from `/api/convergence`. It was false: until `028bab8` the ENS
+sentence, the stat cards and the refusal chart were hardcoded. The S1 audit
+caught it, D-025.)
+
 The line the page hinges on — *"the ensemble converged; this model went the
 other way"* — is not hardcoded copy. It comes from a `GET` on 34 forecasts of
 the same region-day, longest lead first, so the reader can watch the two
@@ -58,9 +65,12 @@ curve draws in on scroll via `stroke-dasharray` + `IntersectionObserver`, no
 library. Everything else is static.
 
 **Copy discipline.** The `may` and `may-not` list from `FRONTEND_LOGIC.md` §8
-is applied literally: the page says "comparable to a real 50-member ensemble
-on the days we could afford", never "beats". The +0.025 interval that contains
-zero is on the page, not below the fold.
+is applied literally, and the ENS sentence is chosen by the verdict in
+`/api/metrics`, not written by hand. Since S1 (D-025) it reads "outranks a real
+ensemble over the full held-out season", with the interval **+0.032 [+0.014,
++0.049]** and the date count beside it. Before S1 it said the margin was not
+established, because the 40-date interval contained zero. The page can state
+any of the three registered verdicts and a test checks that it can.
 
 ---
 
@@ -272,9 +282,12 @@ dashboard cards, the review queue chips, the volume shader.
 ### 6.4 The narrative narrows, and stays narrower
 
 `FRONTEND_LOGIC.md` §8 lists what the UI may and may not claim. The landing
-page and the dashboard both apply that list literally: "comparable to a real
-50-member ensemble", never "beats it". The +0.025 [−0.008, +0.058] interval is
-on the landing page, not tucked below the fold.
+page is the only surface that states the ENS margin, and it states whatever
+the registered settlement says: since D-025, that the model outranks a real
+50-member ensemble over the full held-out season, +0.032 [+0.014, +0.049] on
+120 init dates. The interval is on the page, not tucked below the fold. The
+dashboard makes no skill claim at all. (An earlier version of this section
+said the dashboard used the "comparable" wording too; it never did.)
 
 ---
 
@@ -319,8 +332,10 @@ The list, so the next contributor can check them:
 
 - Refused ≠ low-risk. The 6.9× number is why.
 - Imagery is opt-in and dated to the lead, not the clock.
-- The margin over a real ensemble is +0.025 with an interval that contains
-  zero. Every surface that talks about skill says so.
+- The margin over a real ensemble is +0.0316 [+0.0141, +0.0485] on 120 init
+  dates of **one** season, from a test registered before the data (D-025).
+  Every surface that talks about skill gives the interval, and none stretches
+  it beyond that season.
 - No transformer, BERT, LSTM, RF or LightGBM appears anywhere. It is XGBoost +
   isotonic + TreeSHAP + Mahalanobis. Landing-page copy calls it that.
 - The 3-D volume is blocky on purpose. Smooth filtering is a bug.

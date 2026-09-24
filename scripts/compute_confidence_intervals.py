@@ -2,7 +2,8 @@
 
 Until now this project reported point estimates with nothing attached to them.
 The README said the margin over a real operational ensemble was "+0.025 AUROC"
-without saying whether +0.025 can be told apart from zero on 41 init dates --
+without saying whether +0.025 can be told apart from zero on 40 init dates (41
+fetched; 2022-09-29 has no Day 3-7 label) --
 which is the first thing a reviewer should ask and the project had no answer to.
 
     PYTHONPATH=src python scripts/compute_confidence_intervals.py

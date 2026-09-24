@@ -1296,3 +1296,137 @@ have been unreadable on that panel.
 192 pass (from 169). Fourteen of the new tests were run against the pre-change
 pages and fail there, one per defect above. The rest (no glow, no case numbers,
 outline agreement) are guards that pass on both.
+
+## D-025 — S1: the model outranks ENS spread over the full held-out season — LOCKED
+
+Spec: `docs/superpowers/specs/2026-09-23-s1-settle-ens-design.md`.
+Registration: `docs/PREREGISTRATION_S1.md`, commit `82e783e`, pushed (CI 5/5
+green) before any of the new data was fetched. Output:
+`data/artifacts/ens_settlement.json`; figure: `docs/figures/ens_settlement.png`.
+
+D-022 left one headline claim undecided: +0.0251 AUROC [−0.0083, +0.0580] over
+real 50-member IFS ENS spread, on 40 init dates. This settles it, with a test
+written down before the data existed and run once.
+
+### The fetch
+
+- **2022:** the 81 dates missing from the legacy every-3 file, 21.1 s per date.
+  With the 41 legacy dates, **122/122** on disk.
+- **2021:** all 122 dates, 19.5–20.9 s per date. The first run was killed from
+  outside at 90/122 when the session was interrupted; a re-run skipped the 90
+  shards on disk and fetched the other 32. Each shard is written to `.tmp` and
+  renamed, so the interruption left no partial file (checked: none).
+- **Integrity:** 203 shards × 360 rows (36 subdivisions × 10 leads), every row
+  50 of 50 members valid, no missing spread, no failed or flagged date. The
+  shared loader reads `{2019: 21, 2020: 21, 2021: 122, 2022: 122}` with no
+  conflicting duplicate. Reduced statistics on disk: 2.5 MB.
+- **Determinism** (before registration): two legacy dates re-fetched with the
+  S1 code, maximum absolute difference 0.
+
+### Primary — registered, one test, one verdict
+
+| | |
+|---|---|
+| rows | 20,060 (2022, Day 3–7, label and ENS present) over **120** init dates |
+| comparator | raw spread, AUROC 0.8084 (relative spread 0.546) |
+| model AUROC | 0.8400 |
+| **model − ENS** | **+0.0316 [+0.0141, +0.0485]**, 10,000 resamples, seed 20260919, no degenerate resample |
+| verdict | lower bound > 0 → **the model outranks ENS spread over the full held-out season** |
+
+120 rather than 122 dates, as registered: 2022-09-29 and 2022-09-30 have no
+Day 3–7 label because their valid dates fall after 30 September. The model
+scores every row, including those the served product refuses as
+out-of-distribution; this measures ranking skill, not the served subset.
+
+### Secondary — reported, cannot overturn the primary
+
+- **(a) ENS calibrated on 2021 only** (the model's calibration year, D-010;
+  39,950 fit rows). Model minus ENS: ΔAUROC +0.0439 [+0.0258, +0.0613];
+  ΔBrier −0.0021 [−0.0030, −0.0012]; ΔBSS +0.0658 [+0.0393, +0.0924];
+  Δ decision cost −51.0 [−66.1, −36.3] per 1,000 rows at the review threshold
+  0.0909. Every interval favours the model.
+- **(b) Does the model add anything on top of ENS?** Logistic regression on
+  [logit p_model, log(1 + spread)], fitted on 20,060 Day 3–7 rows of 2021
+  (coefficients 0.751 and 1.057). On 2022: combined − ENS **+0.0469
+  [+0.0367, +0.0571]**; combined − model **+0.0154 [+0.0073, +0.0240]**. So
+  the model adds a great deal to the ensemble, *and the ensemble adds something
+  to the model*: the model does not subsume the spread. Caveat, as registered:
+  the model's isotonic calibration was fitted on 2021, so the combination is
+  fitted on probabilities in-sample for calibration; the 2022 evaluation is out
+  of sample.
+- **(c) Continuity, pooled calibration** (train + val ENS rows, 2019–2021):
+  +0.0408 [+0.0231, +0.0576]. The published 40-date figure was +0.0403
+  [+0.0052, +0.0758].
+
+### Exploratory — labelled, no claims drawn (2,000 resamples each)
+
+| | margin [95%] | dates |
+|---|---|---|
+| original 40 dates | +0.0251 [−0.0083, +0.0580] | 40 |
+| the 80 new dates | +0.0351 [+0.0157, +0.0539] | 80 |
+| June | +0.0282 [+0.0026, +0.0507] | 30 |
+| July | +0.0784 [+0.0502, +0.1068] | 31 |
+| August | +0.0009 [−0.0450, +0.0420] | 31 |
+| September | +0.0082 [−0.0146, +0.0345] | 28 |
+
+By lead (all ten, all 2022 rows with ENS): Days 1–2 about +0.095, Days 8–10
++0.057 to +0.079, all excluding zero; Days 3–4 +0.044 and +0.053; **Day 5
++0.006 [−0.029, +0.039] and Day 7 +0.032 [−0.008, +0.068] include zero**; Day
+6 +0.031 [+0.000, +0.059] only just clears it.
+
+Two things worth saying about these. The original subsample was
+representative: the 40 dates reproduce the published +0.0251 exactly through
+the new loader, and the new dates sit a little higher, well inside its
+interval. And the season-level edge is not uniform: it is carried by June and
+especially July, and August and September show none that this data can
+detect. That does not qualify the primary, which was registered at season
+level, but anyone quoting "outranks the ensemble" should know where it comes
+from.
+
+### What was refreshed with it
+
+- `confidence_intervals.json`: only `true_ens` changes (20,060 rows, 120
+  dates); raw margin +0.0316 [+0.0140, +0.0481] at the published 2,000
+  resamples, calibrated +0.0408 [+0.0226, +0.0573].
+- `ens_baseline_comparison.csv` / `ens_auroc_comparison.csv`
+  (`evaluate_ens_baseline.py --decision-band-only`), which feed the README
+  headline row: calibrated true ENS on 20,060 rows now scores AUROC 0.799,
+  Brier 0.0309, BSS +0.034, cost 289.8, value 0.123 (was 0.792 / 0.0310 /
+  +0.045 / 287.0 / 0.145 on the 6,732-row subsample).
+
+### Audit discrepancies (PREREGISTRATION_S1 §2) and their fixes
+
+1. `compute_confidence_intervals.py`'s docstring said 41 init dates; 41 were
+   fetched and 40 used. Corrected.
+2. The landing page's ECE card showed the served-subset 0.0107 beside
+   decision-band cards (0.0106). Fixed in `028bab8`: the card reads the
+   decision-band interval from `/api/metrics`.
+3. `docs/FRONTEND_BUILT.md` said every landing-page claim read live from the
+   API. False until `028bab8`; now states which endpoint feeds which claim.
+4. The README called the comparison "on identical rows" without saying the
+   model scores rows the product would refuse. The row rule is now stated
+   beside the number.
+
+A local guard, `test_reported_intervals_match_the_committed_artifact`,
+asserted the D-022 finding (the margin includes zero) and failed on the
+refreshed artifact, as its message said it would. It now asserts that
+`confidence_intervals.json` and `ens_settlement.json` agree on the verdict and
+the date count, so the two can no longer drift apart silently.
+
+### Consequences, as registered
+
+- README, the landing page and `FRONTEND_LOGIC.md` §8: "outranks a real
+  50-member ensemble over the full held-out season" moves to *may claim*, with
+  the interval and the date count. The landing page renders the settled
+  sentence from `/api/metrics`; nothing is hardcoded.
+- S2–S5 build on an established edge. Secondary (b) is recorded as an input to
+  S3, not a change of consequence: a model + ENS combination beat the model
+  alone on 2022, so the ensemble is worth keeping in view.
+
+### What this does not settle
+
+One season. Init dates three days apart share synoptic weather, so 120 dates
+overstate the independent information in one monsoon (D-022), and the monthly
+breakdown shows how much the verdict leans on June–July. Whether the edge is a
+property of the model or of 2022 needs other test years, via a rolling-origin
+backtest. That remains open.

@@ -121,11 +121,18 @@ def test_reported_intervals_match_the_committed_artifact():
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["n_init_dates"] < 200, "clusters must be init dates, not rows"
 
-    # The finding D-022 records: the margin over a real ensemble includes zero.
+    # The ENS margin is published twice: here (2,000 resamples, for the tables)
+    # and in the registered settlement (10,000). D-022 pinned the 40-date
+    # finding; D-025 superseded it. What must hold now is that the two files
+    # never disagree about the verdict or the dates it rests on.
     ens = data.get("true_ens")
-    if ens:
+    settlement = config.ARTIFACTS / "ens_settlement.json"
+    if ens and settlement.exists():
         raw = ens["margins"]["raw ENS spread"]
-        assert raw["lo"] < 0 < raw["hi"], (
-            "D-022 records this margin as indistinguishable from zero; if that "
-            "has changed, the README claim must change with it"
+        primary = json.loads(settlement.read_text(encoding="utf-8"))["primary"]
+        assert ens["n_init_dates"] == primary["n_init_dates"]
+        assert raw["point"] == pytest.approx(primary["point"], abs=1e-9)
+        assert raw["excludes_zero"] == primary["excludes_zero"], (
+            "the interval tables and the registered settlement disagree on "
+            "whether the ENS margin excludes zero; re-run both, then fix the README"
         )

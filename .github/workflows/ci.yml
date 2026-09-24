@@ -55,6 +55,7 @@ jobs:
           tests/test_fetch_ens_resume.py
           tests/test_settle_ens.py
           tests/test_metrics_endpoint.py
+          tests/test_published_numbers.py
 
   invariants:
     name: Decision-log invariants
