@@ -56,6 +56,11 @@ jobs:
           tests/test_settle_ens.py
           tests/test_metrics_endpoint.py
           tests/test_published_numbers.py
+          tests/test_backtest_folds.py
+          tests/test_fold_leakage.py
+          tests/test_stratified_bootstrap.py
+          tests/test_backtest_guard.py
+          tests/test_backtest_stats.py
 
   invariants:
     name: Decision-log invariants
