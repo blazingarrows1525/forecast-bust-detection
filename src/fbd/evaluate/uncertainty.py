@@ -185,3 +185,66 @@ def paired_difference(
         return metric(y[rows], a[rows]) - metric(y[rows], b[rows])
 
     return cluster_bootstrap(statistic, cluster_ids, **kwargs)
+
+
+def stratified_mean_difference(
+    metric: Callable,
+    y_true,
+    prob_a,
+    prob_b,
+    cluster_ids,
+    strata,
+    n_boot: int = DEFAULT_N_BOOT,
+    seed: int = DEFAULT_SEED,
+    alpha: float = 0.05,
+) -> Interval:
+    """Mean over strata of ``metric(a) - metric(b)``; clusters resampled within strata.
+
+    Built for the S1b backtest. Each test year has its own fold model and its
+    own bust rate, so the margin is computed within a year and then averaged:
+    one AUROC over rows pooled from several years would partly reward telling
+    the years apart. Every resample draws, for each stratum, as many clusters as
+    that stratum has, from that stratum only. With a single stratum this is
+    exactly ``paired_difference``.
+    """
+    y = np.asarray(y_true, dtype=float)
+    a = np.asarray(prob_a, dtype=float)
+    b = np.asarray(prob_b, dtype=float)
+    clusters = np.asarray(cluster_ids)
+    strata = np.asarray(strata)
+
+    groups = []
+    for s in sorted(np.unique(strata).tolist(), key=str):
+        idx = np.flatnonzero(strata == s)
+        groups.append([idx[g] for g in _cluster_index(clusters[idx])])
+
+    def diff(rows: np.ndarray) -> float:
+        return metric(y[rows], a[rows]) - metric(y[rows], b[rows])
+
+    point = float(np.mean([diff(np.concatenate(g)) for g in groups]))
+    rng = np.random.default_rng(seed)
+
+    values: list[float] = []
+    degenerate = 0
+    for _ in range(n_boot):
+        per = []
+        for g in groups:
+            picks = rng.integers(0, len(g), len(g))
+            rows = np.concatenate([g[i] for i in picks])
+            try:
+                per.append(float(diff(rows)))
+            except (ValueError, ZeroDivisionError):
+                per.append(float("nan"))
+        value = float(np.mean(per))
+        if np.isfinite(value):
+            values.append(value)
+        else:
+            degenerate += 1
+
+    n_clusters = sum(len(g) for g in groups)
+    if not values:
+        return Interval(point, float("nan"), float("nan"), n_boot,
+                        n_clusters, degenerate, alpha)
+    lo, hi = np.percentile(values, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+    return Interval(point, float(lo), float(hi), n_boot, n_clusters,
+                    degenerate, alpha)
