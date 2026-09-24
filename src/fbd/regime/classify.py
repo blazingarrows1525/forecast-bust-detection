@@ -30,6 +30,7 @@ import pandas as pd
 import xarray as xr
 
 from fbd import config
+from fbd.features import standardise as S
 from fbd.regions import masks
 
 REGIMES = list(config.REGIMES)
@@ -42,6 +43,8 @@ TEMPERATURE = 0.8
 # subdivision (Himachal) clearly orographic on an average day without letting it
 # swamp a genuine depression signal.
 PLACE_WEIGHT = 2.5
+#: Local fields standardised within each subdivision before scoring.
+LOCAL_FIELDS = ["moisture_flux_850", "wind_shear", "tcwv", "u850", "v850", "z500", "mslp"]
 
 
 def static_attributes() -> pd.DataFrame:
@@ -82,20 +85,24 @@ def static_attributes() -> pd.DataFrame:
     return out
 
 
-def _z(s: pd.Series) -> pd.Series:
-    return (s - s.mean()) / (s.std() + 1e-9)
+def regime_scores(nat: pd.DataFrame, loc: pd.DataFrame, static: pd.DataFrame,
+                  fit_years=None) -> pd.DataFrame:
+    """Physically motivated score per regime, per (subdivision, date).
 
-
-def regime_scores(nat: pd.DataFrame, loc: pd.DataFrame, static: pd.DataFrame) -> pd.DataFrame:
-    """Physically motivated score per regime, per (subdivision, date)."""
+    ``fit_years=None`` standardises over every date, as the published pipeline
+    did (test years included -- the leak S1b measures); a fold passes its
+    training years.
+    """
     df = loc.merge(nat, on="date", how="inner").merge(
         static, on="subdivision_id", how="left"
     )
 
     # Standardise local fields within subdivision, so "strong flow" means strong
     # *for that place* -- 10 m/s is routine in Konkan and extreme in Vidarbha.
-    for c in ["moisture_flux_850", "wind_shear", "tcwv", "u850", "v850", "z500", "mslp"]:
-        df[f"{c}_zl"] = df.groupby("subdivision_id")[c].transform(_z)
+    z = S.standardise_within(df, LOCAL_FIELDS, "subdivision_id",
+                             S.fit_mask(df.date, fit_years))
+    for c in LOCAL_FIELDS:
+        df[f"{c}_zl"] = z[f"{c}_zl"]
 
     lat_norm = df.subdivision_id.map(_subdivision_latitude()).fillna(20.0)
 
@@ -174,7 +181,7 @@ def _subdivision_latitude() -> dict[str, float]:
     return _SUB_LAT_CACHE
 
 
-def classify(nat: pd.DataFrame, loc: pd.DataFrame) -> pd.DataFrame:
+def classify(nat: pd.DataFrame, loc: pd.DataFrame, fit_years=None) -> pd.DataFrame:
     """End-to-end: indices -> scores -> soft regime probabilities."""
     static = static_attributes()
-    return softmax_probabilities(regime_scores(nat, loc, static))
+    return softmax_probabilities(regime_scores(nat, loc, static, fit_years=fit_years))
