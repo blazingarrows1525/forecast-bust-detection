@@ -34,3 +34,15 @@ def test_readme_no_longer_leads_with_the_40_date_margin_as_current():
     text = (config.ROOT / "README.md").read_text(encoding="utf-8")
     p = json.loads(SETTLEMENT.read_text())["primary"]
     assert f"{p['n_init_dates']} init dates" in text or f"{p['n_init_dates']} dates" in text
+
+
+BACKTEST = config.ARTIFACTS / "backtest.json"
+
+
+@pytest.mark.skipif(not BACKTEST.exists(), reason="S1b not run yet")
+@pytest.mark.parametrize("doc", ["README.md", "DECISIONS.md"])
+def test_doc_states_the_backtest_interval(doc):
+    p = json.loads(BACKTEST.read_text())["primary"]
+    s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
+    text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
+    assert s in text, f"{doc} does not state the S1b interval {s}"

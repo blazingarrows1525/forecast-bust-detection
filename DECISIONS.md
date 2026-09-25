@@ -1430,3 +1430,120 @@ overstate the independent information in one monsoon (D-022), and the monthly
 breakdown shows how much the verdict leans on June–July. Whether the edge is a
 property of the model or of 2022 needs other test years, via a rolling-origin
 backtest. That remains open.
+
+## D-026 — S1b: the model is not distinguishable from ENS spread in 2019–2021 — DISCLOSED
+
+Spec: `docs/superpowers/specs/2026-09-25-s1b-rolling-origin-backtest-design.md`.
+Registration: `docs/PREREGISTRATION_S1B.md`, commit `888d6fe`, pushed (CI 5/5
+green) before the 2019–2020 ENS fetch and before any fold model was scored.
+Output: `data/artifacts/backtest.json`; figure: `docs/figures/backtest.png`.
+
+D-025 settled 2022 and left one limit on every surface: *one season*. This is
+the rolling-origin backtest D-022 named as the fix. The answer is that the edge
+over a real ensemble does not replicate on average outside 2022.
+
+### Reproduced before registration
+
+`scripts/audit_s1b.py`. Fold 2022, rebuilt through the new fold machinery in
+`legacy` mode, equals `dataset.parquet` exactly (279,650 rows × 93 columns).
+Retraining on it gives the frozen model's decision-band AUROC (0.839966) and
+the published proxy margin (+0.082107) with a difference of **exactly zero**:
+training is deterministic, so the folds run the pipeline that produced every
+published number, not an approximation of it. The tolerance had been 0.001.
+
+### The fetch
+
+2019 and 2020: the 101 dates of each missing from the legacy every-6 files,
+19.8–21.1 s per date, no failed or flagged date. The loader reads
+`{2019: 122, 2020: 122, 2021: 122, 2022: 122}`; 405 shards, every row 50 of 50
+members, no missing spread, no partial file.
+
+### Folds
+
+Each fold rebuilt its own dataset: bust-label thresholds, forecast
+climatology, climatological bust rate, national ERA5 standardisation and regime
+standardisation all fitted on its training years (`strict` mode); the model
+fitted on the training years and calibrated on the validation year, with the
+registered hyperparameters. Every fold has the frozen model's 52 features.
+
+| test | train | val | rows | dates | comparator | model AUROC | ENS AUROC |
+|---|---|---|---|---|---|---|---|
+| 2019 | 2016–2017 | 2018 | 20,060 | 120 | raw | 0.7829 | 0.8025 |
+| 2020 | 2016–2018 | 2019 | 20,060 | 120 | raw | 0.8415 | 0.8027 |
+| 2021 | 2016–2019 | 2020 | 20,060 | 120 | raw | 0.8154 | 0.8239 |
+| 2022 | 2016–2020 | 2021 | 20,060 | 120 | raw | 0.8408 | 0.8084 |
+
+### Primary — registered, one test, one verdict
+
+Mean over 2019, 2020, 2021 of the within-year margin, stratified cluster
+bootstrap over the 360 init dates, 10,000 resamples, seed 20260919, no
+degenerate resample:
+
+**+0.0036 [−0.0059, +0.0127] → the model is not distinguishable from ENS
+spread in 2019–2021.**
+
+### Per year — the registered rule
+
+| year | model − ENS spread [95%] | |
+|---|---|---|
+| 2019 | −0.0196 [−0.0359, −0.0031] | **ENS spread outranks the model in 2019** |
+| 2020 | +0.0388 [+0.0246, +0.0533] | |
+| 2021 | −0.0085 [−0.0260, +0.0071] | |
+| 2022 (seen in S1) | +0.0324 [+0.0147, +0.0490] | |
+
+2,000 resamples each. The strict fold-2022 margin (+0.0324) sits beside S1's
+frozen-model +0.0316, as it should.
+
+### Secondary — the lagged proxy
+
+Model minus the lagged proxy, calibrated on each fold's validation year:
+**+0.0364 [+0.0278, +0.0452]** on average over 2019–2021 (10,000 resamples).
+Per year: 2019 +0.0055 [−0.0113, +0.0225]; 2020 +0.0530 [+0.0399, +0.0666];
+2021 +0.0508 [+0.0377, +0.0639]; 2022 +0.0830 [+0.0624, +0.1046]. So the claim
+that survives every year it was tested in is the modest one: the model beats
+the cheap proxy.
+
+### Exploratory — labelled, no claims drawn (2,000 resamples each)
+
+By init month, model − ENS spread:
+
+| | June | July | August | September |
+|---|---|---|---|---|
+| 2019 | −0.0038 [−0.0385, +0.0254] | +0.0206 [−0.0074, +0.0470] | **−0.0797 [−0.1104, −0.0450]** | **−0.0427 [−0.0700, −0.0147]** |
+| 2020 | **+0.0420 [+0.0225, +0.0609]** | **+0.0399 [+0.0051, +0.0767]** | **+0.0472 [+0.0235, +0.0709]** | +0.0019 [−0.0323, +0.0410] |
+| 2021 | −0.0071 [−0.0332, +0.0187] | +0.0232 [−0.0058, +0.0464] | −0.0024 [−0.0317, +0.0286] | **−0.0435 [−0.0874, −0.0024]** |
+| 2022 | **+0.0298 [+0.0015, +0.0538]** | **+0.0809 [+0.0521, +0.1087]** | −0.0012 [−0.0453, +0.0375] | +0.0111 [−0.0128, +0.0387] |
+
+S1's 2022 pattern partly recurs. July's point estimate favours the model in all
+four years (clearly in two). September never favours it clearly and favours the
+ensemble clearly in 2019 and 2021; August 2019 is the single largest deficit.
+Whatever the model has learned, it holds up worst at the end of the monsoon.
+
+**Regime-leak size.** The strict fold-2022 model minus the frozen model on the
+same 2022 rows: **+0.0009 [−0.0025, +0.0045]**. Standardising regime fields
+over every date, test year included, made no detectable difference; the leak is
+recorded (D-012 already found regime features add no skill) and the shipped
+model is unchanged, as registered.
+
+### Consequences, as registered
+
+- README, `FRONTEND_LOGIC.md` §8 and `HANDOFF.md`: the S1 claim stays, qualified
+  everywhere as 2022 only, with "not distinguishable in 2019–2021" and the
+  interval beside it; 2019 is stated plainly. The one-season limit is no longer
+  a hedge: it is the finding.
+- Not registered, recorded as a recommendation: D-025 said S2–S5 build on an
+  established edge. Over four seasons the edge over the ensemble is not
+  established; over the proxy it is. S1's secondary (b) found a model + spread
+  combination beat the model alone in 2022. S3's target should be the
+  combination against ENS alone, tested the same way, across folds, before
+  anything is built on either.
+
+### Honest limits of this test
+
+The 2019 fold trained on two seasons, so it is the weakest model; that biases
+against replication and is why the primary averages three years rather than
+resting on one. It is not a reason to discount 2019: the 2021 fold trained on
+four seasons and is not distinguishable either. Three test years, each ~120
+correlated dates, is still a small sample for a year-to-year question; a
+different three years could land either side of zero. What the data supports is
+this: the edge seen in 2022 is not a stable property of the model.

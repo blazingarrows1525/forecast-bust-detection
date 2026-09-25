@@ -138,3 +138,31 @@ ensemble's spread over the full held-out season. Row (b) against the model is
 also clear of zero, so the ensemble still adds something the model lacks.
 Days 5 and 7 and the original 40 dates each straddle zero, which is why a
 40-date subsample could not settle the question and 120 dates could.
+
+---
+
+## 4. The backtest — `backtest.png`
+
+![S1b backtest](figures/backtest.png)
+
+Does the 2022 edge over a real ensemble hold in other seasons? One rebuilt
+dataset and one retrained model per test year, each fitted only on earlier
+years (D-026). Regenerate with:
+
+```bash
+PYTHONPATH=src python scripts/plot_backtest.py
+```
+
+Source: `data/artifacts/backtest.json`, written once by `scripts/backtest.py`.
+
+| row | what it is | status |
+|---|---|---|
+| **PRIMARY** (blue, bold) | mean over 2019, 2020, 2021 of model − ENS spread, dates resampled within each year, 10,000 resamples | **the registered test** |
+| 2019 / 2020 / 2021 | each year's own margin, 2,000 resamples | registered per-year rule: a year entirely below zero is stated plainly |
+| 2022 (muted) | the 2022 fold, retrained through the same machinery | seen in S1, so not in the primary |
+| secondary (muted) | mean over 2019–2021 of model − the lagged proxy | secondary |
+
+**The honest reading.** The primary straddles zero: outside 2022 the model is
+not distinguishable from the ensemble's spread on average, and 2019 sits
+entirely below zero, so there the ensemble wins. The secondary row is the
+claim that survives every year: the model beats the cheap proxy.

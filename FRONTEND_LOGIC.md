@@ -349,22 +349,28 @@ clear. The landing page has the opposite job and may breathe.
 
 ## 8. Claims the UI may and may not make
 
-Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025).
+Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026).
 
 **May claim:**
 - AUROC **0.840 [0.821, 0.859]** on a held-out year never used in training.
 - Beats a cheap ensemble-spread proxy by **+0.082 AUROC [+0.062, +0.104]**.
-- **Outranks a real 50-member operational ensemble over the full held-out
+- **Outranks a real 50-member operational ensemble over the 2022 held-out
   season:** **+0.0316 AUROC [+0.0141, +0.0485]** on 120 init dates (122 ENS
   dates fetched), from a test registered before the data was fetched (D-025).
-  Always with the interval and the date count, and always as *one season*.
+  Always with the interval, the date count, **the year**, and beside it the
+  backtest: not distinguishable over 2019–2021, **+0.0036 [−0.0059, +0.0127]**
+  (D-026).
+- Beats the cheap lagged proxy in 2022 and on average over 2019–2021,
+  **+0.0364 [+0.0278, +0.0452]** (D-026).
 - Refused days bust **6.9×** more often than accepted ones (23.4% vs 3.4%).
 - Calibrated: ECE **0.0107**, with a stated overconfidence in the extreme tail.
 
 **May NOT claim:**
-- That the edge over the real ensemble holds in other years, or in every part
-  of the season. It is one season, and by month it is not distinguishable from
-  zero in August or September (exploratory, D-025).
+- That the model outranks a real ensemble in general, or in any year but 2022.
+  Over 2019–2021 the margin is **+0.0036 [−0.0059, +0.0127]**, and in 2019
+  ENS spread outranks the model, **−0.0196 [−0.0359, −0.0031]** (D-026).
+- That the edge holds in every part of the season. Late-season months favour
+  the ensemble in several years (exploratory, D-025, D-026).
 - That the model replaces the ensemble. A model + spread combination beats the
   model alone (+0.0154 [+0.0073, +0.0240], D-025 secondary b).
 - Any transformer, BERT, LSTM, Random Forest or LightGBM. **None exist in this

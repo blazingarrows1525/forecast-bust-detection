@@ -41,7 +41,7 @@ the table above. Scored identically on those rows:
 | **our model** | **0.840** |
 
 **The model outranks a real 50-member operational ensemble over the full
-held-out season:** a cluster bootstrap over the 120 init dates puts the margin
+held-out season of 2022:** a cluster bootstrap over the 120 init dates puts the margin
 at **+0.0316 [+0.0141, +0.0485]**, an interval above zero. The test was
 registered before this data was fetched and run once
 ([`docs/PREREGISTRATION_S1.md`](docs/PREREGISTRATION_S1.md)): 122 ENS init
@@ -58,8 +58,10 @@ The margin is not spread evenly. Broken down by month (exploratory, no claim
 drawn) it is clear in June and July and not distinguishable from zero in
 August or September; by lead it is largest at Days 1–2 and 8–10. The earlier
 40-date subsample gave +0.0251 [−0.0083, +0.0580], which could not be told from
-zero; the 80 dates added since give +0.0351 [+0.0157, +0.0539]. It is still one
-season: whether the edge holds in other years is open.
+zero; the 80 dates added since give +0.0351 [+0.0157, +0.0539]. Outside 2022
+it is not established: on average over 2019–2021 the margin is +0.0036
+[−0.0059, +0.0127], an interval that contains zero, and in 2019 the ensemble
+outranks the model ([below](#does-it-hold-in-other-years), D-026).
 
 AUROC is rank-based and needs no calibration, so the headline comparison
 involves no fitting whatsoever. The calibrated cells in the table (Brier, BSS,
@@ -71,6 +73,36 @@ so the fair AUROC comparison is the **raw** one above. Fitted on 2021 alone,
 the model's own calibration year, the calibrated ENS still trails: ΔAUROC
 +0.0439 [+0.0258, +0.0613] and 51 fewer cost units per 1,000 rows
 [36, 66]. See D-014 and D-025.
+
+### Does it hold in other years?
+
+**Not established.** A rolling-origin backtest rebuilt the dataset and
+retrained the model once per test year, each fold fitting everything (bust
+thresholds, climatologies, standardisation, calibration) on its own earlier
+years only, and compared it with real 50-member IFS ENS spread on every JJAS
+init date of 2019, 2020 and 2021. The test was registered before the 2019–2020
+ensemble data was fetched
+([`docs/PREREGISTRATION_S1B.md`](docs/PREREGISTRATION_S1B.md)) and run once;
+an audit first showed the fold machinery reproduces the published dataset and
+model exactly.
+
+| test year (trained on) | model − ENS spread, ΔAUROC [95%] | |
+|---|---|---|
+| 2019 (2016–17) | −0.0196 [−0.0359, −0.0031] | **ENS spread outranks the model** |
+| 2020 (2016–18) | +0.0388 [+0.0246, +0.0533] | model ahead |
+| 2021 (2016–19) | −0.0085 [−0.0260, +0.0071] | not distinguishable |
+| **mean 2019–2021 (the registered test)** | **+0.0036 [−0.0059, +0.0127]** | **not distinguishable** |
+| 2022 (2016–20; seen in S1) | +0.0324 [+0.0147, +0.0490] | model ahead |
+
+The 2022 edge does not replicate on average, and in one of the three other
+seasons the ensemble's own spread ranks busts better than the model does.
+Against the cheap lagged proxy the model does hold up outside 2022: +0.0364
+[+0.0278, +0.0452] on average over 2019–2021. Exploratory, no claim drawn: the
+model is weakest late in the season, with September favouring the ensemble in
+2019 and 2021 and August 2019 by −0.080. The 2019 fold trained on only two
+seasons, which biases against the model; that is stated, not used to discount
+the result. Figure: [`docs/figures/backtest.png`](docs/figures/backtest.png);
+record: D-026.
 
 Against the lagged proxy the margin is **+0.082 AUROC** with a 19% reduction in
 asymmetric decision cost, and every predictor is given the *same* isotonic
@@ -105,18 +137,20 @@ whether a difference is distinguishable from zero.
 | Comparison | ΔAUROC [95%] | Distinguishable from zero? |
 |---|---|---|
 | model − lagged-ensemble proxy (20,060 rows, 120 dates) | +0.0821 [+0.0615, +0.1039] | **yes** |
-| **model − true IFS ENS, raw spread** (20,060 rows, 120 dates; registered, 10,000 resamples) | **+0.0316 [+0.0141, +0.0485]** | **yes** |
+| **model − true IFS ENS, raw spread, 2022** (20,060 rows, 120 dates; registered, 10,000 resamples) | **+0.0316 [+0.0141, +0.0485]** | **yes** |
+| **model − true IFS ENS, raw spread, mean of 2019–2021 backtest folds** (3 × 20,060 rows, 360 dates; registered, 10,000 resamples) | **+0.0036 [−0.0059, +0.0127]** | **no** |
 | model − true IFS ENS, calibrated (20,060 rows, 120 dates) | +0.0408 [+0.0226, +0.0573] | yes |
 | model − true IFS ENS, raw spread (superseded: 40-date subsample, 6,732 rows) | +0.0251 [−0.0083, +0.0580] | no |
 
-**The honest reading.** Beating the cheap proxy is established, and so is
-beating a real 50-member operational ensemble: over the full held-out season
-the margin is +0.0316 with an interval above zero, on a test registered before
-the data existed. It is about a third of the margin over the proxy, it is
-concentrated in June–July, and it comes from one season. The raw spread is
-still the fair comparator, because calibration lowers ENS AUROC; the calibrated
-comparisons clear zero as well. Full method and the intervals for Brier and
-ECE: [`DECISIONS.md` D-022](DECISIONS.md); the settlement: D-025.
+**The honest reading.** Beating the cheap proxy is established, in 2022 and on
+average over 2019–2021. Beating a real 50-member operational ensemble is
+established for 2022 only: there the margin is +0.0316 with an interval above
+zero, on a test registered before the data existed. Averaged over 2019–2021 it
+is +0.0036, an interval that contains zero, and in 2019 the ensemble wins. The
+raw spread is still the fair comparator, because calibration lowers ENS AUROC.
+Full method and the intervals for Brier and ECE:
+[`DECISIONS.md` D-022](DECISIONS.md); the 2022 settlement: D-025; the backtest:
+D-026.
 
 ### The two claims, drawn
 
@@ -326,11 +360,12 @@ These are reported because they are true, not because they help.
   are kept because the problem statement mandates regime-based explanation and
   because the classifier is independently validated — on its top-10% monsoon
   depression days, Odisha observes **25.1 mm/day vs 5.3 mm/day** otherwise.
-* **The real ensemble is a much stronger baseline than our proxy.** Our margin
-  over a genuine 50-member IFS ENS is **+0.0316 [+0.0141, +0.0485] AUROC** over
-  the full held-out season, not the +0.082 the proxy comparison suggests. The
-  model wins by a modest and real amount, and the ensemble still adds
-  information on top of the model. See D-014 and D-025.
+* **The real ensemble is a much stronger baseline than our proxy.** In 2022
+  our margin over a genuine 50-member IFS ENS is **+0.0316 [+0.0141, +0.0485]
+  AUROC**, not the +0.082 the proxy comparison suggests. Outside 2022 it does
+  not hold up: averaged over 2019–2021 it is +0.0036 [−0.0059, +0.0127], and in
+  2019 the ensemble outranks the model. The ensemble also adds information on
+  top of the model. See D-014, D-025 and D-026.
 * **The spread baseline is undefined at Day 10** because the HRES archive stops
   at 240 h, which inflates the all-lead comparison. That is why the headline
   number is the Day 3–7 band, where the baseline has full support.
