@@ -1671,3 +1671,70 @@ about 0.01; averaging five was worth it.
   live source (S4).
 - **Why 2022 goes the other way.** 2022 had atypical upper-level shear (D-016);
   whether trees cope with that better than the network is untested.
+
+## D-028 — S3a-C: the MLP's lead over ENS spread is not confirmed in 2018 — DISCLOSED
+
+Registration: `docs/PREREGISTRATION_S3A_CONFIRM.md`, commit `752f8ce`, public on
+the branch and CI 5/5 green (manual dispatch; GitHub was slow to sync the pull
+request) before any 2018 ENS data was fetched. Output:
+`data/artifacts/confirm_2018.json`.
+
+D-027 found, as an uncorrected secondary designed after D-026, that the MLP
+outranked real ENS spread on average over 2019–2021. 2018 was the one season in
+the ENS archive no model-versus-ensemble comparison had touched; its ENS data
+had never been fetched. This was the confirmation.
+
+### Setup
+
+Fold 2018, strict: train 2016, calibrate 2017, test 2018; every year-dependent
+fit on 2016 only. It sits in `CONFIRM_FOLDS`, apart from the four registered
+folds, so `backtest.py` and `promote.py` are unchanged. The MLP exactly as
+registered for S3a; XGBoost with its defaults. Fetch: 122/122 dates, 21.5–24 s
+each, no failure, 50 of 50 members on every row.
+
+Seen before registering and disclosed there: a blind smoke build, and
+validation-year (2017) AUROC of XGBoost 0.7035 and the MLP 0.8030.
+
+### Result — registered primary, run once
+
+On 2018's 20,060 Day 3–7 rows over 120 init dates:
+
+| | AUROC |
+|---|---|
+| ENS spread (raw) | 0.7949 |
+| MLP | 0.7870 |
+| XGBoost | 0.6806 |
+
+**MLP − ENS spread: −0.0080 [−0.0254, +0.0087]** (10,000 resamples, seed
+20260919, no degenerate resample) → **the MLP's lead over ENS spread is not
+confirmed in 2018.**
+
+Secondary (2,000 resamples): XGBoost − ENS spread −0.1143 [−0.1419, −0.0878];
+MLP − XGBoost +0.1063 [+0.0875, +0.1250].
+
+### Reading it
+
+- The lead D-027 reported does not survive the one clean season. The point
+  estimate even leans to the ensemble. Claims that the MLP beats a real ensemble
+  are not allowed (`FRONTEND_LOGIC.md` §8 now says so).
+- The pre-stated limit applies: the fold trained on a single season, which
+  weakens any model. It explains part of why the MLP sits at 0.787 rather than
+  the 0.81–0.85 of the 2019–2022 folds. It does not rescue the lead: a claim
+  that needs more training data to show up is a claim this test cannot make.
+- **XGBoost's collapse on one training year** (0.681, far below the ensemble) is
+  the clearest thing in the result, and was anticipated by its 0.7035 on the
+  2017 validation year. The fixed 600-tree configuration needs data the MLP does
+  not. That is a statement about data volume, not about 2018 or the ensemble;
+  it also means the MLP − XGBoost +0.106 here should not be pooled with D-027's
+  2019–2022 comparison, which trained on 2–5 seasons.
+
+### Consequences, as registered
+
+- README ("Other model families"), `FRONTEND_LOGIC.md` §8 and `HANDOFF.md` state
+  that the MLP's lead over the ensemble is not established, with this interval.
+- D-027 stands as registered: the MLP outranks XGBoost across 2019–2022 at the
+  corrected level, and the served product is unchanged until after S3c.
+- Across S1, S1b, S3a and S3a-C the ensemble-relative picture is now consistent:
+  no model here has an established, repeatable edge over a real 50-member
+  ensemble's spread outside 2022. The edge that does repeat is over the lagged
+  proxy.

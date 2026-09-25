@@ -379,4 +379,7 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   the served XGBoost in a registered backtest across 2019–2022 (**+0.0088
   [+0.0023, +0.0157]**, D-027), but it is not served, and XGBoost is the better
   of the two in 2022. Claiming otherwise fails the first question a judge asks.
+- That the MLP outranks a real ensemble. Its lead over ENS spread in 2019–2021
+  was an uncorrected secondary; the registered confirmation on 2018 did not
+  confirm it, **−0.0080 [−0.0254, +0.0087]** (D-028).
 - Real-time operation. The build serves a 2016–2022 archive.

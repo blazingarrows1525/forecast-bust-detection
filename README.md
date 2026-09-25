@@ -127,10 +127,16 @@ The win is uneven: the MLP leads clearly in 2019 and 2021, and **XGBoost is
 clearly better in 2022**, the season the product was built around. Against real
 ENS spread, as a secondary that was not corrected for multiple comparisons and
 was designed after D-026, the MLP leads on average over 2019–2021 by +0.0238
-[+0.0167, +0.0307] and in each of those years, which XGBoost did not. That is a
-lead to confirm, not a claim: no untouched season remains in this archive, so it
-needs its own registered test. The served product is still XGBoost; promotion
-into it is a separate decision after the temporal and spatial candidates.
+[+0.0167, +0.0307] and in each of those years, which XGBoost did not. That lead
+was then put to a registered test on 2018, the one season no ensemble
+comparison had touched (fold trained on 2016, calibrated on 2017; its ENS data
+fetched only after registering, [`docs/PREREGISTRATION_S3A_CONFIRM.md`](docs/PREREGISTRATION_S3A_CONFIRM.md)).
+**It was not confirmed:** MLP − ENS spread in 2018 is −0.0080 [−0.0254, +0.0087]
+(AUROC 0.787 against 0.795; D-028). The MLP's lead over the ensemble is not
+established. On that single training year XGBoost collapsed to 0.681 while the
+MLP held up, a finding about little data rather than about the ensemble. The
+served product is still XGBoost; promotion into it is a separate decision after
+the temporal and spatial candidates.
 Figure: [`docs/figures/candidate_mlp.png`](docs/figures/candidate_mlp.png);
 record: D-027.
 

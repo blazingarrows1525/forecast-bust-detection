@@ -58,3 +58,15 @@ def test_doc_states_the_mlp_interval(doc):
     s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
     text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
     assert s in text, f"{doc} does not state the S3a interval {s}"
+
+
+CONFIRM = config.ARTIFACTS / "confirm_2018.json"
+
+
+@pytest.mark.skipif(not CONFIRM.exists(), reason="S3a-C not run yet")
+@pytest.mark.parametrize("doc", ["README.md", "DECISIONS.md"])
+def test_doc_states_the_2018_confirmation(doc):
+    p = json.loads(CONFIRM.read_text(encoding="utf-8"))["primary"]
+    s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
+    text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
+    assert s in text, f"{doc} does not state the 2018 confirmation {s}"
