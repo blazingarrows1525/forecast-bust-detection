@@ -1547,3 +1547,17 @@ four seasons and is not distinguishable either. Three test years, each ~120
 correlated dates, is still a small sample for a year-to-year question; a
 different three years could land either side of zero. What the data supports is
 this: the edge seen in 2022 is not a stable property of the model.
+
+### Found in the final audit
+
+The landing page still rendered "over the full held-out season, the model
+outranks a real ensemble", with no year and nothing about the backtest, after
+§8 of `FRONTEND_LOGIC.md` had stopped allowing that. The spec had left the page
+out of S1b's scope; leaving it would have kept the one sentence a visitor reads
+saying more than the evidence does. `/api/metrics` now also serves
+`backtest.json` and the test year, and the page renders "…on 120 init dates of
+2022 … Outside that season it is not established: over 2019–2021 the margin
+averages +0.004 [−0.006, +0.013] … ENS spread outranks the model in 2019", every
+number and year read from the API. Tests: the endpoint serves the block (null
+when absent); the page reads it, shows any per-year statement, and hardcodes
+none of these numbers. Verified in the browser, including the absent-file case.

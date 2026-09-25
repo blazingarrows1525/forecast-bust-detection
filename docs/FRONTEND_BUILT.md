@@ -23,7 +23,7 @@ the fifth is blocked on a decision only the user can make.
 | **D** | Date-matched imagery | `web/index.html` (opt-in layer) | shipped |
 | **E** | Deployment & hardening | — | blocked on hosting |
 
-**241 tests pass.** The four pages ship with three vendored files (Leaflet
+**279 tests pass.** The four pages ship with three vendored files (Leaflet
 CSS/JS and `three.min.js`) and one 60 KB precomputed grid-and-outline file. No
 fonts, no CDN, no analytics, no framework.
 
@@ -67,10 +67,16 @@ library. Everything else is static.
 **Copy discipline.** The `may` and `may-not` list from `FRONTEND_LOGIC.md` §8
 is applied literally, and the ENS sentence is chosen by the verdict in
 `/api/metrics`, not written by hand. Since S1 (D-025) it reads "outranks a real
-ensemble over the full held-out season", with the interval **+0.032 [+0.014,
-+0.048]** and the date count beside it. Before S1 it said the margin was not
-established, because the 40-date interval contained zero. The page can state
-any of the three registered verdicts and a test checks that it can.
+ensemble" over the 2022 held-out season, with the interval **+0.032 [+0.014,
++0.048]**, the date count and the year beside it. Since S1b (D-026) the
+backtest follows it: outside that season the edge is not established, over
+2019–2021 **+0.004 [−0.006, +0.013]**, and any year the ensemble won is named
+(2019). The years, the interval and that sentence all come from the API; for a
+while after S1b the page still said only "over the full held-out season",
+which FRONTEND_LOGIC §8 no longer allowed, and the S1b audit caught it. Before
+S1 it said the margin was not established, because the 40-date interval
+contained zero. The page can state any of the three registered verdicts for
+both tests, and a test checks that it can.
 
 ---
 
@@ -283,9 +289,10 @@ dashboard cards, the review queue chips, the volume shader.
 
 `FRONTEND_LOGIC.md` §8 lists what the UI may and may not claim. The landing
 page is the only surface that states the ENS margin, and it states whatever
-the registered settlement says: since D-025, that the model outranks a real
-50-member ensemble over the full held-out season, +0.032 [+0.014, +0.048] on
-120 init dates. The interval is on the page, not tucked below the fold. The
+the registered tests say: since D-025, that the model outranks a real
+50-member ensemble over the 2022 held-out season, +0.032 [+0.014, +0.048] on
+120 init dates; since D-026, that outside 2022 this is not established and in
+2019 the ensemble won. The intervals are on the page, not tucked below the fold. The
 dashboard makes no skill claim at all. (An earlier version of this section
 said the dashboard used the "comparable" wording too; it never did.)
 
@@ -333,7 +340,9 @@ The list, so the next contributor can check them:
 - Refused ≠ low-risk. The 6.9× number is why.
 - Imagery is opt-in and dated to the lead, not the clock.
 - The margin over a real ensemble is +0.0316 [+0.0141, +0.0485] on 120 init
-  dates of **one** season, from a test registered before the data (D-025).
+  dates of **one** season, 2022, from a test registered before the data
+  (D-025). It does not replicate: over 2019–2021 it is +0.0036 [−0.0059,
+  +0.0127], and in 2019 the ensemble wins (D-026).
   Every surface that talks about skill gives the interval, and none stretches
   it beyond that season.
 - No transformer, BERT, LSTM, RF or LightGBM appears anywhere. It is XGBoost +

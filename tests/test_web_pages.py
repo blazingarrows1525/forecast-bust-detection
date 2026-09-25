@@ -138,6 +138,18 @@ def test_landing_page_can_state_every_ens_verdict():
 
 
 @pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")
+def test_landing_page_puts_the_backtest_beside_the_ens_claim():
+    """D-026: the edge over a real ensemble is one season's. FRONTEND_LOGIC
+    section 8 lets the page claim it only with the year and the backtest
+    beside it, both read from the API, and a year the ensemble won is shown."""
+    html = _read(LANDING)
+    assert "m.backtest" in html and "test_year" in html
+    assert ".statement" in html, "a year the ensemble wins must be shown, not dropped"
+    for literal in ("2019–2021", "+0.0036", "+0.004", "−0.0196", "−0.020"):
+        assert literal not in html, f"landing.html hardcodes {literal!r}; read it from /api/metrics"
+
+
+@pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")
 def test_landing_page_respects_reduced_motion():
     html = _read(LANDING)
     assert "prefers-reduced-motion" in html, (

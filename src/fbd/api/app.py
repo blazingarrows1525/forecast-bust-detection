@@ -457,9 +457,9 @@ def _refusal_rates() -> dict | None:
 def metrics() -> dict:
     """Held-out-year evaluation, so the UI can show it is not a cherry-pick.
 
-    Also carries the interval tables, the S1 settlement and the refusal rates,
-    so every headline number on the landing page comes from one request. A
-    missing piece is null, never an error.
+    Also carries the interval tables, the S1 settlement, the S1b backtest, the
+    refusal rates and the test year, so every headline number on the landing
+    page comes from one request. A missing piece is null, never an error.
     """
     path = config.ARTIFACTS / "results.json"
     if not path.exists():
@@ -467,7 +467,9 @@ def metrics() -> dict:
     out = json.loads(path.read_text())
     out["confidence_intervals"] = _json_or_none(config.ARTIFACTS / "confidence_intervals.json")
     out["ens_settlement"] = _json_or_none(config.ARTIFACTS / "ens_settlement.json")
+    out["backtest"] = _json_or_none(config.ARTIFACTS / "backtest.json")
     out["refusal"] = _refusal_rates()
+    out["test_year"] = config.TEST_YEARS[0]
     return out
 
 

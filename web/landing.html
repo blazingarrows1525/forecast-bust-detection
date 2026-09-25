@@ -459,27 +459,49 @@ function statCardsHTML(m) {
 }
 
 // The ENS claim, in the wording its interval earns. Prefers the registered S1
-// settlement; falls back to the 40-date margin in the interval tables.
+// settlement; falls back to the 40-date margin in the interval tables. The
+// held-out year and the backtest sit beside it (FRONTEND_LOGIC section 8, D-026).
 function ensClaimHTML(m) {
   const s = m && m.ens_settlement && m.ens_settlement.primary;
   const t = m && m.confidence_intervals && m.confidence_intervals.true_ens;
+  const year = m && m.test_year;
   const lead = "The margin over a real 50-member operational ensemble is ";
-  const fmt = (o, n) => `<strong>${signed(o.point, 3)} AUROC [${signed(o.lo, 3)}, ${signed(o.hi, 3)}]</strong> on ${n} init dates`;
+  const fmt = (o, n) => `<strong>${signed(o.point, 3)} AUROC [${signed(o.lo, 3)}, ${signed(o.hi, 3)}]</strong> on ${n} init dates` +
+    (year ? ` of ${year}` : "");
   const words = {
-    model_better: "— an interval above zero. Over the full held-out season, the model outranks a real ensemble.",
-    ens_better: "— an interval below zero. Over the full held-out season, a real ensemble outranks the model.",
+    model_better: "— an interval above zero. Over that held-out season, the model outranks a real ensemble.",
+    ens_better: "— an interval below zero. Over that held-out season, a real ensemble outranks the model.",
     indistinguishable: "— an interval that contains zero. Beating the cheap proxy is established; beating a real ensemble <strong>is not</strong>.",
   };
+  const backtest = backtestHTML(m && m.backtest);
   if (s) {
     return lead + fmt(s, s.n_init_dates) + " " + words[s.verdict] +
-      " The test was registered before this data was fetched.";
+      " The test was registered before this data was fetched." + backtest;
   }
   const raw = t && t.margins && t.margins["raw ENS spread"];
   if (raw) {
     const v = raw.lo > 0 ? "model_better" : raw.hi < 0 ? "ens_better" : "indistinguishable";
-    return lead + fmt(raw, t.n_init_dates) + " " + words[v];
+    return lead + fmt(raw, t.n_init_dates) + " " + words[v] + backtest;
   }
   return lead + "unavailable in this build (—).";
+}
+
+// The registered backtest: does the held-out season's edge hold in the others?
+// Its years, interval and any year the ensemble won all come from the API.
+function backtestHTML(b) {
+  const p = b && b.primary;
+  if (!p || !p.years || !p.years.length) return "";
+  const span = `${p.years[0]}–${p.years[p.years.length - 1]}`;
+  const opening = {
+    model_better: `It holds outside that season too: over ${span}`,
+    indistinguishable: `Outside that season it <strong>is not</strong> established: over ${span}`,
+    ens_better: `Outside that season a real ensemble outranks the model: over ${span}`,
+  }[p.verdict];
+  if (!opening) return "";
+  const lost = Object.values(b.per_year || {}).map((iv) => iv.statement).filter(Boolean);
+  return ` ${opening} the margin averages <strong>${signed(p.point, 3)} [${signed(p.lo, 3)}, ${signed(p.hi, 3)}]</strong>` +
+    " in a registered backtest that retrained the model for each year." +
+    lost.map((st) => ` ${st.charAt(0).toUpperCase()}${st.slice(1)}.`).join("");
 }
 
 boot();
