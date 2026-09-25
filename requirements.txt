@@ -37,3 +37,7 @@ pydantic>=2.7
 # --- dev ---
 pytest>=8.0
 tqdm>=4.66
+
+# S3 candidate models (local only; not in the serving image or CI). CPU build:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.2

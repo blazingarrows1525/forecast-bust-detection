@@ -19,6 +19,15 @@ from __future__ import annotations
 
 import sqlite3
 
+# On Windows, torch's c10.dll fails to initialise (WinError 1114) if
+# scikit-learn's bundled msvcp140.dll is loaded first, and the whole session
+# dies at collection. Loading torch before anything else avoids it. CI has no
+# torch, so this is a no-op there.
+try:
+    import torch  # noqa: F401
+except ImportError:
+    pass
+
 import pytest
 
 # Mirrors the production schema in scripts/generate_bulletins.py.  Only the
