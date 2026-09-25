@@ -58,3 +58,23 @@ def test_missing_pieces_are_null_not_errors(monkeypatch, tmp_path):
     assert body["ens_settlement"] is None
     assert body["backtest"] is None
     assert body["refusal"] is None
+
+
+def test_metrics_says_whether_the_combination_is_served(monkeypatch, tmp_path):
+    import sqlite3
+    client = _client(monkeypatch, tmp_path)
+    con = sqlite3.connect(tmp_path / "bulletins.sqlite")
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.executemany("INSERT INTO meta VALUES (?, ?)",
+                    [("model_version", "0.2.0"), ("combined", "1")])
+    con.commit()
+    con.close()
+    (tmp_path / "combination.json").write_text(json.dumps({"primary": {"verdict": "model_better"}}))
+    body = client.get("/api/metrics").json()
+    assert body["served"] == {"model_version": "0.2.0", "combined": True}
+    assert body["combination"]["primary"]["verdict"] == "model_better"
+
+
+def test_served_is_null_without_a_meta_table(monkeypatch, tmp_path):
+    body = _client(monkeypatch, tmp_path).get("/api/metrics").json()
+    assert body["served"] is None and body["combination"] is None

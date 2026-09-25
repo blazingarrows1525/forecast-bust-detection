@@ -151,11 +151,18 @@ def _collect_numbers(obj: Any, out: list[float]) -> None:
 # --------------------------------------------------------------------------
 # Implementations
 # --------------------------------------------------------------------------
+def _optional_cols(con: sqlite3.Connection) -> str:
+    """The combination's ingredients, on stores new enough to have them (v0.2.0)."""
+    have = {r[1] for r in con.execute("PRAGMA table_info(bulletins)")}
+    return "".join(f", {c}" for c in ("model_probability", "ens_spread") if c in have)
+
+
 def get_bulletin(region_id: str, init_date: str) -> dict:
     con = _con()
     rows = con.execute(
         "SELECT region, region_id, lead_day, valid_date, bust_probability, "
-        "       status, forecast_rain_mm, pi_low, pi_high, dominant_factors "
+        "       status, forecast_rain_mm, pi_low, pi_high, dominant_factors"
+        + _optional_cols(con) + " "
         "FROM bulletins WHERE region_id = ? AND init_date = ? ORDER BY lead_day",
         (region_id, init_date),
     ).fetchall()
@@ -180,7 +187,8 @@ def get_review_queue(init_date: str, top: int = 10) -> dict:
     con = _con()
     rows = con.execute(
         "SELECT region, region_id, lead_day, valid_date, bust_probability, "
-        "       status, forecast_rain_mm, dominant_factors "
+        "       status, forecast_rain_mm, dominant_factors"
+        + _optional_cols(con) + " "
         "FROM bulletins WHERE init_date = ? AND bust_probability IS NOT NULL "
         "ORDER BY bust_probability DESC LIMIT ?",
         (init_date, top),

@@ -101,6 +101,11 @@ def _quality(init_date: str, mode: str) -> tuple[DataQuality, float | None, str 
     return DataQuality.OK, age_h, None
 
 
+def _opt(r: sqlite3.Row, key: str):
+    """A column that only newer stores have; None on a v0.1.0 store."""
+    return r[key] if key in r.keys() else None
+
+
 def _to_prediction(r: sqlite3.Row, age_h: float | None, dq: DataQuality) -> BustPrediction:
     regime = None
     if r["regime_json"]:
@@ -127,6 +132,8 @@ def _to_prediction(r: sqlite3.Row, age_h: float | None, dq: DataQuality) -> Bust
         valid_date=r["valid_date"],
         status=PredictionStatus(r["status"]),
         bust_probability=r["bust_probability"],
+        model_probability=_opt(r, "model_probability"),
+        ens_spread_mm=_opt(r, "ens_spread"),
         confidence_in_estimate=r["confidence_in_estimate"],
         prediction_interval=pi,
         dominant_factors=json.loads(r["dominant_factors"]) if r["dominant_factors"] else [],
@@ -385,6 +392,8 @@ def review_queue(
             status=PredictionStatus(r["status"]),
             forecast_rain_mm=r["forecast_rain_mm"],
             dominant_factors=json.loads(r["dominant_factors"]) if r["dominant_factors"] else [],
+            model_probability=_opt(r, "model_probability"),
+            ens_spread_mm=_opt(r, "ens_spread"),
         )
         for i, r in enumerate(rows)
     ]
@@ -424,6 +433,26 @@ def _json_or_none(path: Path):
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+
+
+def _served() -> dict | None:
+    """What the store serves: its version, and whether it is the combination.
+
+    Read here rather than through _meta(), because a store without a meta table
+    (or no store at all) is a state to report, not an error.
+    """
+    if not Path(DB).exists():
+        return None
+    try:
+        con = sqlite3.connect(DB)
+        try:
+            meta = dict(con.execute("SELECT key, value FROM meta").fetchall())
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    return {"model_version": meta.get("model_version"),
+            "combined": meta.get("combined") == "1"}
 
 
 def _refusal_rates() -> dict | None:
@@ -468,6 +497,8 @@ def metrics() -> dict:
     out["confidence_intervals"] = _json_or_none(config.ARTIFACTS / "confidence_intervals.json")
     out["ens_settlement"] = _json_or_none(config.ARTIFACTS / "ens_settlement.json")
     out["backtest"] = _json_or_none(config.ARTIFACTS / "backtest.json")
+    out["combination"] = _json_or_none(config.ARTIFACTS / "combination.json")
+    out["served"] = _served()
     out["refusal"] = _refusal_rates()
     out["test_year"] = config.TEST_YEARS[0]
     return out

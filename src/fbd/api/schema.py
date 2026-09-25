@@ -64,7 +64,16 @@ class BustPrediction(BaseModel):
     status: PredictionStatus = PredictionStatus.OK
     bust_probability: float | None = Field(
         None, ge=0.0, le=1.0,
-        description="None when status is not OK -- the system declines to guess",
+        description="None when status is not OK -- the system declines to guess. "
+                    "From store v0.2.0, the model + ENS combination (D-029, D-030)",
+    )
+    # The combination's two ingredients (store v0.2.0; null on older stores).
+    model_probability: float | None = Field(
+        None, ge=0.0, le=1.0,
+        description="the model alone, before the ensemble is combined in",
+    )
+    ens_spread_mm: float | None = Field(
+        None, description="50-member ENS spread for this row, mm/day",
     )
     confidence_in_estimate: float | None = Field(None, ge=0.0, le=1.0)
     prediction_interval: list[float] | None = None
@@ -119,6 +128,8 @@ class ReviewQueueItem(BaseModel):
     status: PredictionStatus
     forecast_rain_mm: float | None
     dominant_factors: list[str]
+    model_probability: float | None = None
+    ens_spread_mm: float | None = None
 
 
 class HealthResponse(BaseModel):
