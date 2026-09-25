@@ -28,3 +28,25 @@ DEFAULT_PARAMS = dict(
 def params_sha256(params: dict = DEFAULT_PARAMS) -> str:
     blob = json.dumps(params, sort_keys=True).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()
+
+
+#: S3a candidate, frozen before any run (spec §5, docs/PREREGISTRATION_S3.md).
+MLP_PARAMS = dict(
+    hidden=[128, 64],
+    activation="relu",
+    dropout=0.2,
+    lr=1e-3,
+    weight_decay=1e-4,
+    batch_size=1024,
+    max_epochs=60,
+    patience=5,
+    seeds=[20260920, 20260921, 20260922, 20260923, 20260924],
+    threads=8,
+    dtype="float32",
+    device="cpu",
+    missing="training-rows median + indicator for features missing in training",
+    scaling="training-rows mean and sd after imputation; sd 0 -> 1",
+    loss="bce with pos_weight = negatives / positives on training rows",
+    stopping="validation-year weighted bce, restore best epoch",
+    calibration="isotonic on the validation year, on the seed-averaged probability",
+)

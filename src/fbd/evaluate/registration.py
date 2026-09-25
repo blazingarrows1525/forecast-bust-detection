@@ -94,6 +94,7 @@ def check_params(reg: dict, sha: str) -> None:
             f"the code has {sha}")
 
 
-def year_statement(year: int, lo: float, hi: float, who: str = "ENS spread"):
+def year_statement(year: int, lo: float, hi: float, who: str = "ENS spread",
+                   whom: str = "the model"):
     """The registered per-year rule: a year the comparator wins is said plainly."""
-    return f"{who} outranks the model in {year}" if hi < 0 else None
+    return f"{who} outranks {whom} in {year}" if hi < 0 else None
