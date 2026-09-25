@@ -49,3 +49,12 @@ def test_per_year_states_a_year_the_ensemble_wins():
 def test_by_month_is_keyed_by_year_then_month():
     out = BS.by_month(_rows(), "p_model", "p_ens", n_boot=50, seed=1)
     assert set(out) == {"2019", "2020", "2021", "2022"} and set(out["2019"]) == {"6"}
+
+
+def test_a_smaller_alpha_widens_the_interval_around_the_same_point():
+    rows = _rows()
+    wide = BS.mean_margin(rows, "p_model", "p_ens", [2019, 2020, 2021], 300, 1, alpha=0.05 / 3)
+    base = BS.mean_margin(rows, "p_model", "p_ens", [2019, 2020, 2021], 300, 1)
+    assert wide["point"] == base["point"]
+    assert wide["lo"] <= base["lo"] and wide["hi"] >= base["hi"]
+    assert wide["alpha"] == pytest.approx(0.05 / 3)

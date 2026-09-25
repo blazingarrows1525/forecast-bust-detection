@@ -22,11 +22,12 @@ def year_margin(rows: pd.DataFrame, a: str, b: str, n_boot: int, seed: int) -> d
         rows[b].to_numpy(float), rows.init_date.to_numpy(), n_boot=n_boot, seed=seed))
 
 
-def mean_margin(rows: pd.DataFrame, a: str, b: str, years, n_boot: int, seed: int) -> dict:
+def mean_margin(rows: pd.DataFrame, a: str, b: str, years, n_boot: int, seed: int,
+                alpha: float = 0.05) -> dict:
     r = rows[rows.year.isin(list(years))]
     iv = U.stratified_mean_difference(
         M.auroc, r.bust.to_numpy(float), r[a].to_numpy(float), r[b].to_numpy(float),
-        r.init_date.to_numpy(), r.year.to_numpy(), n_boot=n_boot, seed=seed)
+        r.init_date.to_numpy(), r.year.to_numpy(), n_boot=n_boot, seed=seed, alpha=alpha)
     return {**_interval(iv), "years": [int(y) for y in years]}
 
 
@@ -37,11 +38,11 @@ def primary(rows: pd.DataFrame, years, n_boot: int, seed: int) -> dict:
 
 
 def per_year(rows: pd.DataFrame, a: str, b: str, n_boot: int, seed: int,
-             who: str = "ENS spread") -> dict:
+             who: str = "ENS spread", whom: str = "the model") -> dict:
     out = {}
     for year, r in rows.groupby("year"):
         iv = year_margin(r, a, b, n_boot, seed)
-        iv["statement"] = R.year_statement(int(year), iv["lo"], iv["hi"], who=who)
+        iv["statement"] = R.year_statement(int(year), iv["lo"], iv["hi"], who=who, whom=whom)
         iv["n_rows"] = int(len(r))
         iv["n_init_dates"] = int(r.init_date.nunique())
         out[str(int(year))] = iv
