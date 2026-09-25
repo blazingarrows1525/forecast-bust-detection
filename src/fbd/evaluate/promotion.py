@@ -45,3 +45,14 @@ def check_candidate(name: str, reg: dict) -> None:
     if f"{name}_params_sha256" not in reg:
         raise RegistrationError(f"{name!r} has no registered parameter hash; commit its "
                                 "addendum before scoring it")
+
+
+# ------------------------------------------------------------------ S3a-C
+#: docs/PREREGISTRATION_S3A_CONFIRM.md: the MLP against ENS spread on 2018.
+CONFIRM_YEAR = 2018
+CONFIRM_TEXT = {
+    "model_better": "the MLP outranks ENS spread in 2018, a season no design decision "
+                    "looked at",
+    "ens_better": "ENS spread outranks the MLP in 2018",
+    "indistinguishable": "the MLP's lead over ENS spread is not confirmed in 2018",
+}

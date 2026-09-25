@@ -122,7 +122,7 @@ def build(train_years=config.TRAIN_YEARS, val_years=config.VAL_YEARS,
 
 
 def build_fold(test_year: int, mode: str) -> pd.DataFrame:
-    fold = F.FOLDS[test_year]
+    fold = F.fold_for(test_year)
     return build(fold.train, fold.val, (fold.test,),
                  regime_fit_years=F.regime_fit_years(fold, mode),
                  require_state=True)
@@ -130,7 +130,7 @@ def build_fold(test_year: int, mode: str) -> pd.DataFrame:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--fold", type=int, choices=sorted(F.FOLDS),
+    ap.add_argument("--fold", type=int, choices=sorted({**F.FOLDS, **F.CONFIRM_FOLDS}),
                     help="build one S1b fold instead of the published dataset")
     ap.add_argument("--mode", choices=F.MODES, default="strict")
     args = ap.parse_args(argv)

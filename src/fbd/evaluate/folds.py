@@ -31,6 +31,15 @@ PRIMARY_YEARS = (2019, 2020, 2021)
 #: legacy = today's pipeline exactly; strict = regime statistics on training years.
 MODES = ("legacy", "strict")
 FOLD_DIR = config.PROCESSED / "backtest"
+#: S3a-C: a confirmation fold on 2018, the one season no comparison with ENS had
+#: touched. Kept apart so the registered S1b and S3 code, which iterate FOLDS,
+#: still see exactly the four folds they were registered with.
+CONFIRM_FOLDS = {2018: Fold(2018, (2016,), (2017,))}
+
+
+def fold_for(test_year: int) -> Fold:
+    """A registered fold or the confirmation fold, by test year."""
+    return FOLDS[test_year] if test_year in FOLDS else CONFIRM_FOLDS[test_year]
 
 
 def regime_fit_years(fold: Fold, mode: str):

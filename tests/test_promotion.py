@@ -59,3 +59,12 @@ def test_year_statement_names_the_loser():
     assert R.year_statement(2019, -0.05, -0.01, whom="the MLP") == \
         "ENS spread outranks the MLP in 2019"
     assert R.year_statement(2019, -0.05, -0.01) == "ENS spread outranks the model in 2019"
+
+
+def test_the_confirmation_year_is_outside_the_s3_years():
+    assert PM.CONFIRM_YEAR == 2018 and PM.CONFIRM_YEAR not in PM.YEARS
+
+
+@pytest.mark.parametrize("v", ["model_better", "ens_better", "indistinguishable"])
+def test_confirmation_text_covers_every_verdict(v):
+    assert "2018" in PM.CONFIRM_TEXT[v] and "MLP" in PM.CONFIRM_TEXT[v]

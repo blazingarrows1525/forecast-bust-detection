@@ -75,3 +75,11 @@ def test_params_hash_is_stable_and_sensitive():
 
 def test_params_exclude_the_data_dependent_class_weight():
     assert "scale_pos_weight" not in PR.DEFAULT_PARAMS
+
+
+def test_the_confirmation_fold_is_kept_apart_from_the_registered_folds():
+    """S3a-C adds 2018 without changing what backtest.py and promote.py iterate."""
+    assert sorted(F.FOLDS) == [2019, 2020, 2021, 2022]
+    assert F.CONFIRM_FOLDS == {2018: F.Fold(2018, (2016,), (2017,))}
+    assert F.fold_for(2018) is F.CONFIRM_FOLDS[2018]
+    assert F.fold_for(2020) is F.FOLDS[2020]
