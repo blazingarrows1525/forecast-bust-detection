@@ -621,13 +621,21 @@ async function select(rid){
     r.status==="OK" ? pct(p) : "confidence unavailable";
   document.getElementById("selProb").style.color =
     r.status==="OK" ? colour(p,"OK") : getCSS("--fg");
+  // From store v0.2.0 the served number is the model + ENS combination (D-030),
+  // and its two ingredients are shown beside it.
+  const combined = r.model_probability!=null;
   document.getElementById("selProbSub").textContent =
-    r.status==="OK" ? "probability this forecast busts"
+    r.status==="OK" ? (combined ? "probability this forecast busts (model + ensemble)"
+                                : "probability this forecast busts")
                     : "conditions outside training experience";
-  document.getElementById("selInterval").textContent =
+  document.getElementById("selInterval").textContent = [
     r.prediction_interval ?
       `80% interval ${pct(r.prediction_interval[0])}–${pct(r.prediction_interval[1])} · confidence in estimate ${pct(r.confidence_in_estimate)}`
-      : "";
+      : "",
+    combined && r.ens_spread_mm!=null ?
+      `model alone ${pct(r.model_probability)} · ensemble spread ${r.ens_spread_mm.toFixed(1)} mm/day`
+      : "",
+  ].filter(Boolean).join(" · ");
   let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
   (r.dominant_factors||[]).forEach(f=>html+=`<li>${f}</li>`);
   html += "</ul>";

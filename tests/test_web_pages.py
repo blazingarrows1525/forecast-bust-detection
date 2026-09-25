@@ -435,3 +435,25 @@ def test_imagery_credits_nasa_and_degrades_when_unreachable():
     assert "attributionControl:true" in html
     assert 'on("tileerror"' in html, "offline is the expected case, not an error"
     assert "setImagery(false)" in html, "a broken basemap must switch itself off"
+
+
+@pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")
+def test_landing_states_the_combination_only_when_it_is_served():
+    """D-029/D-030: FRONTEND_LOGIC section 8 allows the claim once the product shows it."""
+    html = _read(LANDING)
+    assert "m.served.combined" in html and "m.combination" in html
+    assert 'verdict !== "model_better"' in html, "a non-winning verdict must not get winning words"
+    for literal in ("+0.0244", "+0.024", "0.0178", "0.0308"):
+        assert literal not in html, f"landing.html hardcodes {literal!r}"
+
+
+@pytest.mark.skipif(not (WEB / LANDING).exists(), reason="no landing page")
+def test_landing_labels_the_served_number_by_what_it_is():
+    html = _read(LANDING)
+    assert "model + ensemble" in html and "model_probability" in html
+
+
+def test_dashboard_shows_both_ingredients():
+    html = _read("index.html")
+    assert "model_probability" in html and "ens_spread_mm" in html
+    assert "(model + ensemble)" in html

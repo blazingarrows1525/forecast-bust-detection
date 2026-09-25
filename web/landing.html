@@ -335,7 +335,10 @@ function drawConvergence(rows) {
 
   parts.push(`<text x="${L}" y="${H - 8}" font-size="12.5" fill="var(--faint)">
      ← further from the event &nbsp;·&nbsp; lead day &nbsp;·&nbsp; closer to the event →</text>`);
-  parts.push(`<text x="${W - R}" y="${T + 14}" text-anchor="end" font-size="13" fill="var(--model)" font-weight="600">this model</text>`);
+  // From store v0.2.0 the served number is the model + ENS combination (D-030);
+  // the rows say which, so the label follows the data.
+  const served = rows.some((r) => typeof r.model_probability === "number") ? "model + ensemble" : "this model";
+  parts.push(`<text x="${W - R}" y="${T + 14}" text-anchor="end" font-size="13" fill="var(--model)" font-weight="600">${served}</text>`);
   parts.push(`<text x="${W - R}" y="${T + 32}" text-anchor="end" font-size="13" fill="var(--base)">ensemble-spread baseline</text>`);
   parts.push(`</svg>`);
   return parts.join("");
@@ -390,10 +393,12 @@ async function boot() {
     const widest = scoredRows.reduce((a, r) =>
       (r.bust_probability - r.baseline_probability) > (a.bust_probability - a.baseline_probability) ? r : a);
     const allAbove = above.length === scoredRows.length;
+    const who = rows.some((r) => typeof r.model_probability === "number")
+      ? "the model + ensemble" : "this model";
     $("#claim").innerHTML =
       `As the day approached, the <span style="color:var(--base)">ensemble spread fell</span> — ` +
       `members converging, which reads as growing confidence — while ` +
-      `<span style="color:var(--model)">this model stayed higher</span>` +
+      `<span style="color:var(--model)">${who} stayed higher</span>` +
       (allAbove
         ? ` at <strong>every one of the ${scoredRows.length} leads it scored</strong>.`
         : ` at <strong>${above.length} of the ${scoredRows.length} leads it scored</strong>.`) +
@@ -474,16 +479,30 @@ function ensClaimHTML(m) {
     indistinguishable: "— an interval that contains zero. Beating the cheap proxy is established; beating a real ensemble <strong>is not</strong>.",
   };
   const backtest = backtestHTML(m && m.backtest);
+  const together = combinationHTML(m);
   if (s) {
     return lead + fmt(s, s.n_init_dates) + " " + words[s.verdict] +
-      " The test was registered before this data was fetched." + backtest;
+      " The test was registered before this data was fetched." + backtest + together;
   }
   const raw = t && t.margins && t.margins["raw ENS spread"];
   if (raw) {
     const v = raw.lo > 0 ? "model_better" : raw.hi < 0 ? "ens_better" : "indistinguishable";
-    return lead + fmt(raw, t.n_init_dates) + " " + words[v] + backtest;
+    return lead + fmt(raw, t.n_init_dates) + " " + words[v] + backtest + together;
   }
   return lead + "unavailable in this build (—).";
+}
+
+// D-029/D-030: the model + ENS combination, stated only when the store actually
+// serves it (FRONTEND_LOGIC section 8) and only in the words its verdict earns.
+// Years and interval come from /api/metrics.
+function combinationHTML(m) {
+  const c = m && m.combination && m.combination.primary;
+  if (!(m && m.served && m.served.combined) || !c || !c.years || !c.years.length) return "";
+  if (c.verdict !== "model_better") return "";
+  const span = `${c.years[0]}–${c.years[c.years.length - 1]}`;
+  return ` Together, the model and the ensemble outrank the ensemble alone on average over ${span}: ` +
+    `<strong>${signed(c.point, 3)} [${signed(c.lo, 3)}, ${signed(c.hi, 3)}]</strong> in a registered ` +
+    "test, and that combination is the number this product serves.";
 }
 
 // The registered backtest: does the held-out season's edge hold in the others?
