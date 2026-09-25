@@ -4,7 +4,7 @@
 This is a mature, benchmark-beating ML project for the Indian monsoon. Before writing any code:
 1. **Understand the current state:** the project spans GenAI, MLOps, CI and Terraform, but with strict boundaries. Read the Verification Ledger (Section 3).
 2. **Respect the contracts:** `LOGIC.md` is the locked engineering contract — do not silently deviate from it. `DECISIONS.md` holds the decision log (D-001 through D-025). `PROJECT_BLUEPRINT.md` is the long-form strategy.
-3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` (expect 241 passed) and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
+3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` (expect 297 passed) and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
 4. **Pick the next task** from Section 5.
 
 ---
@@ -20,7 +20,8 @@ Every predictor is evaluated under the *same* Isotonic Calibration fitted on the
 
 - **True 50-member IFS ENS comparison (D-025, settled):** over the full 2022 held-out season (20,060 decision-band rows, 120 init dates) the model outranks raw ENS spread by **+0.0316 AUROC [+0.0141, +0.0485]**, on a test registered before the data was fetched (`docs/PREREGISTRATION_S1.md`). One season only; the edge sits in June–July, and a model + spread combination beats the model alone, so the ensemble is not redundant. The earlier 6,732-row, 40-date figures (+0.025 raw, +0.040 calibrated) are superseded. **It does not replicate outside 2022** (D-026, rolling-origin backtest, registered): averaged over 2019–2021 the margin is +0.0036 [−0.0059, +0.0127], and in 2019 ENS spread outranks the model. The claim that holds every year is the one over the lagged proxy.
 - **Overall Model vs Spread Proxy:** AUROC 0.8400, Brier 0.0291, BSS +0.088, ECE 0.0108, Cost 237.3/1000.
-- **Tests:** **241 tests pass** covering causality poison tests, exact partitions, bust invariants, GenAI guardrails, and drift monitors.
+- **Other model families (D-027, registered):** an MLP on the same 52 features outranks the XGBoost model across 2019–2022, **+0.0088 [+0.0023, +0.0157]** at a Bonferroni 98.33% interval, but XGBoost is clearly better in 2022. The MLP is not served. Two more declared candidates, temporal (S3b) and spatial (S3c), are to be scored under the same rule (`docs/PREREGISTRATION_S3.md`).
+- **Tests:** **297 tests pass** covering causality poison tests, exact partitions, bust invariants, GenAI guardrails, and drift monitors.
 - **Offline Serving:** FastAPI backend with an interactive Leaflet dashboard (vendored JS/CSS). Air-gap validated.
 
 ---
@@ -54,7 +55,7 @@ Do not claim what has not been run. The verification boundaries are explicit (D-
 | Component | Status |
 |---|---|
 | Full pipeline, end to end | **Executed**, reproduces D-001..D-014 |
-| 241 tests | **Executed**, 241/241 (25 Sep 2026) |
+| 297 tests | **Executed**, 297/297 (25 Sep 2026) |
 | Drift monitor | **Executed**, findings in D-016 |
 | Docker + container health + dashboard air-gap | **Executed**, verified in a browser |
 | GenAI guardrails / retrieval / tools / agent | **Executed** against a fake client |
@@ -125,7 +126,7 @@ If you are picking this up to continue, focus on the high-leverage tasks detaile
 ## 6. First Commands in a New Session
 
 ```bash
-# 1. Check full test suite health (Expect 241/241)
+# 1. Check full test suite health (Expect 297/297)
 PYTHONPATH=src pytest tests/ -v
 
 # 2. Check the drift monitor

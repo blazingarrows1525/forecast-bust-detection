@@ -23,7 +23,7 @@ the fifth is blocked on a decision only the user can make.
 | **D** | Date-matched imagery | `web/index.html` (opt-in layer) | shipped |
 | **E** | Deployment & hardening | — | blocked on hosting |
 
-**279 tests pass.** The four pages ship with three vendored files (Leaflet
+**297 tests pass.** The four pages ship with three vendored files (Leaflet
 CSS/JS and `three.min.js`) and one 60 KB precomputed grid-and-outline file. No
 fonts, no CDN, no analytics, no framework.
 
