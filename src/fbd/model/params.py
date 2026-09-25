@@ -50,3 +50,14 @@ MLP_PARAMS = dict(
     stopping="validation-year weighted bce, restore best epoch",
     calibration="isotonic on the validation year, on the seed-averaged probability",
 )
+
+
+#: S1c combiner, frozen before any run (docs/PREREGISTRATION_S1C.md).
+COMBINER_PARAMS = dict(
+    inputs=["logit of the uncalibrated model probability", "log(1 + ENS spread)"],
+    model="logistic regression, lbfgs",
+    C=1e6,
+    max_iter=1000,
+    clip=1e-6,
+    fit_rows="the fold's validation year, Day 3-7, rows with a label and ENS spread",
+)
