@@ -70,3 +70,15 @@ def test_doc_states_the_2018_confirmation(doc):
     s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
     text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
     assert s in text, f"{doc} does not state the 2018 confirmation {s}"
+
+
+COMBINATION = config.ARTIFACTS / "combination.json"
+
+
+@pytest.mark.skipif(not COMBINATION.exists(), reason="S1c not run yet")
+@pytest.mark.parametrize("doc", ["README.md", "DECISIONS.md"])
+def test_doc_states_the_combination(doc):
+    p = json.loads(COMBINATION.read_text(encoding="utf-8"))["primary"]
+    s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
+    text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
+    assert s in text, f"{doc} does not state the S1c interval {s}"

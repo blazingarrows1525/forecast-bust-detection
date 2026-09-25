@@ -104,6 +104,32 @@ seasons, which biases against the model; that is stated, not used to discount
 the result. Figure: [`docs/figures/backtest.png`](docs/figures/backtest.png);
 record: D-026.
 
+### The model and the ensemble together
+
+Neither the model nor the MLP beats a real ensemble's spread repeatably on its
+own. Together they do. A two-input logistic combination of the model's
+uncalibrated probability and the ENS spread, fitted inside each fold on its
+validation year only, was registered before it was ever scored on 2019–2021
+([`docs/PREREGISTRATION_S1C.md`](docs/PREREGISTRATION_S1C.md)) and run once:
+
+**Model + ENS spread outranks ENS spread alone on average over 2019–2021:**
+**+0.0244 [+0.0178, +0.0308]**.
+
+| test year | combination | ENS spread | model alone | combination − ENS [95%] |
+|---|---|---|---|---|
+| 2019 | 0.818 | 0.802 | 0.783 | +0.0155 [+0.0056, +0.0255] |
+| 2020 | 0.852 | 0.803 | 0.842 | +0.0488 [+0.0388, +0.0589] |
+| 2021 | 0.833 | 0.824 | 0.815 | +0.0089 [−0.0047, +0.0209] |
+| 2022 (seen in S1) | 0.856 | 0.808 | 0.841 | +0.0477 [+0.0365, +0.0581] |
+
+The combination beats both of its parts in every year, and the ensemble adds to
+the model in every year too (combination − model +0.0208 [+0.0172, +0.0245]).
+Both inputs carry positive weight in every fold. So the operational answer is
+neither "use the spread" nor "use the model": it is to read them together.
+2021 alone does not clear zero. The same combiner on the MLP does better still
+(+0.0334 [+0.0282, +0.0385] against ENS; a secondary). The served product does
+not combine them yet; that is the next change to make. Record: D-029.
+
 ### Other model families
 
 Three candidate families were declared before any was built, with one rule for

@@ -349,7 +349,7 @@ clear. The landing page has the opposite job and may breathe.
 
 ## 8. Claims the UI may and may not make
 
-Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026).
+Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026, D-029).
 
 **May claim:**
 - AUROC **0.840 [0.821, 0.859]** on a held-out year never used in training.
@@ -362,6 +362,10 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   (D-026).
 - Beats the cheap lagged proxy in 2022 and on average over 2019–2021,
   **+0.0364 [+0.0278, +0.0452]** (D-026).
+- **Combining the model with ENS spread outranks the spread alone on average
+  over 2019–2021:** **+0.0244 [+0.0178, +0.0308]**, a registered test (D-029).
+  Say "the model and the ensemble together", never "the model beats the
+  ensemble", and only once the product actually shows the combination.
 - Refused days bust **6.9×** more often than accepted ones (23.4% vs 3.4%).
 - Calibrated: ECE **0.0107**, with a stated overconfidence in the extreme tail.
 

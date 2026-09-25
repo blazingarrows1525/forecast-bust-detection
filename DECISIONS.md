@@ -1738,3 +1738,72 @@ MLP − XGBoost +0.1063 [+0.0875, +0.1250].
   no model here has an established, repeatable edge over a real 50-member
   ensemble's spread outside 2022. The edge that does repeat is over the lagged
   proxy.
+
+## D-029 — S1c: model + ENS spread outranks ENS spread alone on average over 2019–2021 — LOCKED
+
+Registration: `docs/PREREGISTRATION_S1C.md`, commit `d40ee09`, pushed (CI 5/5
+green) before any combination was scored on 2019, 2020 or 2021. Output:
+`data/artifacts/combination.json`.
+
+D-026 and D-028 left the ensemble unbeaten: neither XGBoost nor the MLP
+outranks real ENS spread repeatably on its own. S1's secondary (b) had found on
+2022 that a combination beat both parts. With 2018 fetched for S3a-C, every
+S1b fold's validation year now has complete ENS, so a combiner can be fitted
+inside every fold.
+
+### The combiner
+
+Logistic regression on [log-odds of the fold model's **uncalibrated**
+probability, log(1 + ENS spread)], fitted per fold on its validation year's
+Day 3–7 rows (20,060 rows, 120 dates each). The uncalibrated score is used
+because the isotonic calibration was fitted on the same validation year; S1's
+version used calibrated inputs and was in-sample for them. The audit reproduced
+all twelve fold AUROCs (XGBoost, ENS, MLP) exactly before registering.
+
+### Result — registered primary, run once
+
+| test | fitted on | combination | ENS | XGBoost | combination − ENS [95%] |
+|---|---|---|---|---|---|
+| 2019 | 2018 | 0.8180 | 0.8025 | 0.7829 | +0.0155 [+0.0056, +0.0255] |
+| 2020 | 2019 | 0.8515 | 0.8027 | 0.8415 | +0.0488 [+0.0388, +0.0589] |
+| 2021 | 2020 | 0.8328 | 0.8239 | 0.8154 | +0.0089 [−0.0047, +0.0209] |
+| 2022 (seen in S1) | 2021 | 0.8561 | 0.8084 | 0.8408 | +0.0477 [+0.0365, +0.0581] |
+
+Mean over 2019–2021, stratified cluster bootstrap, 10,000 resamples, seed
+20260919, no degenerate resample:
+
+**+0.0244 [+0.0178, +0.0308] → model + ENS spread outranks ENS spread alone on
+average over 2019–2021.** No year in which ENS spread outranks the combination;
+2021 alone does not clear zero.
+
+### Secondary
+
+- **Combination − XGBoost alone:** +0.0208 [+0.0172, +0.0245]; every year
+  clears zero (2019 +0.0350, 2020 +0.0100, 2021 +0.0174, 2022 +0.0153). The
+  ensemble adds to the model every season.
+- **MLP + ENS combination − ENS spread:** +0.0334 [+0.0282, +0.0385]; every year
+  clears zero (2019 +0.0261, 2020 +0.0476, 2021 +0.0264, 2022 +0.0286). Larger
+  than the XGBoost combination on average; a secondary, so it cannot replace the
+  registered primary.
+- Coefficients are positive for both inputs in every fold (model log-odds
+  0.38–0.71, log spread 0.65–1.08).
+
+### Reading it
+
+This is the first result in the project that beats a real 50-member ensemble
+repeatably, and it does it by not competing with the ensemble. The model and
+the spread each carry information the other lacks; read together, they rank
+busts better than either in every season tested. The operational answer to
+"forecasters already have the ensemble" is therefore neither "use the spread"
+nor "use the model", but both, combined.
+
+### Consequences, as registered
+
+- README ("The model and the ensemble together") and `FRONTEND_LOGIC.md` §8
+  may state it with the interval, as "the model and the ensemble together".
+- The combination becomes the candidate to serve. The served product does not
+  compute it yet; building that (ENS spread at serving time, the combiner in
+  the bulletin pipeline, the claim on the landing page) is its own step, and
+  §8 allows the claim only once the product shows the combination.
+- For S3b and S3c: a candidate that beats XGBoost is worth most if it also
+  improves the combination; the MLP's secondary suggests it might.
