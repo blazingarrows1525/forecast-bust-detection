@@ -345,8 +345,10 @@ The list, so the next contributor can check them:
   +0.0127], and in 2019 the ensemble wins (D-026).
   Every surface that talks about skill gives the interval, and none stretches
   it beyond that season.
-- No transformer, BERT, LSTM, RF or LightGBM appears anywhere. It is XGBoost +
-  isotonic + TreeSHAP + Mahalanobis. Landing-page copy calls it that.
+- No transformer, BERT, LSTM, RF or LightGBM is served. The served model is
+  XGBoost + isotonic + TreeSHAP + Mahalanobis, and landing-page copy calls it
+  that. An MLP exists in the codebase as a registered S3 candidate (D-027); it
+  outranks XGBoost across 2019–2022 but is not served.
 - The 3-D volume is blocky on purpose. Smooth filtering is a bug.
 - India is not mirrored and not upside down in either 3-D view: north is `−z`
   and the camera starts on the south side.

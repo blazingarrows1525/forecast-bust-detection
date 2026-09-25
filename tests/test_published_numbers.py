@@ -46,3 +46,15 @@ def test_doc_states_the_backtest_interval(doc):
     s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
     text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
     assert s in text, f"{doc} does not state the S1b interval {s}"
+
+
+MLP = config.ARTIFACTS / "candidates" / "mlp.json"
+
+
+@pytest.mark.skipif(not MLP.exists(), reason="S3a not scored yet")
+@pytest.mark.parametrize("doc", ["README.md", "DECISIONS.md"])
+def test_doc_states_the_mlp_interval(doc):
+    p = json.loads(MLP.read_text(encoding="utf-8"))["primary"]
+    s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
+    text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
+    assert s in text, f"{doc} does not state the S3a interval {s}"

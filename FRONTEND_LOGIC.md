@@ -373,7 +373,10 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   the ensemble in several years (exploratory, D-025, D-026).
 - That the model replaces the ensemble. A model + spread combination beats the
   model alone (+0.0154 [+0.0073, +0.0240], D-025 secondary b).
-- Any transformer, BERT, LSTM, Random Forest or LightGBM. **None exist in this
-  codebase.** It is XGBoost + isotonic calibration + TreeSHAP + a Mahalanobis
-  OOD detector. Claiming otherwise fails the first question a judge asks.
+- That the product runs a neural network, or any transformer, BERT, LSTM,
+  Random Forest or LightGBM. **None is served.** The served model is XGBoost +
+  isotonic calibration + TreeSHAP + a Mahalanobis OOD detector. An MLP outranks
+  the served XGBoost in a registered backtest across 2019–2022 (**+0.0088
+  [+0.0023, +0.0157]**, D-027), but it is not served, and XGBoost is the better
+  of the two in 2022. Claiming otherwise fails the first question a judge asks.
 - Real-time operation. The build serves a 2016–2022 archive.

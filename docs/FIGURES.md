@@ -166,3 +166,30 @@ Source: `data/artifacts/backtest.json`, written once by `scripts/backtest.py`.
 not distinguishable from the ensemble's spread on average, and 2019 sits
 entirely below zero, so there the ensemble wins. The secondary row is the
 claim that survives every year: the model beats the cheap proxy.
+
+---
+
+## 5. S3 candidates — `candidate_mlp.png`
+
+![S3a MLP](figures/candidate_mlp.png)
+
+One registered candidate against the XGBoost fold models (D-027). Regenerate
+with:
+
+```bash
+PYTHONPATH=src python scripts/plot_candidate.py --candidate mlp
+```
+
+Source: `data/artifacts/candidates/mlp.json`, written once by
+`scripts/promote.py --candidate mlp`.
+
+| row | what it is | status |
+|---|---|---|
+| **PRIMARY** (blue, bold) | mean over 2019–2022 of MLP − XGBoost, dates resampled within each year, 10,000 resamples, 98.33% interval (Bonferroni over three declared candidates) | **the registered test** |
+| 2019 … 2022 | each year's own margin, 95% | secondary |
+| secondary (muted) | mean over 2019–2021 of MLP − ENS spread, 95%, uncorrected | secondary; cannot promote |
+
+**The honest reading.** The primary clears zero, so the MLP is promoted over
+XGBoost on average; but 2022 sits entirely below zero, so in that season
+XGBoost is the better model. The muted row is a lead, not a result: it is
+uncorrected and was not the question the rule was written for.

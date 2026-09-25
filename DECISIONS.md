@@ -1561,3 +1561,113 @@ averages +0.004 [−0.006, +0.013] … ENS spread outranks the model in 2019", e
 number and year read from the API. Tests: the endpoint serves the block (null
 when absent); the page reads it, shows any per-year statement, and hardcodes
 none of these numbers. Verified in the browser, including the absent-file case.
+
+## D-027 — S3a: the MLP outranks the XGBoost incumbent across 2019–2022 — LOCKED
+
+Spec: `docs/superpowers/specs/2026-09-25-s3a-candidate-harness-mlp-design.md`.
+Registration: `docs/PREREGISTRATION_S3.md`, commit `7584fde`, pushed (CI 5/5
+green) before any candidate had produced a prediction for any test year.
+Output: `data/artifacts/candidates/mlp.json`; figure:
+`docs/figures/candidate_mlp.png`.
+
+S3 was scoped as new model families: an MLP on the existing features (S3a), a
+temporal sequence model (S3b) and a spatial CNN on the gridded fields (S3c),
+all three declared before any was built and each judged against the same
+incumbent, the S1b XGBoost fold models, on the mean within-year AUROC margin
+over 2019–2022 at a Bonferroni-corrected 98.33% interval. The MLP is the
+control: it sees exactly the incumbent's 52 inputs, so any difference is the
+architecture.
+
+### Reproduced before registration
+
+The harness reproduced all eight S1b per-year incumbent and ENS AUROCs exactly.
+Two fold-2019 MLP fits were bit-identical; its validation-year (2018) AUROC was
+0.8282. Best epochs 1–3 across the five seeds on that fold were recorded, not
+tuned.
+
+**A Windows load-order defect found on the way.** Importing torch after
+scikit-learn kills the process: sklearn ships an older `msvcp140.dll`, and
+torch's `c10.dll` then fails to initialise (WinError 1114; inside pytest, an
+access violation at collection). The entry points and the test session import
+torch first, and the MLP turns the failure into a message naming the cause.
+Upgrading scikit-learn would have fixed it too, and was rejected: it could move
+published numbers. The exact incumbent reproduction shows the load order
+changes none.
+
+### Per fold
+
+| test | MLP | XGBoost | ENS | MLP fit | best epochs |
+|---|---|---|---|---|---|
+| 2019 | 0.8148 | 0.7829 | 0.8025 | 12 s | 1, 3, 1, 3, 3 |
+| 2020 | 0.8465 | 0.8415 | 0.8027 | 16 s | 7, 1, 1, 5, 1 |
+| 2021 | 0.8391 | 0.8154 | 0.8239 | 31 s | 7, 5, 5, 9, 3 |
+| 2022 | 0.8153 | 0.8408 | 0.8084 | 32 s | 4, 6, 6, 4, 5 |
+
+20,060 rows over 120 init dates in every fold.
+
+### Primary — registered
+
+Mean over 2019–2022 of MLP − XGBoost, stratified cluster bootstrap, 10,000
+resamples, seed 20260919, 98.33% interval, no degenerate resample:
+
+**+0.0088 [+0.0023, +0.0157] → the MLP outranks the XGBoost incumbent across
+2019–2022.**
+
+### Per year (2,000 resamples, 95%)
+
+| year | MLP − XGBoost |
+|---|---|
+| 2019 | +0.0319 [+0.0187, +0.0461] |
+| 2020 | +0.0050 [−0.0041, +0.0140] |
+| 2021 | +0.0237 [+0.0143, +0.0340] |
+| 2022 | **−0.0255 [−0.0354, −0.0157]** |
+
+The promotion is an average over a split picture. The MLP is clearly better in
+2019 and 2021; **XGBoost is clearly better in 2022**, the season the project was
+built and demonstrated on. Which of the two is "better" depends on the year,
+and the registered answer is the average.
+
+### Secondary — against real ENS spread (uncorrected, cannot promote)
+
+Mean over 2019–2021: **+0.0238 [+0.0167, +0.0307]**. Per year: 2019 +0.0123
+[+0.0003, +0.0246]; 2020 +0.0438 [+0.0330, +0.0554]; 2021 +0.0152 [+0.0012,
++0.0283]; 2022 +0.0069 [−0.0110, +0.0229]. No year in which the ensemble
+outranks the MLP.
+
+This is the most interesting number here and the one to hold most carefully.
+XGBoost could not do it (D-026); the MLP, on the same inputs, does on these
+three years. But it was a secondary with no multiple-comparison correction, the
+MLP was specified after D-026 showed where XGBoost failed, and 2019's interval
+only just clears zero. It does not reopen D-026 and it is not a headline claim.
+
+### Exploratory (2,000 resamples)
+
+MLP − XGBoost by init month: the MLP's gains sit late in the season in 2019
+(August +0.057, September +0.032, both clear of zero) and 2021 (June +0.018,
+September +0.027); in 2022 XGBoost leads in July (−0.028) and September
+(−0.028). The MLP is strongest exactly where D-026 found XGBoost weakest.
+
+Seed spread per year (max − min AUROC over the five seeds): 0.012, 0.004,
+0.007, 0.011. A single network would have moved the per-year margins by up to
+about 0.01; averaging five was worth it.
+
+### Consequences, as registered
+
+- README "Other model families" states the result; `FRONTEND_LOGIC.md` §8 now
+  says an MLP outranks the served XGBoost in a registered backtest and is not
+  served. The README's non-goals and `docs/FRONTEND_BUILT.md` §9 were corrected
+  to say what is *served* rather than what exists.
+- S3b and S3c are read against this: a temporal or spatial network that beats
+  XGBoost must be compared with the MLP's +0.0088 before its gain is credited
+  to new information rather than to being a network.
+- The served product is unchanged. Promotion into it is decided after S3c.
+
+### What this does not settle
+
+- **Whether the MLP beats the ensemble.** Every season from 2016 to 2022 has now
+  been used for training, calibration or testing. A confirmatory test needs a
+  season nobody has looked at: 2018 as a fifth fold (train 2016, calibrate 2017;
+  its ENS is in the archive and not yet fetched), or seasons after 2022 from a
+  live source (S4).
+- **Why 2022 goes the other way.** 2022 had atypical upper-level shear (D-016);
+  whether trees cope with that better than the network is untested.

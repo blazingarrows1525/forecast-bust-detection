@@ -104,6 +104,36 @@ seasons, which biases against the model; that is stated, not used to discount
 the result. Figure: [`docs/figures/backtest.png`](docs/figures/backtest.png);
 record: D-026.
 
+### Other model families
+
+Three candidate families were declared before any was built, with one rule for
+promoting them: beat the XGBoost fold models above, on the same rows, averaged
+over the four test years, at a Bonferroni-corrected 98.33% interval
+([`docs/PREREGISTRATION_S3.md`](docs/PREREGISTRATION_S3.md)). The first is an
+MLP on exactly the model's 52 inputs, a control that isolates the architecture.
+Scored once:
+
+**The MLP outranks the XGBoost model across 2019–2022:**
+**+0.0088 [+0.0023, +0.0157]**.
+
+| test year | MLP AUROC | XGBoost AUROC | MLP − XGBoost [95%] |
+|---|---|---|---|
+| 2019 | 0.815 | 0.783 | +0.0319 [+0.0187, +0.0461] |
+| 2020 | 0.847 | 0.842 | +0.0050 [−0.0041, +0.0140] |
+| 2021 | 0.839 | 0.815 | +0.0237 [+0.0143, +0.0340] |
+| 2022 | 0.815 | 0.841 | **−0.0255 [−0.0354, −0.0157]** |
+
+The win is uneven: the MLP leads clearly in 2019 and 2021, and **XGBoost is
+clearly better in 2022**, the season the product was built around. Against real
+ENS spread, as a secondary that was not corrected for multiple comparisons and
+was designed after D-026, the MLP leads on average over 2019–2021 by +0.0238
+[+0.0167, +0.0307] and in each of those years, which XGBoost did not. That is a
+lead to confirm, not a claim: no untouched season remains in this archive, so it
+needs its own registered test. The served product is still XGBoost; promotion
+into it is a separate decision after the temporal and spatial candidates.
+Figure: [`docs/figures/candidate_mlp.png`](docs/figures/candidate_mlp.png);
+record: D-027.
+
 Against the lagged proxy the margin is **+0.082 AUROC** with a 19% reduction in
 asymmetric decision cost, and every predictor is given the *same* isotonic
 calibration on the *same* validation year so the comparison is fair.
@@ -432,6 +462,7 @@ DECISIONS.md  every deviation from LOGIC.md, with evidence
 
 ## Deliberate non-goals
 
-No mobile app, no chatbot, no login, no microservices, no CNN/transformer/GNN,
-no Kafka, no Kubernetes, no real-time streaming, and **no attempt to forecast
-the weather better**. See LOGIC.md §14.
+No mobile app, no chatbot, no login, no microservices, no CNN/transformer/GNN
+in the served product (neural candidates are tested under a registered rule and
+none is served; D-027), no Kafka, no Kubernetes, no real-time streaming, and
+**no attempt to forecast the weather better**. See LOGIC.md §14.
