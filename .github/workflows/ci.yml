@@ -63,6 +63,7 @@ jobs:
           tests/test_backtest_stats.py
           tests/test_promotion.py
           tests/test_mlp.py
+          tests/test_combine.py
 
   invariants:
     name: Decision-log invariants
