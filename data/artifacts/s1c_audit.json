@@ -1,0 +1,114 @@
+{
+  "checks": [
+    {
+      "check": "fold XGBoost, ENS and MLP AUROC reproduce their records exactly",
+      "ok": true,
+      "folds": [
+        {
+          "year": 2019,
+          "got": [
+            0.7829065826684753,
+            0.8024934817097004,
+            0.8148184075598369
+          ],
+          "want": [
+            0.7829065826684753,
+            0.8024934817097004,
+            0.8148184075598369
+          ],
+          "exact": true
+        },
+        {
+          "year": 2020,
+          "got": [
+            0.841478039979675,
+            0.8027086615795306,
+            0.8465061399257425
+          ],
+          "want": [
+            0.841478039979675,
+            0.8027086615795306,
+            0.8465061399257425
+          ],
+          "exact": true
+        },
+        {
+          "year": 2021,
+          "got": [
+            0.815429338072502,
+            0.8238886574902348,
+            0.8390818524595968
+          ],
+          "want": [
+            0.815429338072502,
+            0.8238886574902348,
+            0.8390818524595968
+          ],
+          "exact": true
+        },
+        {
+          "year": 2022,
+          "got": [
+            0.8408289724017748,
+            0.8084017050731127,
+            0.8153204873543677
+          ],
+          "want": [
+            0.8408289724017748,
+            0.8084017050731127,
+            0.8153204873543677
+          ],
+          "exact": true
+        }
+      ]
+    },
+    {
+      "check": "combiner rows are the validation year, Day 3-7, with complete ENS",
+      "ok": true,
+      "folds": [
+        {
+          "year": 2019,
+          "fit_year": 2018,
+          "n_rows": 20060,
+          "n_dates": 120,
+          "ens_dates_fit_year": 122,
+          "ok": true
+        },
+        {
+          "year": 2020,
+          "fit_year": 2019,
+          "n_rows": 20060,
+          "n_dates": 120,
+          "ens_dates_fit_year": 122,
+          "ok": true
+        },
+        {
+          "year": 2021,
+          "fit_year": 2020,
+          "n_rows": 20060,
+          "n_dates": 120,
+          "ens_dates_fit_year": 122,
+          "ok": true
+        },
+        {
+          "year": 2022,
+          "fit_year": 2021,
+          "n_rows": 20060,
+          "n_dates": 120,
+          "ens_dates_fit_year": 122,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "check": "two combiner fits are identical",
+      "ok": true
+    }
+  ],
+  "ok": true,
+  "hashes": {
+    "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+    "mlp_json_sha256": "b8d8b911cee6f2e157c9e27045c9aae1dd87f0bd58ea3e1669ab755ac9b33ae1",
+    "combiner_params_sha256": "835dcb7ed5adfe0b23784e47ed16e7b021ce7c0a434dc6d359c8f190db46e780"
+  }
+}

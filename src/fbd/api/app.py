@@ -44,7 +44,7 @@ DB = config.ARTIFACTS / "bulletins.sqlite"
 WEB_DIR = config.ROOT / "web"
 
 app = FastAPI(
-    title="Forecast Bust Detection — SIH26079",
+    title="Forecast Bust Detection",
     description=(
         "Predicts when a medium-range rainfall forecast is likely to fail over "
         "India: which subdivision, which lead day, and why. Decision support for "
@@ -214,15 +214,51 @@ def replay_dates() -> dict:
 
 @app.get("/api/regions")
 def regions() -> JSONResponse:
-    """Subdivision polygons as GeoJSON for the map."""
-    import geopandas as gpd
+    """Subdivision polygons as GeoJSON for the map.
+
+    Serves a precomputed, already-simplified GeoJSON when one is present. The
+    geometry never changes at runtime, so reading and simplifying a GeoPackage
+    per request bought nothing and forced GDAL/GEOS/PROJ into the serving image
+    (D-020). The GeoPackage path remains as a fallback for development
+    checkouts that have geopandas installed but have not run the precompute.
+    """
+    precomputed = config.INTERIM / "regions.geojson"
+    if precomputed.exists():
+        return JSONResponse(json.loads(precomputed.read_text(encoding="utf-8")))
 
     if not config.SUBDIVISION_GPKG.exists():
-        raise HTTPException(503, "subdivision geometry missing; run fbd.regions.build")
+        raise HTTPException(
+            503,
+            "subdivision geometry missing; run `python -m fbd.regions.build` then "
+            "`python scripts/precompute_geo_assets.py`",
+        )
+    import geopandas as gpd
+
     g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
     # Simplify for the browser: full-resolution district unions are ~10 MB.
     g["geometry"] = g.geometry.simplify(0.02, preserve_topology=True)
     return JSONResponse(json.loads(g.to_json()))
+
+
+@app.get("/api/voxel-grid")
+def voxel_grid() -> JSONResponse:
+    """Region index per grid cell, for the volumetric view.
+
+    Static: the geometry never changes at runtime, so this is precomputed by
+    ``scripts/precompute_voxel_grid.py`` from the same exact EPSG:7755
+    polygon-cell overlap the feature pipeline uses. Serving it rather than
+    rasterising per request keeps the geo stack out of the image (D-020) and
+    puts the rendered volume on the model's own grid rather than a second grid
+    that merely resembles it.
+    """
+    path = config.INTERIM / "voxel_grid.json"
+    if not path.exists():
+        raise HTTPException(
+            503,
+            "voxel grid missing; run `PYTHONPATH=src python "
+            "scripts/precompute_voxel_grid.py`",
+        )
+    return JSONResponse(json.loads(path.read_text(encoding="utf-8")))
 
 
 @app.get("/api/bulletin", response_model=Bulletin)
@@ -272,6 +308,47 @@ def region_bulletin(
     if not rows:
         raise HTTPException(404, f"no data for {region_id} at {init_date}")
     return [_to_prediction(r, age_h, dq) for r in rows]
+
+
+@app.get("/api/convergence", response_model=list[BustPrediction])
+def convergence(
+    region_id: str = Query(..., description="e.g. ASSAM_MEGHALAYA"),
+    valid_date: str = Query(..., description="the day being forecast, YYYY-MM-DD"),
+    mode: str = Query("replay", pattern="^(replay|live)$"),
+) -> list[BustPrediction]:
+    """Every forecast ever issued for one region-day, longest lead first.
+
+    The orthogonal cut to the rest of this API. Everything else answers "given
+    a forecast issued today, what might fail?"; this answers "as this day
+    approached, what did we say about it, and were we getting more or less
+    worried?"
+
+    That is the question the system exists to answer, and it is the one a
+    forecaster asks after the fact. It is also where the ensemble and this
+    model visibly disagree: as an event nears, ensemble members converge, which
+    reads as rising confidence, while a bust risk can be climbing at the same
+    time.
+
+    Ordered by descending lead day, so reading left to right is time
+    approaching the event.
+    """
+    con = _con()
+    rows = con.execute(
+        "SELECT * FROM bulletins WHERE region_id = ? AND valid_date = ? "
+        "ORDER BY lead_day DESC",
+        (region_id, valid_date),
+    ).fetchall()
+    con.close()
+    if not rows:
+        raise HTTPException(404, f"no forecasts for {region_id} valid {valid_date}")
+
+    out = []
+    for r in rows:
+        # Data quality is a property of the init date, and these rows span ten
+        # of them, so it is resolved per row rather than once for the set.
+        dq, age_h, _ = _quality(r["init_date"], mode)
+        out.append(_to_prediction(r, age_h, dq))
+    return out
 
 
 @app.get("/api/review-queue", response_model=list[ReviewQueueItem])
@@ -341,13 +418,59 @@ def verification(init_date: str = Query(...), lead_day: int = Query(..., ge=1, l
     }
 
 
+def _json_or_none(path: Path):
+    """A committed artifact, or None. Missing is a state the page renders, not an error."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _refusal_rates() -> dict | None:
+    """Bust rate of scored vs refused rows over the held-out year, from the store.
+
+    Computed, not quoted, so the landing page's "refused days bust N x more
+    often" cannot outlive a regenerated store.
+    """
+    if not Path(DB).exists():
+        return None
+    year = config.TEST_YEARS[0]
+    con = sqlite3.connect(DB)
+    try:
+        rows = {s: (int(n), float(r)) for s, n, r in con.execute(
+            "SELECT status, COUNT(*), AVG(actual_bust) FROM bulletins "
+            "WHERE init_date >= ? AND init_date < ? AND actual_bust IS NOT NULL "
+            "GROUP BY status", (f"{year}-01-01", f"{year + 1}-01-01"))}
+    except sqlite3.Error:
+        return None
+    finally:
+        con.close()
+    if "OK" not in rows or "OUT_OF_DISTRIBUTION" not in rows:
+        return None
+    (ns, rs), (nr, rr) = rows["OK"], rows["OUT_OF_DISTRIBUTION"]
+    return {"year": year, "scored": {"n": ns, "bust_rate": rs},
+            "refused": {"n": nr, "bust_rate": rr},
+            "ratio": rr / rs if rs else None}
+
+
 @app.get("/api/metrics")
 def metrics() -> dict:
-    """Held-out-year evaluation, so the UI can show it is not a cherry-pick."""
+    """Held-out-year evaluation, so the UI can show it is not a cherry-pick.
+
+    Also carries the interval tables, the S1 settlement, the S1b backtest, the
+    refusal rates and the test year, so every headline number on the landing
+    page comes from one request. A missing piece is null, never an error.
+    """
     path = config.ARTIFACTS / "results.json"
     if not path.exists():
         raise HTTPException(503, "results.json missing; run scripts/train_model.py")
-    return json.loads(path.read_text())
+    out = json.loads(path.read_text())
+    out["confidence_intervals"] = _json_or_none(config.ARTIFACTS / "confidence_intervals.json")
+    out["ens_settlement"] = _json_or_none(config.ARTIFACTS / "ens_settlement.json")
+    out["backtest"] = _json_or_none(config.ARTIFACTS / "backtest.json")
+    out["refusal"] = _refusal_rates()
+    out["test_year"] = config.TEST_YEARS[0]
+    return out
 
 
 @app.post("/api/override")
@@ -443,17 +566,28 @@ def _centroids() -> dict[str, tuple[float, float]]:
     ``representative_point`` rather than ``centroid``: a centroid can fall
     outside a concave polygon, which would float Konkan & Goa's risk column out
     over the Arabian Sea.
+
+    Prefers the precomputed centroids file so the serving image does not need
+    geopandas (D-020); falls back to the GeoPackage for development checkouts.
     """
     global _CENTROIDS
-    if _CENTROIDS is None:
-        import geopandas as gpd
+    if _CENTROIDS is not None:
+        return _CENTROIDS
 
-        g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
-        pts = g.geometry.representative_point()
-        _CENTROIDS = {
-            sid: (float(p.x), float(p.y))
-            for sid, p in zip(g.subdivision_id, pts)
-        }
+    precomputed = config.INTERIM / "centroids.json"
+    if precomputed.exists():
+        raw = json.loads(precomputed.read_text(encoding="utf-8"))
+        _CENTROIDS = {sid: (float(xy[0]), float(xy[1])) for sid, xy in raw.items()}
+        return _CENTROIDS
+
+    import geopandas as gpd
+
+    g = gpd.read_file(config.SUBDIVISION_GPKG, layer="subdivisions")
+    pts = g.geometry.representative_point()
+    _CENTROIDS = {
+        sid: (float(p.x), float(p.y))
+        for sid, p in zip(g.subdivision_id, pts)
+    }
     return _CENTROIDS
 
 

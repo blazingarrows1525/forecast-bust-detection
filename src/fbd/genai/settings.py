@@ -37,6 +37,50 @@ CLAUDE_MODEL_CHEAP = "claude-haiku-4-5"
 
 DEFAULT_REGION = "us-east-1"
 
+# Local model served by Ollama.  8B, chosen on a measurement rather than the
+# argument D-019 originally made.
+#
+# That argument -- the job is narration over numbers the pipeline already
+# computed, so 3B suffices -- was wrong in the way that matters.  Asked why
+# confidence was low for a row whose status is OK and whose bust probability is
+# 1.000, `llama3.2:3b` answered "the system declined to score it" in **3 of 3**
+# runs, reciting this file's own OOD sentence verbatim as a gap-filler.  It does
+# so with the precondition spelled out explicitly too (3/3), so it is not a
+# prompting problem at 3B.  `llama3.1:8b` fabricated in 1 of 4.
+#
+# 1-in-4 is not safe either.  It is the reason narration stays OFF and the
+# status-grounding check is still owed; see D-019 addendum 3.  Reproduce with:
+#     PYTHONPATH=src python scripts/compare_local_models.py llama3.2:3b llama3.1:8b
+#
+# Costs ~4.9 GB on disk and ~5 GB of VRAM (fits a 6 GB card), and roughly
+# doubles latency: 15-35 s for a tool-routed answer against 9-19 s.  Both sit
+# inside the forecaster's window; neither is comfortable in a live demo.
+LOCAL_MODEL = "llama3.1:8b"
+
+# Which backend serves the assistant.  "local" is the default because it needs
+# no account, no key and no spend, and because it preserves the air-gap
+# property the rest of the system is built around (D-019).
+DEFAULT_PROVIDER = "local"
+
+
+@dataclass(frozen=True)
+class LocalSettings:
+    """How to reach a local Ollama model.  No credentials, no cost."""
+
+    host: str = field(
+        default_factory=lambda: os.environ.get("FBD_OLLAMA_HOST", "http://localhost:11434")
+    )
+    model: str = field(
+        default_factory=lambda: os.environ.get("FBD_LOCAL_MODEL", LOCAL_MODEL)
+    )
+    max_tokens: int = 1024
+    timeout: float = 120.0
+
+    @property
+    def model_id(self) -> str:
+        """Local tags carry no vendor prefix."""
+        return self.model
+
 
 @dataclass(frozen=True)
 class BedrockSettings:
@@ -78,7 +122,39 @@ class GenAISettings:
     # should never be set False outside a guardrail unit test.
     require_guardrails: bool = True
 
+    # Which backend serves the assistant: "local" (Ollama, default) or
+    # "bedrock" (managed cloud, needs credentials and funding).
+    provider: str = field(
+        default_factory=lambda: os.environ.get("FBD_GENAI_PROVIDER", DEFAULT_PROVIDER)
+    )
+
     bedrock: BedrockSettings = field(default_factory=BedrockSettings)
+    local: LocalSettings = field(default_factory=LocalSettings)
+
+    @property
+    def provider_supported(self) -> bool:
+        """False if ``provider`` names a backend this build cannot construct.
+
+        Kept separate from ``backend`` because the health path must never
+        raise: an operator who mistypes FBD_GENAI_PROVIDER should see the
+        mistake reported on /api/health, not a stack trace, and should not be
+        shown a fallback backend as though it were the one they asked for.
+        """
+        from fbd.genai.providers import is_supported
+
+        return is_supported(self.provider)
+
+    @property
+    def backend(self):
+        """Settings for whichever provider is selected.
+
+        An unrecognised name falls back to the local shape so callers have
+        something to read limits off; ``providers.build`` is what rejects it,
+        loudly, before any request is made.
+        """
+        from fbd.genai.providers import normalise
+
+        return self.bedrock if normalise(self.provider) == "bedrock" else self.local
 
     def active(self) -> bool:
         """True only if the master switch and at least one capability are on."""
@@ -93,8 +169,14 @@ class GenAISettings:
             "tool_calling": self.tool_calling,
             "rag": self.rag,
             "guardrails_required": self.require_guardrails,
-            "model": self.bedrock.model if self.enabled else None,
-            "region": self.bedrock.region if self.enabled else None,
+            "provider": self.provider if self.enabled else None,
+            # Reported verbatim so a typo in FBD_GENAI_PROVIDER is visible here
+            # rather than silently presenting the fallback as the real backend.
+            "provider_supported": self.provider_supported if self.enabled else None,
+            "model": self.backend.model if self.enabled else None,
+            # Only a managed cloud backend has a region; a local model does not.
+            "region": self.bedrock.region if (self.enabled and self.backend is self.bedrock) else None,
+            "offline_capable": self.provider_supported and self.backend is self.local,
             "offline_default": not self.enabled,
         }
 

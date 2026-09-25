@@ -11,9 +11,17 @@ data/raw/
 # scripts/fetch_release_artifacts.py or from the repo's Releases page.
 data/artifacts/*.sqlite
 
+# S1b fold datasets and models: rebuilt by scripts/backtest.py, hashes recorded
+# in data/artifacts/backtest.json.
+data/processed/backtest/
+
 # NOTE: our own derived artifacts ARE committed (data/processed/dataset.parquet,
-# data/interim/*, data/artifacts/*.joblib|*.json|*.csv|*.npz) so the repo runs
-# and the tests pass without re-downloading the raw data.
+# data/interim/*, data/artifacts/*.joblib|*.json|*.csv|*.npz|*.parquet) so the
+# repo runs and the tests pass without re-downloading the raw data.
+# data/artifacts/test_predictions.parquet (136 KB) is committed deliberately:
+# the confidence intervals, reliability figure and any per-subdivision
+# analysis must all score the *same* per-row numbers, and refitting for each
+# one invites them to disagree.
 
 # --- Python / tooling ---
 __pycache__/

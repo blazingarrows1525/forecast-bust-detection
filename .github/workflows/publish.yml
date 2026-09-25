@@ -1,0 +1,202 @@
+# Build and publish the serving image to GitHub Container Registry.
+#
+# Cost: zero. Actions minutes are unmetered for public repositories, and GHCR
+# storage and egress are free for public packages. That is the whole reason
+# this pipeline targets GHCR rather than a cloud vendor registry (D-021).
+#
+# The image is the same artifact the offline demo runs, so publishing it gives
+# anyone a one-command way to reproduce the dashboard:
+#   docker run -p 8912:8912 ghcr.io/<owner>/forecast-bust-detection:latest
+
+name: Publish image
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+    # Every path the Dockerfile COPYs, plus the scripts that generate them.
+    # An incomplete filter is worse than none: updating a bulletin or a geo
+    # asset would leave GHCR serving a stale image still tagged :latest, with
+    # nothing to show it had not been rebuilt.
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "requirements-serve.txt"
+      - "src/**"
+      - "web/**"
+      - "config/**"
+      - "data/artifacts/**"
+      - "data/interim/regions.geojson"
+      - "data/interim/centroids.json"
+      - "scripts/replay_demo.py"
+      - "scripts/precompute_geo_assets.py"
+      - "scripts/fetch_release_artifacts.py"
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build, verify, push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The image bakes in precomputed artifacts. Fail loudly and early if the
+      # ones the Dockerfile COPYs are absent, rather than shipping a container
+      # that 503s on its first request.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # bulletins.sqlite is ~63 MB and gitignored (DATA.md): it ships as a
+      # checksum-verified Release asset and is NOT in a fresh checkout. Without
+      # this step the image builds without it, every bulletin, review-queue and
+      # risk-cube endpoint is dead, and /api/health still answers 200 -- with
+      # status "unavailable". The smoke test then passes on a container that
+      # cannot serve its own dashboard.
+      - name: Fetch the released bulletin store
+        run: python scripts/fetch_release_artifacts.py
+
+      - name: Required build artifacts are present
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            data/interim/regions.geojson \
+            data/interim/centroids.json \
+            data/artifacts/results.json \
+            data/artifacts/bulletins.sqlite
+          do
+            if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Run: python -m fbd.regions.build && python scripts/precompute_geo_assets.py"
+            echo "and: PYTHONPATH=src python scripts/generate_bulletins.py"
+            exit 1
+          fi
+          echo "all required artifacts present"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Load into the local daemon first so the image can be smoke-tested
+      # before anything is published. Pushing an image that cannot boot is
+      # worse than not publishing at all.
+      - name: Build (local, for verification)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: fbd:verify
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Report image size
+        run: |
+          size=$(docker image inspect fbd:verify --format='{{.Size}}')
+          echo "image size: $(numfmt --to=iec "$size")"
+          echo "IMAGE_SIZE=$(numfmt --to=iec "$size")" >> "$GITHUB_ENV"
+          # A serving image that needs no geo stack and no model should stay
+          # well under half a gigabyte; a large jump means something heavy
+          # crept back into requirements-serve.txt.
+          if [ "$size" -gt 600000000 ]; then
+            echo "::warning::image exceeded 600 MB - check requirements-serve.txt"
+          fi
+
+      - name: Smoke test the container
+        run: |
+          set -euo pipefail
+          docker run -d --name fbd-smoke -p 8912:8912 fbd:verify
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8912/api/health >/dev/null 2>&1; then
+              echo "health OK after ${i}s"; break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "container never became healthy"; docker logs fbd-smoke; exit 1
+            fi
+            sleep 1
+          done
+          # 200 is not the bar. /api/health answers 200 with status
+          # "unavailable" when the bulletin store is missing, which is exactly
+          # the hollow image this step exists to catch.
+          curl -fsS http://localhost:8912/api/health -o /tmp/health.json
+          python3 - <<'CHECK'
+          import json, sys
+          h = json.load(open("/tmp/health.json"))
+          print(f"health: status={h['status']} rows={h['n_bulletin_rows']} latest={h['latest_init_date']}")
+          if h["status"] == "unavailable" or h["n_bulletin_rows"] < 1:
+              sys.exit("image has no usable bulletin store; refusing to publish it")
+          open("/tmp/latest_init", "w").write(h["latest_init_date"] or "")
+          CHECK
+          # The dashboard's own endpoints must return rows, not merely exist.
+          init=$(cat /tmp/latest_init)
+          queue=$(curl -fsS "http://localhost:8912/api/review-queue?init_date=${init}" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+          echo "/api/review-queue returned $queue items for $init"
+          [ "$queue" -ge 1 ] || { echo "review queue is empty"; exit 1; }
+          # The geo endpoints must work without geopandas in the image (D-020).
+          features=$(curl -fsS http://localhost:8912/api/regions | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["features"]))')
+          echo "/api/regions returned $features features"
+          [ "$features" -ge 30 ] || { echo "too few regions"; exit 1; }
+          # config.py creates the data tree at import; the non-root runtime user
+          # must be able to do that or the app dies before its first request.
+          docker exec fbd-smoke python -c "import fbd.config; print('config import OK as', __import__('getpass').getuser())"
+          # Serving must not import the geo stack at all.
+          if docker exec fbd-smoke python -c "import geopandas" 2>/dev/null; then
+            echo "::error::geopandas is present in the serving image; D-020 regression"
+            exit 1
+          fi
+          echo "confirmed: geo stack absent, geo endpoints still serve"
+          docker rm -f fbd-smoke
+
+      - name: Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image published"
+            echo ""
+            echo "- size: \`${IMAGE_SIZE}\`"
+            echo "- tags:"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo ""
+            echo "Run it:"
+            echo '```bash'
+            echo "docker run -p 8912:8912 ${REGISTRY}/${IMAGE_NAME}:latest"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

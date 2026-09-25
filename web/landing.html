@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forecast Bust Detection</title>
+<!--
+  The narrative entry point.
+
+  Everything on this page is drawn from the API at load time. Nothing is
+  hardcoded, because the archive is the source of truth and a page that
+  remembers numbers drifts from it silently. The prose states the finding; the
+  chart is enhancement, so the page still reads with JS disabled or the API
+  down.
+
+  Vendored, zero external origins -- enforced for every page in web/ by CI.
+-->
+<style>
+  :root {
+    --bg: #080c12; --panel: #0f1620; --line: #1d2836;
+    --ink: #e6edf5; --dim: #93a4b8; --faint: #64758a;
+    --model: #58a6ff; --base: #e3a857; --refuse: #dfe5ec; --bust: #e5534b;
+    --max: 1120px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #ffffff; --panel: #f6f8fa; --line: #d8dee4;
+      --ink: #1c2430; --dim: #5a6b7d; --faint: #8093a5;
+      --model: #0b6fa4; --base: #a1661c; --refuse: #3d4754; --bust: #b4292b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 16px; }
+  section { padding: 76px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+  h1 { font-size: clamp(30px, 5.2vw, 52px); line-height: 1.1; margin: 0 0 18px;
+       letter-spacing: -.02em; font-weight: 680; }
+  h2 { font-size: clamp(21px, 3vw, 28px); margin: 0 0 12px; letter-spacing: -.01em; }
+  p  { margin: 0 0 14px; max-width: 66ch; color: var(--dim); }
+  p.lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--ink); }
+  strong { color: var(--ink); font-weight: 620; }
+  .eyebrow { font-size: 12px; letter-spacing: .13em; text-transform: uppercase;
+             color: var(--faint); margin-bottom: 14px; }
+
+  .fig { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+         padding: 18px; margin: 26px 0 8px; }
+  .fig figcaption { color: var(--faint); font-size: 13px; margin-top: 12px; max-width: 72ch; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; font-size: 14px; }
+  .num { font-size: clamp(26px, 4vw, 34px); font-weight: 680; letter-spacing: -.02em;
+         display: block; margin-bottom: 2px; }
+
+  .split { display: grid; gap: 26px; grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .split { grid-template-columns: 1.05fr .95fr; align-items: center; } }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px;
+          font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--faint); font-weight: 560; font-size: 12.5px;
+       text-transform: uppercase; letter-spacing: .05em; }
+  tr.hi td { background: rgba(88,166,255,.09); }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11.5px;
+          border: 1px solid var(--line); color: var(--faint); }
+  .pill.refuse { background: var(--refuse); color: var(--bg); border-color: var(--refuse); font-weight: 640; }
+  .pill.bust { color: var(--bust); border-color: var(--bust); }
+
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none;
+         border: 1px solid var(--line); color: var(--ink); background: var(--panel);
+         font-size: 15px; margin: 4px 8px 4px 0; }
+  .btn:hover { border-color: var(--model); }
+  .btn.primary { background: var(--model); color: #04121f; border-color: var(--model); font-weight: 600; }
+  @media (prefers-color-scheme: light) { .btn.primary { color: #fff; } }
+
+  footer { padding: 34px 0 56px; color: var(--faint); font-size: 13px; }
+  a { color: var(--model); }
+
+  /* Animation is enhancement. Without JS, or with reduced motion, everything
+     is simply already in its final state. */
+  .draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
+          transition: stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1); }
+  .in .draw { stroke-dashoffset: 0; }
+  .fade { opacity: 0; transform: translateY(8px); transition: opacity .6s ease, transform .6s ease; }
+  .in .fade { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .draw { stroke-dashoffset: 0; transition: none; }
+    .fade { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<section id="hero">
+  <div class="wrap">
+    <div class="eyebrow">Forecast bust detection</div>
+    <h1>A rainfall forecast is about to fail.<br />Which one?</h1>
+    <p class="lead">
+      This does not forecast the weather. It watches forecasts that have already
+      been issued and predicts which of them are about to be badly wrong — by
+      subdivision, by lead day, with the reasons attached.
+    </p>
+
+    <figure class="fig" id="divFig">
+      <div id="chart" role="img"
+           aria-label="Model bust probability rising while ensemble spread falls, for Assam and Meghalaya, valid 17 June 2022"></div>
+      <figcaption id="divCap">Loading from the archive…</figcaption>
+    </figure>
+
+    <p>
+      <strong>Assam &amp; Meghalaya, 17 June 2022.</strong> Observed rainfall was
+      <strong id="obsMm">—</strong> across the whole subdivision. Most of the
+      forecasts for that day busted.
+    </p>
+    <p id="claim">—</p>
+    <p id="refuseClaim">—</p>
+    <p style="font-size:14.5px">
+      The widely-quoted version of this case shows four leads, D7 to D4, where
+      the divergence is cleanest. All ten are plotted above, including the two
+      where the model's probability falls back while the day still busts. An
+      excerpt that stops at the most flattering window is not the same claim.
+    </p>
+    <p>
+      <a class="btn primary" href="/">Open the dashboard</a>
+      <a class="btn" href="/volume.html">Risk volume (3-D)</a>
+      <a class="btn" href="#bust">What counts as a bust?</a>
+    </p>
+  </div>
+</section>
+
+<section id="bust">
+  <div class="wrap">
+    <div class="eyebrow">Definition</div>
+    <h2>Three conditions, all of which must hold</h2>
+    <p>
+      "The forecast was wrong" is not a usable label — every forecast is wrong by
+      some margin. A bust is a failure that would have changed what a forecaster
+      did, so all three of these have to be true at once.
+    </p>
+    <div class="cards">
+      <div class="card"><h3>1 &nbsp;Magnitude</h3>
+        <p>The error is at least 10&nbsp;mm/day, or the subdivision's own
+           95th-percentile training error for that month — whichever is larger.</p></div>
+      <div class="card"><h3>2 &nbsp;Category flip</h3>
+        <p>Forecast and observation land in different IMD intensity bands. The
+           forecast said one thing; the day was another.</p></div>
+      <div class="card"><h3>3 &nbsp;Operational significance</h3>
+        <p>At least one side reaches 15.6&nbsp;mm/day. A dry-day error nobody
+           would have acted on is not a bust.</p></div>
+    </div>
+    <p style="margin-top:18px">
+      That conjunction is why the base rate is about <strong>4%</strong> rather
+      than "most days". It is a rare-event problem by construction.
+    </p>
+  </div>
+</section>
+
+<section id="refusal">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="eyebrow">Refusal</div>
+        <h2>Declining to score is a finding, not a gap</h2>
+        <p>
+          When the atmospheric state is unlike anything in training, the system
+          returns <code>OUT_OF_DISTRIBUTION</code> and no probability. The
+          obvious worry is that this is an excuse. It is not.
+        </p>
+        <p>
+          On the held-out 2022 test year, the days the model declined to score
+          busted <strong><span id="refuseRatio">—</span> more often</strong> than the days it accepted. A
+          refusal is elevated, unknown risk — never a quiet result, and never
+          shown as one.
+        </p>
+        <p>
+          This is why there are three escalation tiers and not two. Folding
+          refusals into "not flagged" would hide the highest-risk days in the
+          product.
+        </p>
+      </div>
+      <figure class="fig" style="margin:0">
+        <div id="refuseChart" role="img"
+             aria-label="Bust rate of refused days against scored days"></div>
+        <figcaption>2022 test year, all lead days. Source:
+          <code>bulletins.sqlite</code>, the same store the dashboard serves.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="numbers">
+  <div class="wrap">
+    <div class="eyebrow">Held-out year, 2022</div>
+    <h2>What it is measured at, with intervals</h2>
+    <p>
+      Every figure below is a cluster bootstrap over <strong>init dates</strong>,
+      not rows. The test set is 39,950 rows but only 122 init dates, and rows
+      sharing a date share one synoptic situation — resampling rows would treat
+      correlated observations as independent and produce intervals roughly twice
+      too narrow.
+    </p>
+    <div class="cards" id="statCards"></div>
+    <p style="margin-top:20px" id="ensClaim">
+      The margin over a real 50-member operational ensemble — loading…
+    </p>
+  </div>
+</section>
+
+<section id="try">
+  <div class="wrap">
+    <div class="eyebrow">Run it</div>
+    <h2>Three ways in</h2>
+    <div class="cards">
+      <div class="card"><h3>Operational dashboard</h3>
+        <p>Map, review queue, per-region reasons, model against baseline.</p>
+        <p style="margin-top:10px"><a class="btn" href="/">Open</a></p></div>
+      <div class="card"><h3>Risk volume</h3>
+        <p>Longitude × latitude × lead day, raymarched. Nearest-sampled, so the
+           render never implies more resolution than the model has.</p>
+        <p style="margin-top:10px"><a class="btn" href="/volume.html">Open</a></p></div>
+      <div class="card"><h3>Command centre</h3>
+        <p>The column view: risk extruded over the map, lead day by lead day.</p>
+        <p style="margin-top:10px"><a class="btn" href="/command.html">Open</a></p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Serves a 2016–2022 reanalysis archive; <code>mode=live</code> reports STALE by
+    design. Decision support only — the duty forecaster is the authority, and
+    this system never issues or suppresses a warning.
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+const REGION = "ASSAM_MEGHALAYA", VALID = "2022-06-17";
+const $ = (s) => document.querySelector(s);
+
+async function getJSON(u) {
+  const r = await fetch(u);
+  if (!r.ok) throw new Error(u + " -> " + r.status);
+  return r.json();
+}
+
+const fmtPct = (v) => (v * 100).toFixed(1) + "%";
+
+// ------------------------------------------------------- convergence chart
+function drawConvergence(rows) {
+  const W = 880, H = 380, L = 56, R = 18, T = 26, B = 78;
+  const iw = W - L - R, ih = H - T - B;
+
+  const leads = rows.map((r) => r.lead_day);
+  const vals = rows.flatMap((r) =>
+    [r.bust_probability, r.baseline_probability].filter((v) => typeof v === "number"));
+  const yMax = Math.max(0.5, Math.ceil(Math.max(...vals) * 10) / 10);
+
+  // Left to right is time approaching the event, so lead day descends.
+  const x = (lead) => L + iw * (leads[0] - lead) / (leads[0] - leads[leads.length - 1]);
+  const y = (p) => T + ih * (1 - p / yMax);
+
+  // A refused row has no probability, so the model line BREAKS there rather
+  // than bridging the gap. Drawing through it would assert a value the model
+  // explicitly declined to give.
+  const segments = [];
+  let run = [];
+  for (const r of rows) {
+    if (typeof r.bust_probability === "number") {
+      run.push([x(r.lead_day), y(r.bust_probability)]);
+    } else {
+      if (run.length > 1) segments.push(run);
+      run = [];
+    }
+  }
+  if (run.length > 1) segments.push(run);
+
+  const path = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const basePts = rows.map((r) => [x(r.lead_day), y(r.baseline_probability)]);
+
+  const parts = [];
+  parts.push(`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`);
+
+  // horizontal guides
+  for (let i = 0; i <= 4; i++) {
+    const v = (yMax * i) / 4, yy = y(v);
+    parts.push(`<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`);
+    parts.push(`<text x="${L - 9}" y="${yy + 4}" text-anchor="end" font-size="12" fill="var(--faint)">${(v * 100).toFixed(0)}%</text>`);
+  }
+
+  // refused leads: a hatched band, because "not scored" must occupy space
+  // rather than read as a gap where nothing was happening.
+  parts.push(`<defs><pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="6" stroke="var(--refuse)" stroke-width="2.4" opacity=".55"/></pattern></defs>`);
+  for (const r of rows) {
+    if (typeof r.bust_probability === "number") continue;
+    const cx = x(r.lead_day), half = iw / (rows.length - 1) / 2.6;
+    parts.push(`<rect x="${cx - half}" y="${T}" width="${half * 2}" height="${ih}" fill="url(#hatch)"/>`);
+    parts.push(`<text x="${cx}" y="${T - 8}" text-anchor="middle" font-size="11" fill="var(--faint)">refused</text>`);
+  }
+
+  // lines
+  const baseLen = 2200, modelLen = 2200;
+  parts.push(`<path class="draw" style="--len:${baseLen}" d="${path(basePts)}" fill="none"
+      stroke="var(--base)" stroke-width="2.4" stroke-dasharray="6 5" stroke-linecap="round"/>`);
+  for (const seg of segments) {
+    parts.push(`<path class="draw" style="--len:${modelLen}" d="${path(seg)}" fill="none"
+        stroke="var(--model)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`);
+  }
+
+  // points + outcome ticks
+  for (const r of rows) {
+    const cx = x(r.lead_day);
+    if (typeof r.bust_probability === "number") {
+      parts.push(`<circle class="fade" cx="${cx}" cy="${y(r.bust_probability)}" r="4.5" fill="var(--model)"/>`);
+    }
+    parts.push(`<circle class="fade" cx="${cx}" cy="${y(r.baseline_probability)}" r="3" fill="var(--base)"/>`);
+    parts.push(`<text x="${cx}" y="${H - B + 20}" text-anchor="middle" font-size="12" fill="var(--faint)">D${r.lead_day}</text>`);
+    if (r.actual_bust === 1) {
+      parts.push(`<text class="fade" x="${cx}" y="${H - B + 42}" text-anchor="middle" font-size="11.5"
+        fill="var(--bust)" font-weight="600">busted</text>`);
+    }
+  }
+
+  parts.push(`<text x="${L}" y="${H - 8}" font-size="12.5" fill="var(--faint)">
+     ← further from the event &nbsp;·&nbsp; lead day &nbsp;·&nbsp; closer to the event →</text>`);
+  parts.push(`<text x="${W - R}" y="${T + 14}" text-anchor="end" font-size="13" fill="var(--model)" font-weight="600">this model</text>`);
+  parts.push(`<text x="${W - R}" y="${T + 32}" text-anchor="end" font-size="13" fill="var(--base)">ensemble-spread baseline</text>`);
+  parts.push(`</svg>`);
+  return parts.join("");
+}
+
+// ------------------------------------------------------------ refusal bars
+function drawRefusal(scored, refused) {
+  const W = 420, H = 260, B = 52, T = 22, L = 44;
+  const ih = H - T - B, yMax = Math.max(scored, refused) * 1.25;
+  const y = (v) => T + ih * (1 - v / yMax);
+  const bar = (cx, v, fill, label, sub) => `
+    <rect class="draw" style="--len:0" x="${cx - 46}" y="${y(v)}" width="92" height="${H - B - y(v)}"
+      fill="${fill}" rx="3"/>
+    <text x="${cx}" y="${y(v) - 9}" text-anchor="middle" font-size="19" font-weight="680" fill="var(--ink)">${(v * 100).toFixed(1)}%</text>
+    <text x="${cx}" y="${H - B + 20}" text-anchor="middle" font-size="13" fill="var(--ink)">${label}</text>
+    <text x="${cx}" y="${H - B + 37}" text-anchor="middle" font-size="11.5" fill="var(--faint)">${sub}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    <line x1="${L - 10}" x2="${W - 10}" y1="${H - B}" y2="${H - B}" stroke="var(--line)"/>
+    ${bar(W * 0.3, scored, "var(--model)", "scored", "status OK")}
+    ${bar(W * 0.72, refused, "var(--bust)", "refused", "out of distribution")}
+  </svg>`;
+}
+
+function statCard(label, value, note) {
+  return `<div class="card"><span class="num">${value}</span>
+    <h3 style="margin:0 0 4px">${label}</h3><p>${note}</p></div>`;
+}
+
+// ------------------------------------------------------------------- boot
+function observe() {
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }, { threshold: 0.15 });
+  document.querySelectorAll("section, .fig").forEach((el) => io.observe(el));
+}
+
+async function boot() {
+  observe();
+  try {
+    const rows = await getJSON(`/api/convergence?region_id=${REGION}&valid_date=${VALID}`);
+    $("#chart").innerHTML = drawConvergence(rows);
+    const obs = rows.find((r) => typeof r.observed_rain_mm === "number");
+    if (obs) $("#obsMm").textContent = obs.observed_rain_mm.toFixed(1) + " mm/day";
+    const nRef = rows.filter((r) => r.status === "OUT_OF_DISTRIBUTION").length;
+    const nBust = rows.filter((r) => r.actual_bust === 1).length;
+
+    // Derive the claim from the rows rather than asserting it in prose. If the
+    // archive ever changes, this page says something different instead of
+    // continuing to say something false.
+    const scoredRows = rows.filter((r) => typeof r.bust_probability === "number");
+    const above = scoredRows.filter((r) => r.bust_probability > r.baseline_probability);
+    const widest = scoredRows.reduce((a, r) =>
+      (r.bust_probability - r.baseline_probability) > (a.bust_probability - a.baseline_probability) ? r : a);
+    const allAbove = above.length === scoredRows.length;
+    $("#claim").innerHTML =
+      `As the day approached, the <span style="color:var(--base)">ensemble spread fell</span> — ` +
+      `members converging, which reads as growing confidence — while ` +
+      `<span style="color:var(--model)">this model stayed higher</span>` +
+      (allAbove
+        ? ` at <strong>every one of the ${scoredRows.length} leads it scored</strong>.`
+        : ` at <strong>${above.length} of the ${scoredRows.length} leads it scored</strong>.`) +
+      ` The gap was widest at <strong>Day ${widest.lead_day}</strong>: ` +
+      `${fmtPct(widest.bust_probability)} against ${fmtPct(widest.baseline_probability)}.`;
+
+    const refusedBust = rows.filter(
+      (r) => r.status === "OUT_OF_DISTRIBUTION" && r.actual_bust === 1).length;
+    $("#refuseClaim").innerHTML = nRef === 0
+      ? "Every lead was scored for this region-day."
+      : `On <strong>${nRef}</strong> of those days the model <strong>refused to ` +
+        `score at all</strong>, because the atmospheric state was unlike anything in ` +
+        `its training data. <strong>${refusedBust}</strong> of those ${nRef} busted.`;
+    $("#divCap").innerHTML =
+      `Every forecast issued for Assam &amp; Meghalaya valid ${VALID}, longest lead first. ` +
+      `${rows.length} forecasts, ${nBust} of which busted; ${nRef} were refused and are shown ` +
+      `hatched — the model line breaks there rather than bridging a value the model declined to give. ` +
+      `Live from <code>/api/convergence</code>.`;
+    // Re-arm the draw animation now that the paths exist.
+    requestAnimationFrame(() => $("#divFig").classList.add("in"));
+  } catch (e) {
+    $("#divCap").textContent =
+      "Could not reach the API — run scripts/fetch_release_artifacts.py, then start the server. " +
+      "The text below still describes the case.";
+  }
+
+  // Every headline number here comes from /api/metrics: results.json, the
+  // interval tables, the S1 settlement and the store's refusal rates. A
+  // missing piece renders "—", never a number remembered from an old run.
+  let m = null;
+  try { m = await getJSON("/api/metrics"); } catch (e) { /* rendered as — */ }
+  renderRefusal(m && m.refusal);
+  $("#statCards").innerHTML = statCardsHTML(m);
+  $("#ensClaim").innerHTML = ensClaimHTML(m);
+}
+
+const MODEL_KEY = "4 XGBoost + isotonic", LAGGED_KEY = "2 spread [lagged-ensemble]";
+const signed = (x, n) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(n);
+const pctOf = (x) => (100 * x).toFixed(1) + "%";
+
+function renderRefusal(r) {
+  if (!r) { $("#refuseRatio").textContent = "—"; return; }
+  $("#refuseRatio").textContent = r.ratio.toFixed(1) + "×";
+  $("#refuseChart").innerHTML = drawRefusal(r.scored.bust_rate, r.refused.bust_rate);
+}
+
+function statCardsHTML(m) {
+  const band = m && m.confidence_intervals && m.confidence_intervals.decision_band;
+  const mod = band && band[MODEL_KEY], lag = band && band[LAGGED_KEY];
+  const r = m && m.refusal;
+  const iv = (o, n) => `[${o.lo.toFixed(n)}, ${o.hi.toFixed(n)}]`;
+  const na = "Unavailable in this build.";
+  return (
+    statCard("AUROC", mod ? mod.auroc.point.toFixed(3) : "—",
+      mod ? `${iv(mod.auroc, 3)} — against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na) +
+    statCard("Brier skill", mod ? mod.bss.point.toFixed(3) : "—",
+      mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.` : na) +
+    statCard("Calibration error", mod ? mod.ece.point.toFixed(4) : "—",
+      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail — see the reliability diagram.` : na) +
+    statCard("Refused vs scored", r ? r.ratio.toFixed(1) + "×" : "—",
+      r ? `Refused days bust ${pctOf(r.refused.bust_rate)} of the time against ${pctOf(r.scored.bust_rate)} for scored days (${r.year}).` : "Needs the bulletin store.")
+  );
+}
+
+// The ENS claim, in the wording its interval earns. Prefers the registered S1
+// settlement; falls back to the 40-date margin in the interval tables. The
+// held-out year and the backtest sit beside it (FRONTEND_LOGIC section 8, D-026).
+function ensClaimHTML(m) {
+  const s = m && m.ens_settlement && m.ens_settlement.primary;
+  const t = m && m.confidence_intervals && m.confidence_intervals.true_ens;
+  const year = m && m.test_year;
+  const lead = "The margin over a real 50-member operational ensemble is ";
+  const fmt = (o, n) => `<strong>${signed(o.point, 3)} AUROC [${signed(o.lo, 3)}, ${signed(o.hi, 3)}]</strong> on ${n} init dates` +
+    (year ? ` of ${year}` : "");
+  const words = {
+    model_better: "— an interval above zero. Over that held-out season, the model outranks a real ensemble.",
+    ens_better: "— an interval below zero. Over that held-out season, a real ensemble outranks the model.",
+    indistinguishable: "— an interval that contains zero. Beating the cheap proxy is established; beating a real ensemble <strong>is not</strong>.",
+  };
+  const backtest = backtestHTML(m && m.backtest);
+  if (s) {
+    return lead + fmt(s, s.n_init_dates) + " " + words[s.verdict] +
+      " The test was registered before this data was fetched." + backtest;
+  }
+  const raw = t && t.margins && t.margins["raw ENS spread"];
+  if (raw) {
+    const v = raw.lo > 0 ? "model_better" : raw.hi < 0 ? "ens_better" : "indistinguishable";
+    return lead + fmt(raw, t.n_init_dates) + " " + words[v] + backtest;
+  }
+  return lead + "unavailable in this build (—).";
+}
+
+// The registered backtest: does the held-out season's edge hold in the others?
+// Its years, interval and any year the ensemble won all come from the API.
+function backtestHTML(b) {
+  const p = b && b.primary;
+  if (!p || !p.years || !p.years.length) return "";
+  const span = `${p.years[0]}–${p.years[p.years.length - 1]}`;
+  const opening = {
+    model_better: `It holds outside that season too: over ${span}`,
+    indistinguishable: `Outside that season it <strong>is not</strong> established: over ${span}`,
+    ens_better: `Outside that season a real ensemble outranks the model: over ${span}`,
+  }[p.verdict];
+  if (!opening) return "";
+  const lost = Object.values(b.per_year || {}).map((iv) => iv.statement).filter(Boolean);
+  return ` ${opening} the margin averages <strong>${signed(p.point, 3)} [${signed(p.lo, 3)}, ${signed(p.hi, 3)}]</strong>` +
+    " in a registered backtest that retrained the model for each year." +
+    lost.map((st) => ` ${st.charAt(0).toUpperCase()}${st.slice(1)}.`).join("");
+}
+
+boot();
+</script>
+</body>
+</html>

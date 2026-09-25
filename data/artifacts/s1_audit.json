@@ -1,0 +1,88 @@
+{
+  "reproduced": true,
+  "checks": [
+    {
+      "name": "raw margin point",
+      "got": 0.02514629110229083,
+      "published": 0.0251,
+      "ok": true
+    },
+    {
+      "name": "raw margin lo",
+      "got": -0.008278887707087323,
+      "published": -0.0083,
+      "ok": true
+    },
+    {
+      "name": "raw margin hi",
+      "got": 0.05799218377243233,
+      "published": 0.058,
+      "ok": true
+    },
+    {
+      "name": "calibrated margin point",
+      "got": 0.04034091063660772,
+      "published": 0.0403,
+      "ok": true
+    },
+    {
+      "name": "model AUROC",
+      "got": 0.8323834499944232,
+      "published": 0.832,
+      "ok": true
+    },
+    {
+      "name": "raw ENS AUROC",
+      "got": 0.8072371588921323,
+      "published": 0.807,
+      "ok": true
+    },
+    {
+      "name": "calibrated ENS AUROC",
+      "got": 0.7920425393578154,
+      "published": 0.792,
+      "ok": true
+    },
+    {
+      "name": "rows",
+      "got": 6732.0,
+      "published": 6732,
+      "ok": true
+    },
+    {
+      "name": "init dates",
+      "got": 40.0,
+      "published": 40,
+      "ok": true
+    },
+    {
+      "name": "lagged proxy AUROC (calibrated)",
+      "got": 0.7313779792104769,
+      "published": 0.731,
+      "ok": true
+    },
+    {
+      "name": "scored bust rate %",
+      "got": 3.4019967142676606,
+      "published": 3.4,
+      "ok": true
+    },
+    {
+      "name": "refused bust rate %",
+      "got": 23.376623376623375,
+      "published": 23.4,
+      "ok": true
+    }
+  ],
+  "hashes": {
+    "bust_model.joblib": "577578e7391e42eac5bf5390b8f713ce811957e77ac30073ff9d3d15dfb3e020",
+    "dataset.parquet": "9f8b4063a14aff844a24071d0d780b27445c9913b8d82e0974e33d906ae0a306"
+  },
+  "row_rule": "fbd.evaluate.ens.comparison_rows: inner join of dataset.parquet and ENS on (subdivision_id, init_date, lead_day); drop rows missing bust or ens_spread; test = split 'test' and lead_day in 3..7; fit = splits 'train' and 'val', all leads. The frozen model scores every test row, including rows the served product would refuse as out-of-distribution.",
+  "discrepancies": [
+    "41 legacy 2022 dates fetched but 40 used: 2022-09-29 has no Day 3-7 label (its valid dates fall after 30 September). Expected, and stated in the registration. The docstring of compute_confidence_intervals.py says '41 init dates'; it is 40.",
+    "landing.html's ECE card said 0.0107, the served-subset figure from plot_evaluation_figures.py, beside three cards that use the decision band, where ECE is 0.0106. The card now reads the decision-band value and says so.",
+    "docs/FRONTEND_BUILT.md said every landing-page claim reads live from the API. The ENS sentence, the four stat cards and the refusal chart were hardcoded; the page fetched /api/metrics and discarded the result.",
+    "README calls the ENS comparison 'on identical rows' without saying the model scores rows the product would refuse. The row rule is now stated."
+  ]
+}

@@ -18,7 +18,6 @@ Two comparisons are reported, and the distinction matters:
 from __future__ import annotations
 
 import argparse
-import glob
 import sys
 from pathlib import Path
 
@@ -34,12 +33,10 @@ ENS_DIR = config.WB2_RAW / "ens"
 
 
 def load_ens() -> pd.DataFrame:
-    paths = sorted(glob.glob(str(ENS_DIR / "ens_spread_*.parquet")))
-    if not paths:
-        raise FileNotFoundError(f"no ENS parquet in {ENS_DIR}; run scripts/fetch_ens.py")
-    df = pd.concat([pd.read_parquet(p) for p in paths], ignore_index=True)
-    print(f"loaded {len(df):,} ENS rows from {len(paths)} file(s): "
-          f"{sorted(df.init_date.dt.year.unique())}")
+    """Shared loader: legacy files + shards, each forecast once (fbd.evaluate.ens)."""
+    from fbd.evaluate import ens as E
+    df = E.load_ens(ENS_DIR)
+    print(f"loaded {len(df):,} ENS rows; dates per year {E.dates_by_year(df)}")
     return df
 
 

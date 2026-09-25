@@ -36,12 +36,34 @@ jobs:
       - name: Install serving + test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-serve.txt
-          pip install pytest
+          pip install -r requirements-dev.txt
       - name: Run tests that need no cached NWP data
         # The full pipeline needs ~700 MB of cached HRES/ERA5/IMD archives that
         # do not belong in CI. These suites are the ones that run without them.
-        run: pytest tests/test_genai.py tests/test_mlops.py -q
+        #
+        # test_providers.py is listed explicitly: a provider abstraction that
+        # only its author ever runs is not an abstraction anyone can rely on.
+        run: >-
+          pytest -q
+          tests/test_genai.py
+          tests/test_mlops.py
+          tests/test_providers.py
+          tests/test_command_centre.py
+          tests/test_voxel_grid.py
+          tests/test_web_pages.py
+          tests/test_ens_loader.py
+          tests/test_fetch_ens_resume.py
+          tests/test_settle_ens.py
+          tests/test_metrics_endpoint.py
+          tests/test_published_numbers.py
+          tests/test_backtest_folds.py
+          tests/test_fold_leakage.py
+          tests/test_stratified_bootstrap.py
+          tests/test_backtest_guard.py
+          tests/test_backtest_stats.py
+          tests/test_promotion.py
+          tests/test_mlp.py
+          tests/test_combine.py
 
   invariants:
     name: Decision-log invariants
@@ -54,8 +76,7 @@ jobs:
           cache: pip
       - run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-serve.txt
-          pip install pytest
+          pip install -r requirements-dev.txt
 
       - name: GenAI layer must default to OFF
         run: |
@@ -130,16 +151,54 @@ jobs:
           print("OK: app imports with no network access")
           PY
 
-      - name: Dashboard must reference no external origin
+      # The offline claim is "runs with the network unplugged BY DEFAULT".
+      # Scanning only src/href stopped being enough once a page could build a
+      # URL in JavaScript, so this scans the whole file for any external origin
+      # and checks it against a documented allowlist. Evading the grep would
+      # have been easy and would have made the guard worthless.
+      - name: External origins must be allowlisted and opt-in
         run: |
           python - <<'PY'
           import pathlib, re, sys
-          html = pathlib.Path("web/index.html").read_text(encoding="utf-8")
-          external = re.findall(r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)', html)
-          if external:
-              print("external references found:", external)
+
+          # origin -> why it is permitted. Anything not here fails the build.
+          ALLOWED = {
+              "https://gibs.earthdata.nasa.gov":
+                  "date-matched satellite basemap, off by default (D-023)",
+          }
+          # These pages must stay reachable with no network at all.
+          OFFLINE_ONLY = {"volume.html", "command.html", "landing.html"}
+
+          # XML namespace URIs are identifiers, not fetch targets -- no browser
+          # ever requests them. Excluded by name rather than by pattern so that
+          # a real w3.org asset would still be caught.
+          NAMESPACES = {"http://www.w3.org/2000/svg",
+                        "http://www.w3.org/1999/xhtml",
+                        "http://www.w3.org/1999/xlink"}
+
+          bad = {}
+          for page in sorted(pathlib.Path("web").glob("*.html")):
+              text = page.read_text(encoding="utf-8")
+              text = "".join(
+                  line for line in text.splitlines(True)
+                  if not any(ns in line for ns in NAMESPACES))
+              origins = {m.group(0) for m in
+                         re.finditer(r"https?://[A-Za-z0-9.\-]+", text)}
+              for o in sorted(origins):
+                  if o not in ALLOWED or page.name in OFFLINE_ONLY:
+                      bad.setdefault(page.name, []).append(o)
+          if bad:
+              print("disallowed external origins:", bad)
               sys.exit(1)
-          print("OK: dashboard is fully vendored, zero CDN references")
+
+          # The allowlisted origin must be opt-in. If this default ever flips,
+          # the product stops being air-gapped by default and the claim breaks.
+          dash = pathlib.Path("web/index.html").read_text(encoding="utf-8")
+          if "enabled: false" not in dash:
+              print("imagery layer must default to disabled")
+              sys.exit(1)
+          print("OK: external origins allowlisted, imagery opt-in, "
+                f"{sorted(OFFLINE_ONLY)} fully vendored")
           PY
 
   security:
