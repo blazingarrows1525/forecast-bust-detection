@@ -28,6 +28,12 @@ from fbd import config  # noqa: E402
 from fbd.model import train as T, baselines as B  # noqa: E402
 from fbd.ood import detector as OOD  # noqa: E402
 from fbd.explain import reasons as R  # noqa: E402
+from fbd.evaluate import ens as E  # noqa: E402
+from fbd.model import combined as K  # noqa: E402
+
+#: v0.2.0: bust_probability is the model + ENS combination (D-029, D-030); the
+#: model alone and the ENS spread are stored beside it.
+MODEL_VERSION = "0.2.0"
 
 DB = config.ARTIFACTS / "bulletins.sqlite"
 
@@ -52,6 +58,8 @@ CREATE TABLE IF NOT EXISTS bulletins (
     actual_bust INTEGER,
     baseline_probability REAL,
     model_version TEXT NOT NULL,
+    model_probability REAL,
+    ens_spread REAL,
     PRIMARY KEY (region_id, init_date, lead_day)
 );
 CREATE INDEX IF NOT EXISTS idx_init ON bulletins(init_date);
@@ -75,7 +83,7 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
 
-def bagged_interval(train, val, df, point, features, n_bags: int = 6):
+def bagged_interval(train, val, df, point, features, n_bags: int = 6, transform=None):
     """Prediction interval from bootstrap-bagged retraining.
 
     An earlier version derived the interval by truncating the boosting rounds.
@@ -95,7 +103,8 @@ def bagged_interval(train, val, df, point, features, n_bags: int = 6):
         idx = rng.choice(len(train), size=len(train), replace=True)
         boot = train.iloc[idx]
         m = T.BustModel().fit(boot, val, features=list(features))
-        draws.append(m.predict_proba(df))
+        # transform maps a bag to the number actually served (the combination).
+        draws.append(transform(m) if transform else m.predict_proba(df))
         print(f"   bag {b+1}/{n_bags} fitted")
     D = np.vstack(draws)
     half = np.clip((np.percentile(D, 90, axis=0) - np.percentile(D, 10, axis=0)) / 2.0, 0, 1)
@@ -130,10 +139,28 @@ def main() -> int:
     target = target.dropna(subset=model.features, how="all")
     print(f"scoring {len(target):,} rows across splits {args.splits}")
 
-    prob = model.predict_proba(target)
+    # The served number: the model + ENS combination (D-029), fitted once on 2021
+    # by scripts/fit_combiner.py. Where ENS is missing, the model alone, flagged.
+    comb = K.load()
+    ens = E.load_ens()[E.KEY + ["ens_spread"]]
+    target["init_date"] = pd.to_datetime(target.init_date)
+    ens = ens.assign(init_date=pd.to_datetime(ens.init_date))
+    target = target.merge(ens, on=E.KEY, how="left")
+    spread = target.ens_spread.to_numpy(float)
+    has_ens = np.isfinite(spread)
+    p_model = model.predict_proba(target)
+    prob = np.where(has_ens, K.apply(comb, model.predict_raw(target), spread), p_model)
+    contrib = K.contribution(comb, spread)
+    print(f"combination served on {has_ens.sum():,} / {len(target):,} rows "
+          f"({(~has_ens).sum():,} without ENS fall back to the model)")
+
+    def served(m):
+        return np.where(has_ens, K.apply(comb, m.predict_raw(target), spread),
+                        m.predict_proba(target))
+
     print('computing bagged prediction intervals ...')
     va_ = va.dropna(subset=['bust'])
-    lo, hi, conf = bagged_interval(tr, va_, target, prob, model.features)
+    lo, hi, conf = bagged_interval(tr, va_, target, prob, model.features, transform=served)
     dist = ood.score(target)
     is_ood = dist > ood.threshold_
     clim_p = clim.predict_proba(target)
@@ -175,16 +202,19 @@ def main() -> int:
                 json.dumps(
                     ["conditions outside training experience -- confidence unavailable"]
                     if ood_hit
-                    else reason_lists[i]
+                    else ([K.ens_reason(float(spread[i]), float(contrib[i]))]
+                          if has_ens[i] else []) + list(reason_lists[i])
                 ),
                 json.dumps(regime) if regime else None,
-                "OK",
+                "OK" if has_ens[i] else "ENS_UNAVAILABLE",
                 float(dist[i]),
                 float(r.fcst_rain_mm) if pd.notna(r.fcst_rain_mm) else None,
                 float(r.obs_rain_mm) if pd.notna(r.obs_rain_mm) else None,
                 int(r.bust) if pd.notna(r.bust) else None,
                 float(base_p[i]),
-                "0.1.0",
+                MODEL_VERSION,
+                None if ood_hit else float(p_model[i]),
+                float(spread[i]) if has_ens[i] else None,
             )
         )
 
@@ -198,12 +228,14 @@ def main() -> int:
     con.executescript(SCHEMA)
     con.execute("DELETE FROM bulletins")
     con.executemany(
-        "INSERT OR REPLACE INTO bulletins VALUES (" + ",".join("?" * 19) + ")", rows
+        "INSERT OR REPLACE INTO bulletins VALUES (" + ",".join("?" * 21) + ")", rows
     )
     con.executemany(
         "INSERT OR REPLACE INTO meta VALUES (?,?)",
         [
-            ("model_version", "0.1.0"),
+            ("model_version", MODEL_VERSION),
+            ("combined", "1"),
+            ("combiner", json.dumps(comb)),
             ("generated_at", pd.Timestamp.utcnow().isoformat()),
             ("ood_threshold", str(ood.threshold_)),
             ("n_features", str(len(model.features))),

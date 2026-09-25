@@ -54,6 +54,8 @@ CREATE TABLE bulletins (
     actual_bust INTEGER,
     baseline_probability REAL,
     model_version TEXT NOT NULL,
+    model_probability REAL,
+    ens_spread REAL,
     PRIMARY KEY (region_id, init_date, lead_day)
 );
 
@@ -68,13 +70,13 @@ CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
 _ROWS = [
     ("ASSAM_MEGHALAYA", "Assam & Meghalaya", "2022-06-14", 3, "2022-06-17",
      "OK", 0.706, 0.62, 18.4, 74.1, '["forecast rain +61.9 mm above normal"]',
-     None, "OK", 2.31, 88.2, None, None, 0.041, "test-fixture"),
+     None, "OK", 2.31, 88.2, None, None, 0.041, "test-fixture", 0.66, 7.9),
     ("KONKAN_GOA", "Konkan & Goa", "2022-06-14", 4, "2022-06-18",
      "OK", 0.412, 0.55, 9.7, 51.3, '["ensemble spread 2.4x climatology"]',
-     None, "OK", 1.88, 46.0, None, None, 0.041, "test-fixture"),
+     None, "OK", 1.88, 46.0, None, None, 0.041, "test-fixture", 0.41, 3.1),
     ("WEST_RAJASTHAN", "West Rajasthan", "2022-06-14", 5, "2022-06-19",
      "OUT_OF_DISTRIBUTION", None, None, None, None, "[]",
-     None, "OK", 41.7, 3.2, None, None, 0.041, "test-fixture"),
+     None, "OK", 41.7, 3.2, None, None, 0.041, "test-fixture", None, None),
 ]
 
 
@@ -102,4 +104,23 @@ def bulletin_store(tmp_path, monkeypatch):
     con.close()
 
     monkeypatch.setattr(tools, "DB", db)
+    return db
+
+
+# The v0.1.0 store, before the combination: no model_probability or ens_spread.
+# A fresh clone keeps this until the v0.2.0 Release asset is published, and the
+# API must go on working against it.
+_SCHEMA_V1 = _SCHEMA.replace("    model_probability REAL,\n    ens_spread REAL,\n", "")
+
+
+@pytest.fixture
+def bulletin_store_v1(tmp_path):
+    db = tmp_path / "bulletins_v1.sqlite"
+    con = sqlite3.connect(db)
+    con.executescript(_SCHEMA_V1)
+    con.executemany("INSERT INTO bulletins VALUES (" + ",".join("?" * 19) + ")",
+                    [row[:19] for row in _ROWS])
+    con.execute("INSERT INTO meta VALUES ('model_version', '0.1.0')")
+    con.commit()
+    con.close()
     return db
