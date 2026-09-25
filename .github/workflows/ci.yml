@@ -61,6 +61,8 @@ jobs:
           tests/test_stratified_bootstrap.py
           tests/test_backtest_guard.py
           tests/test_backtest_stats.py
+          tests/test_promotion.py
+          tests/test_mlp.py
 
   invariants:
     name: Decision-log invariants
