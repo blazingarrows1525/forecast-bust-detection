@@ -146,16 +146,16 @@ def main() -> int:
     target["init_date"] = pd.to_datetime(target.init_date)
     ens = ens.assign(init_date=pd.to_datetime(ens.init_date))
     target = target.merge(ens, on=E.KEY, how="left")
-    spread = target.ens_spread.to_numpy(float)
-    has_ens = np.isfinite(spread)
+    ens_mm = target.ens_spread.to_numpy(float)
+    has_ens = np.isfinite(ens_mm)
     p_model = model.predict_proba(target)
-    prob = np.where(has_ens, K.apply(comb, model.predict_raw(target), spread), p_model)
-    contrib = K.contribution(comb, spread)
+    prob = np.where(has_ens, K.apply(comb, model.predict_raw(target), ens_mm), p_model)
+    contrib = K.contribution(comb, ens_mm)
     print(f"combination served on {has_ens.sum():,} / {len(target):,} rows "
           f"({(~has_ens).sum():,} without ENS fall back to the model)")
 
     def served(m):
-        return np.where(has_ens, K.apply(comb, m.predict_raw(target), spread),
+        return np.where(has_ens, K.apply(comb, m.predict_raw(target), ens_mm),
                         m.predict_proba(target))
 
     print('computing bagged prediction intervals ...')
@@ -202,7 +202,7 @@ def main() -> int:
                 json.dumps(
                     ["conditions outside training experience -- confidence unavailable"]
                     if ood_hit
-                    else ([K.ens_reason(float(spread[i]), float(contrib[i]))]
+                    else ([K.ens_reason(float(ens_mm[i]), float(contrib[i]))]
                           if has_ens[i] else []) + list(reason_lists[i])
                 ),
                 json.dumps(regime) if regime else None,
@@ -214,7 +214,7 @@ def main() -> int:
                 float(base_p[i]),
                 MODEL_VERSION,
                 None if ood_hit else float(p_model[i]),
-                float(spread[i]) if has_ens[i] else None,
+                float(ens_mm[i]) if has_ens[i] else None,
             )
         )
 
@@ -225,8 +225,11 @@ def main() -> int:
 
     DB.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB)
+    # Every bulletin is rewritten, so the table is recreated rather than emptied:
+    # an older store keeps its old column set under CREATE TABLE IF NOT EXISTS.
+    # Only this table: overrides are forecasters' decisions and are never dropped.
+    con.execute("DROP TABLE IF EXISTS bulletins")
     con.executescript(SCHEMA)
-    con.execute("DELETE FROM bulletins")
     con.executemany(
         "INSERT OR REPLACE INTO bulletins VALUES (" + ",".join("?" * 21) + ")", rows
     )
