@@ -29,9 +29,9 @@ These are **our derived products**, not third-party data. Safe to redistribute, 
 
 | Asset | Size | What it is |
 |---|---|---|
-| `bulletins.sqlite` | 63 MB | The precomputed bulletin store: 79,900 pre-scored (subdivision × init × lead) rows, each with the calibrated bust probability, bagged prediction interval, OOD status, SHAP reason strings, regime vector, and the baseline probability. This is what the offline dashboard serves. |
+| `bulletins.sqlite` | 63 MB | The precomputed bulletin store: 79,900 pre-scored (subdivision × init × lead) rows, each with the served bust probability (model + ENS spread since v0.2.0), the model alone, the ENS spread, bagged prediction interval, OOD status, SHAP reason strings, regime vector, and the baseline probability. This is what the offline dashboard serves. |
 
-It is a Release asset rather than a committed file because 60 MB of binary would bloat every clone of the git history. It is **fully regenerable** from the committed `dataset.parquet` + `bust_model.joblib` by running `scripts/generate_bulletins.py` (~100 s), so the Release is a convenience, not a dependency.
+It is a Release asset rather than a committed file because 60 MB of binary would bloat every clone of the git history. It is **fully regenerable** from the committed `dataset.parquet`, `bust_model.joblib` and `combiner.json` by running `scripts/generate_bulletins.py` (~100 s), so the Release is a convenience, not a dependency. Since v0.2.0 (D-030) the served probability combines the model with the 50-member ENS spread, so regenerating also needs the ENS spread for 2021 and 2022 on disk (`scripts/fetch_ens.py --year 2021` and `--year 2022`, about 7 MB of derived parquet under `data/raw/wb2/ens/`, gitignored).
 
 **Get it** (either works):
 
@@ -44,6 +44,8 @@ PYTHONPATH=src python scripts/generate_bulletins.py
 ```
 
 SHA-256 of `bulletins.sqlite` (v0.1.0): `5cbb61350c2ba63dbcf2dc00bc1d13b9a3d2f9a70e66d8317121cf996e6f241c`
+
+The Release currently holds v0.1.0, the model-alone store. The API serves it without error but shows no combination, and the landing page leaves out the combination sentence. Regenerate locally to get v0.2.0 until that Release is published.
 
 ---
 

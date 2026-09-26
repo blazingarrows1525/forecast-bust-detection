@@ -345,10 +345,14 @@ The list, so the next contributor can check them:
   +0.0127], and in 2019 the ensemble wins (D-026).
   Every surface that talks about skill gives the interval, and none stretches
   it beyond that season.
-- No transformer, BERT, LSTM, RF or LightGBM is served. The served model is
-  XGBoost + isotonic + TreeSHAP + Mahalanobis, and landing-page copy calls it
-  that. An MLP exists in the codebase as a registered S3 candidate (D-027); it
-  outranks XGBoost across 2019–2022 but is not served.
+- No transformer, BERT, LSTM, RF or LightGBM is served. The served number is
+  XGBoost + isotonic combined with the 50-member ENS spread by a two-input
+  logistic regression (D-030), explained by TreeSHAP and gated by a
+  Mahalanobis OOD detector. An MLP exists in the codebase as a registered S3
+  candidate (D-027); it outranks XGBoost across 2019–2022 but is not served.
+- The landing page says "the model and the ensemble together" only when
+  `/api/metrics` reports `served.combined`. A v0.1.0 store never carries that
+  claim.
 - The 3-D volume is blocky on purpose. Smooth filtering is a bug.
 - India is not mirrored and not upside down in either 3-D view: north is `−z`
   and the camera starts on the south side.

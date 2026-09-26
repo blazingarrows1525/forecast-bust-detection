@@ -1807,3 +1807,104 @@ nor "use the model", but both, combined.
   §8 allows the claim only once the product shows the combination.
 - For S3b and S3c: a candidate that beats XGBoost is worth most if it also
   improves the combination; the MLP's secondary suggests it might.
+
+## D-030 — The served number is the model + ENS combination (store v0.2.0) — LOCKED
+
+Design: `docs/superpowers/specs/2026-09-25-serve-combination-design.md`;
+plan: `docs/superpowers/plans/2026-09-25-serve-combination.md`. Follows D-029,
+which found the combination outranks ENS spread alone over 2019–2021 and noted
+that the product did not compute it yet. It does now.
+
+### What is served
+
+- **The combiner.** D-029's recipe on the frozen model: logistic regression on
+  [logit of the frozen model's uncalibrated probability, log(1 + ENS spread)],
+  fitted once by `scripts/fit_combiner.py` on 2021's Day 3–7 rows (20,060), the
+  year the frozen model was calibrated on. `data/artifacts/combiner.json`:
+  model log-odds **0.541**, log(1 + spread) **1.066**, intercept **−4.698**;
+  reference spread (2021 median) 3.9 mm/day; pinned to the model's SHA-256.
+- **Serving** applies it in pure numpy (`fbd.model.combined`); a test proves the
+  arithmetic agrees with the scikit-learn combiner.
+- **Store v0.2.0.** `bust_probability` is the combination. Where ENS spread is
+  missing it is the model alone and the row says `ENS_UNAVAILABLE`; no row in
+  the 2021–2022 archive needs that. Two columns are appended: `model_probability`
+  (the model alone, calibrated) and `ens_spread` (mm/day). The interval passes
+  each bagged model through the same combiner and is re-centred on the served
+  number. The reasons lead with an ensemble line stating the spread and its
+  effect on the odds, e.g. "the 50-member ensemble spread is high (11.7 mm/day):
+  raises the bust odds 2.8x".
+- **All ten leads.** The combiner was fitted, and D-029 tested, on Days 3–7
+  only. Days 1–2 and 8–10 are served by extrapolation; see below.
+
+### Verified on regeneration
+
+79,900 rows, every one combined. Refusals unchanged: 281 in 2021 (84 busted),
+385 in 2022 (90 busted), the same rows as v0.1.0. Every interval contains its
+point. The overrides table is left intact. Regeneration now drops and recreates
+the bulletins table, because `CREATE TABLE IF NOT EXISTS` kept a v0.1.0 table's
+19 columns.
+
+### Served numbers — descriptive
+
+2022 has been seen (S1, and D-029's 2022 row), so nothing here is a test. These
+are the 19,887 Day 3–7 rows the product scores in 2022 (633 busts; the 173
+refused rows carry no probability):
+
+| | AUROC | Brier | ECE (10 equal-count bins) |
+|---|---|---|---|
+| **served: model + ENS spread** | **0.8517** | **0.0285** | **0.0085** |
+| model alone (v0.1.0's number) | 0.8353 | 0.0286 | 0.0107 |
+| raw ENS spread | 0.8020 | — | — |
+| lagged proxy | 0.7522 | — | — |
+
+BSS +0.075, against +0.072 for the model alone. These are not comparable with
+D-029's 2022 row (0.8561), which scored all 20,060 rows with the fold model;
+these use the frozen model on the rows it accepts. 2021 is the combiner's fit
+year and is not reported as evidence.
+
+**By lead, 2022, all scored rows (served − model alone):**
+
+| Day | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| served | 0.864 | 0.864 | 0.862 | 0.855 | 0.832 | 0.862 | 0.842 | 0.812 | 0.832 | 0.841 |
+| model alone | 0.866 | 0.873 | 0.861 | 0.847 | 0.804 | 0.841 | 0.820 | 0.800 | 0.821 | 0.818 |
+| difference | −0.002 | **−0.010** | +0.001 | +0.009 | +0.028 | +0.021 | +0.022 | +0.012 | +0.011 | +0.023 |
+
+The extrapolation helps at Days 8–10 and costs a little at Days 1–2. At short
+leads the model alone ranks slightly better in 2022. One year and no
+intervals, so no claim either way. It is the reason the served claim stays on
+Days 3–7, and a Day 1–2 fit is a candidate for later work.
+
+**Calibration.** The top equal-count bin (1,988 rows) predicts 0.207 and
+observes **0.172**: still overconfident, by 0.036 instead of the model's 0.049.
+Earlier text said this bin held "~80 rows". That was wrong: equal-count bins
+hold about a tenth of the 19,887 rows each. The README and `docs/FIGURES.md` are
+corrected.
+
+### The demo case
+
+Assam & Meghalaya, valid 17 June 2022 (observed 115.6 mm/day):
+
+| Lead | served | model alone | ENS spread | proxy |
+|---|---|---|---|---|
+| Day 7 | 53.5% | 45.6% | 17.6 mm/day | 33.3% |
+| Day 6 | 39.6% | 42.3% | 13.4 | 21.2% |
+| Day 5 | 49.5% | 47.5% | 13.6 | 17.6% |
+| **Day 4** | **58.1%** | **70.6%** | **11.7** | **11.2%** |
+
+The served number at Day 4 is lower than the model's 70.6%. The combiner
+weights the model's log-odds by 0.54, which pulls a confident model back toward
+the base rate. The spread, three times the 2021 median, pushes it back up by
+2.8× the odds. The served number stays above the proxy at all eight scored
+leads (Days 10 and 8 are refused), and the gap is widest at Day 4.
+
+### Consequences
+
+- `FRONTEND_LOGIC.md` §8's condition is met: the landing page states the
+  combination, and renders it only when the served store says `combined`.
+- **Release.** A fresh clone fetches Release `v0.1.0` (the model-alone store)
+  until `v0.2.0` is published and pinned; publishing waits for approval. The
+  API reads a v0.1.0 store without error, shows no combination, and the landing
+  sentence stays hidden.
+- S3b and S3c candidates are judged on the S3 rule as registered. A winner that
+  also improves the combination is worth serving; one that does not is not.

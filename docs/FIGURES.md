@@ -36,14 +36,21 @@ equal-width bins leave the upper bins nearly empty and produce a dramatic
 diagram about almost no data. Using a second definition here would put a number
 on the figure that disagreed with the number in `results.json`.
 
+*The served number.* Since store v0.2.0 the plotted probability is the one
+the product serves: the model combined with the 50-member ENS spread (D-030).
+The model alone is kept in the store as `model_probability`, and its numbers
+are given below for comparison.
+
 **What it actually shows, including the part that is not flattering.** ECE is
-0.0107 and the curve tracks the diagonal closely through the bulk of the range.
-But the **highest bin predicts 0.207 and observes 0.158** — overconfident by
-0.049, about 24% in relative terms. That bin is exactly where a forecaster is
-looking, and it is precisely what a single low ECE hides, which is why the
-figure labels it rather than leaving the summary statistic to imply the curve
-sits on the diagonal everywhere. The honest statement is *"well calibrated
-through the operational range, overconfident in the extreme tail, on ~80 rows."*
+0.0085 and the curve tracks the diagonal closely through the bulk of the range.
+But the **highest bin predicts 0.207 and observes 0.172**, overconfident by
+0.036, about 17% in relative terms. For the model alone it was 0.207 against
+0.158. That bin is exactly where a forecaster is looking, and a single low ECE
+hides it, so the figure labels it instead of letting the summary statistic
+imply the curve sits on the diagonal everywhere. The honest statement is *"well
+calibrated through the operational range, overconfident in the top tenth of
+rows (1,988 of them)."* Earlier text put that bin at ~80 rows. That was wrong:
+the bins are equal-count, so each holds about a tenth of the 19,887.
 
 The lower panel uses **equal-width** bins, deliberately unlike the panel above:
 the markers there each carry the same number of rows by construction, so a
@@ -52,14 +59,17 @@ the tail the model is willing to go, and on how little data.
 
 ### Cross-check against `results.json`
 
-| | this figure | `results.json`, row `4 XGBoost + isotonic` |
-|---|---|---|
-| n | 19,887 | 20,060 |
-| ECE | 0.0107 | 0.0108 |
-| Brier | 0.0286 | 0.0291 |
-| BSS | +0.072 | +0.088 |
+| | this figure (served) | same rows, model alone | `results.json`, row `4 XGBoost + isotonic` |
+|---|---|---|---|
+| n | 19,887 | 19,887 | 20,060 |
+| ECE | 0.0085 | 0.0107 | 0.0108 |
+| Brier | 0.0285 | 0.0286 | 0.0291 |
+| BSS | +0.075 | +0.072 | +0.088 |
 
-**The gap is not an error, and it is worth understanding.** `results.json`
+The first two columns differ only in the probability, which is the
+combination's contribution. The last two differ in the rows.
+
+**That second gap is not an error, and it is worth understanding.** `results.json`
 scores every test row in the decision band. This figure scores only the rows the
 product actually *serves* — and the product refuses 173 of them as out of
 distribution, so they carry no probability. 19,887 + 173 = 20,060 exactly.

@@ -97,7 +97,8 @@ it across the top when present.
 `prediction_interval` is `[lo, hi]`. `confidence_in_estimate` says how much to
 trust the point estimate. A bare probability with no interval overstates what
 the system knows. Note the model is **overconfident in its extreme tail** —
-the highest bin predicts 0.207 and observes 0.158 (`docs/FIGURES.md`).
+the highest bin of the served number predicts 0.207 and observes 0.172
+(`docs/FIGURES.md`).
 
 ---
 
@@ -349,7 +350,7 @@ clear. The landing page has the opposite job and may breathe.
 
 ## 8. Claims the UI may and may not make
 
-Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026, D-029).
+Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026, D-029, D-030).
 
 **May claim:**
 - AUROC **0.840 [0.821, 0.859]** on a held-out year never used in training.
@@ -365,9 +366,14 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
 - **Combining the model with ENS spread outranks the spread alone on average
   over 2019–2021:** **+0.0244 [+0.0178, +0.0308]**, a registered test (D-029).
   Say "the model and the ensemble together", never "the model beats the
-  ensemble", and only once the product actually shows the combination.
+  ensemble". The product has shown the combination since store v0.2.0
+  (D-030), and the landing page states it only when `/api/metrics`
+  `served.combined` is true, so a v0.1.0 store never carries the claim.
 - Refused days bust **6.9×** more often than accepted ones (23.4% vs 3.4%).
-- Calibrated: ECE **0.0107**, with a stated overconfidence in the extreme tail.
+- Calibrated: ECE **0.0108** (the model, decision band, `results.json`), with
+  a stated overconfidence in the extreme tail. For the served number on the
+  2022 rows the product scores, ECE is 0.0085 and the top bin predicts 0.207
+  and observes 0.172 (D-030).
 
 **May NOT claim:**
 - That the model outranks a real ensemble in general, or in any year but 2022.
@@ -377,9 +383,13 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   the ensemble in several years (exploratory, D-025, D-026).
 - That the model replaces the ensemble. A model + spread combination beats the
   model alone (+0.0154 [+0.0073, +0.0240], D-025 secondary b).
+- That the combination's lead holds at every lead time. It was fitted and
+  tested on Days 3–7. In 2022 it ranks slightly below the model alone at
+  Days 1–2 (descriptive, D-030).
 - That the product runs a neural network, or any transformer, BERT, LSTM,
   Random Forest or LightGBM. **None is served.** The served model is XGBoost +
-  isotonic calibration + TreeSHAP + a Mahalanobis OOD detector. An MLP outranks
+  isotonic calibration + TreeSHAP + a Mahalanobis OOD detector, combined with
+  the ENS spread by a two-input logistic regression (D-030). An MLP outranks
   the served XGBoost in a registered backtest across 2019–2022 (**+0.0088
   [+0.0023, +0.0157]**, D-027), but it is not served, and XGBoost is the better
   of the two in 2022. Claiming otherwise fails the first question a judge asks.

@@ -127,8 +127,15 @@ the model in every year too (combination − model +0.0208 [+0.0172, +0.0245]).
 Both inputs carry positive weight in every fold. So the operational answer is
 neither "use the spread" nor "use the model": it is to read them together.
 2021 alone does not clear zero. The same combiner on the MLP does better still
-(+0.0334 [+0.0282, +0.0385] against ENS; a secondary). The served product does
-not combine them yet; that is the next change to make. Record: D-029.
+(+0.0334 [+0.0282, +0.0385] against ENS; a secondary). Record: D-029.
+
+The product now serves this combination. The number on the map, in the review
+queue and in the assistant's answers is the model and the ensemble together,
+and the dashboard shows each input beside it. On the 2022 rows the product
+scores, Day 3–7, it ranks at **0.852** against 0.835 for the model alone and
+0.802 for raw ENS spread. This is descriptive only, because 2022 had already
+been seen. At Days 1–2, outside the Day 3–7 rows it was fitted on, it ranks
+slightly below the model alone. Record: D-030.
 
 ### Other model families
 
@@ -221,11 +228,12 @@ D-026.
 | [![Reliability diagram](docs/figures/reliability.png)](docs/FIGURES.md) | [![Earned refusal](docs/figures/earned_refusal.png)](docs/FIGURES.md) |
 
 Left: observed bust frequency against predicted probability on the held-out
-2022 rows the product actually serves. ECE 0.0107, and the curve tracks the
-diagonal through the operational range — but the **highest bin predicts 0.207
-and observes 0.158**, overconfident by 0.049 on ~80 rows. That is labelled on
-the figure rather than left for a low ECE to paper over, because the top bin is
-where a forecaster is looking.
+2022 rows the product actually serves, for the served number (model + ENS
+spread). ECE 0.0085, and the curve tracks the diagonal through the operational
+range — but the **highest bin predicts 0.207 and observes 0.172**,
+overconfident by 0.036 on 1,988 rows (the model alone: 0.158, by 0.049). That
+is labelled on the figure rather than left for a low ECE to paper over, because
+the top bin is where a forecaster is looking.
 
 Right: the days the model *declines* to score bust at **23.4%** against **3.4%**
 for the days it accepts — 6.9×. A refusal is not a low-risk result, which is why
@@ -244,7 +252,9 @@ Regenerate with `PYTHONPATH=src python scripts/plot_evaluation_figures.py`.
 Five outputs, matching the five the problem statement names:
 
 1. **Forecast confidence map** — subdivision-wise, Day 1 to Day 10.
-2. **Bust probability** — calibrated, per subdivision and lead time.
+2. **Bust probability** — per subdivision and lead time, from the model and
+   the 50-member ensemble spread read together (D-030), with each shown beside
+   the combined number.
 3. **Error-prone area detection** — a ranked *review queue*, not just a map.
 4. **Explainable output** — plain-language meteorological reasons for every flag.
 5. **Prototype dashboard + API** — FastAPI + Leaflet, runs fully offline.
@@ -346,19 +356,25 @@ python scripts/stress_test.py
 floods. Observed area-mean rainfall **115.6 mm/day** across the whole
 subdivision.
 
-| Forecast issued | Lead | Forecast | Our model | Ensemble spread |
-|---|---|---|---|---|
-| 11 June | Day 7 | 86.7 mm | 45.6% | 33.3% |
-| 12 June | Day 6 | 67.4 mm | 42.3% | 21.2% |
-| 13 June | Day 5 | 74.7 mm | 47.5% | 17.6% |
-| **14 June** | **Day 4** | **83.7 mm** | **70.6%** | **11.2%** |
+| Forecast issued | Lead | Forecast | Served (model + ensemble) | Model alone | 50-member ENS spread | Spread proxy |
+|---|---|---|---|---|---|---|
+| 11 June | Day 7 | 86.7 mm | 53.5% | 45.6% | 17.6 mm/day | 33.3% |
+| 12 June | Day 6 | 67.4 mm | 39.6% | 42.3% | 13.4 mm/day | 21.2% |
+| 13 June | Day 5 | 74.7 mm | 49.5% | 47.5% | 13.6 mm/day | 17.6% |
+| **14 June** | **Day 4** | **83.7 mm** | **58.1%** | **70.6%** | **11.7 mm/day** | **11.2%** |
 
-The forecast busted. As the event approached, **ensemble spread fell** — the
-models were converging, which reads as growing confidence — while our model went
-the other way.
+The forecast busted. As the event approached, **the ensemble spread fell**: the
+members were converging, which reads as growing confidence. The cheap spread
+proxy fell with it, to 11.2%. The model went the other way. The served number
+reads the two together. At Day 4 it is 58.1%, which is lower than the model
+alone, because the combiner weighs the model's log-odds at 0.54. It is still
+five times the proxy, because a spread of 11.7 mm/day is three times a typical
+day's and raises the odds 2.8×. It stays above the proxy at all eight leads the
+system scored (D-030).
 
 The Day-4 reason panel said:
 
+> * the 50-member ensemble spread is high (11.7 mm/day): raises the bust odds 2.8x
 > * the forecast is +61.9 mm/day above this subdivision's seasonal normal (top 1% for this subdivision)
 > * this subdivision and lead time historically bust often (5.0% of days)
 > * column moisture over India is below normal (−0.8 sd)
@@ -428,6 +444,11 @@ These are reported because they are true, not because they help.
   not hold up: averaged over 2019–2021 it is +0.0036 [−0.0059, +0.0127], and in
   2019 the ensemble outranks the model. The ensemble also adds information on
   top of the model. See D-014, D-025 and D-026.
+* **The served combination was fitted on Days 3–7 and is extrapolated to the
+  other leads.** In 2022 it helps at Days 8–10 (+0.011 to +0.023 AUROC over the
+  model alone) and costs a little at Days 1–2 (−0.002, −0.010). That is one
+  year with no intervals, so it is not a claim either way. The served claim
+  stays on Days 3–7. See D-030.
 * **The spread baseline is undefined at Day 10** because the HRES archive stops
   at 240 h, which inflates the all-lead comparison. That is why the headline
   number is the Day 3–7 band, where the baseline has full support.
