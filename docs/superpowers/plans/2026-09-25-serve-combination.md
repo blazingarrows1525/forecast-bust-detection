@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Commit messages carry **no** `Co-Authored-By` or Claude attribution lines.
-- No SIH on product surfaces. Air-gap: pages add no external origin.
+- No competition branding on product surfaces. Air-gap: pages add no external origin.
 - Combiner: logistic regression on [logit of the frozen model's **uncalibrated** probability (clip 1e-6), log(1 + ENS spread)], fitted on **2021** Day 3–7 rows; applied to all leads.
 - Store v0.2.0: `bust_probability` = combination (model's calibrated probability where ENS is missing, `data_quality` `ENS_UNAVAILABLE`); new columns appended: `model_probability`, `ens_spread`. OOD refusal unchanged.
 - API tolerant of v0.1.0: absent columns → null.

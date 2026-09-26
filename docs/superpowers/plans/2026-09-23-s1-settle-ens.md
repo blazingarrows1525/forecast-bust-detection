@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Commit messages carry **no** `Co-Authored-By` or Claude attribution lines (standing user instruction).
-- No SIH / SIH26079 on any product surface.
+- No competition branding on any product surface.
 - Bootstrap seed **20260919**; primary resamples **10,000**; audit reproduction resamples **2,000**; alpha **0.05**; decision band **Day 3–7** (`config.DECISION_BAND`).
 - ENS store unchanged: `config.ENS_STORE` (1.5°, 2018–2022). ≈123 MB per init date, 6 chunks.
 - `data/artifacts/bust_model.joblib` and `data/processed/dataset.parquet` are **never modified** during S1.

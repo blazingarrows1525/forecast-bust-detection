@@ -1,7 +1,7 @@
 """Gradient-boosted bust model + isotonic calibration.
 
 Model family is fixed by LOGIC.md sec 6 and is not up for negotiation on
-aesthetic grounds: the problem statement mandates explainable output naming the
+aesthetic grounds: the project requires explainable output naming the
 meteorological reasons, the labelled sample is ~10^5 rows, and busts are rare.
 SHAP on trees delivers the mandated per-flag reasons directly; a CNN does not.
 

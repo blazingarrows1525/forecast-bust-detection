@@ -1,4 +1,4 @@
-# HANDOFF — Forecast Bust Detection (SIH26079)
+# HANDOFF — Forecast Bust Detection
 
 **⚠️ READ THIS BEFORE STARTING WORK ON THIS REPOSITORY ⚠️**
 This is a mature, benchmark-beating ML project for the Indian monsoon. Before writing any code:
@@ -115,11 +115,11 @@ FBD_GENAI_ENABLED=1 FBD_GENAI_TOOLS=1 FBD_GENAI_RAG=1 PYTHONPATH=src uvicorn fbd
 
 ---
 
-## 5. Next Steps for a Winning SIH Entry (from `PROJECT_BLUEPRINT.md`)
+## 5. Next Steps
 
 **Queue as of D-030, in order:** S3b (temporal) and S3c (spatial) candidates under the registered S3 rule (`docs/PREREGISTRATION_S3.md`), each with its own design approval; pin the ENS fit years in the calibrated-ENS scripts.
 
-Older ideas from the blueprint's Section 9:
+Older ideas:
 
 1. **Multi-model AI ensembling (~2h):** Add GraphCast / Pangu / GenCast disagreement features. This is the killer novelty angle.
 2. **Retrospective Narrative Case Studies (~3h):** e.g., Uttarakhand cloudburst 15 Aug 2022, Chennai floods 15 Nov 2021.

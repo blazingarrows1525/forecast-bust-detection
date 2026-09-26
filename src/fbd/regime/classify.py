@@ -1,6 +1,6 @@
 """Monsoon regime classifier producing **soft** probabilities.
 
-The problem statement names six situations: active monsoon, break monsoon,
+The project names six situations: active monsoon, break monsoon,
 monsoon depression, western disturbance, orographic rainfall, coastal rainfall.
 Two honest observations shape the design:
 
@@ -11,7 +11,7 @@ Two honest observations shape the design:
    or a coastline.  We therefore score them as flow-on-geography interactions:
    a subdivision is in an "orographic rainfall regime" when strong low-level
    flow meets its terrain, which is both faithful to the physics and to what the
-   ministry means by the phrase.
+   forecasters mean by the phrase.
 
 Method: **weak supervision**, which LOGIC.md sec 5.2 explicitly permits for the
 MVP.  Each regime gets a physically motivated score built from standardised

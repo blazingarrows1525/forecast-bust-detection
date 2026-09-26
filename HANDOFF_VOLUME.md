@@ -221,9 +221,6 @@ wonder if they're seeing something wrong:
   either way.
 - **Mobile touch controls.** The volume view drags-orbits on pointer events,
   which works on touch, but there's no pinch-to-zoom.
-- **Stripping SIH provenance** from `DATA.md`, `HANDOFF.md`, `README.md`,
-  `PROJECT_BLUEPRINT.md`, `STUDY_PLAN.md`, etc. I offered earlier and you
-  haven't decided. Not urgent; the *product* has none.
 
 ## 10. If you spot something odd, do this first
 

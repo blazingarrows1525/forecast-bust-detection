@@ -33,8 +33,6 @@ def code(text: str):
 md(r"""
 # Forecast Bust Detection — XGBoost pipeline (Colab-ready)
 
-**SIH 2026 · SIH26079 · Ministry of Earth Sciences**
-
 This notebook trains the **exact** model used in the project — a class-weighted
 XGBoost classifier with isotonic calibration — on the real committed dataset, and
 reproduces the held-out-year headline result.
@@ -149,7 +147,7 @@ md(r"""
 
 This is the exact configuration from `src/fbd/model/train.py`.
 
-Two things a jury will ask about:
+Two things a reviewer will ask about:
 - **`scale_pos_weight = neg / pos ≈ 25`** — busts are ~4% of the data, so without
   class weighting the model would just predict "no bust" every time (96% accuracy,
   zero usefulness).
@@ -239,7 +237,7 @@ for b in np.array_split(np.arange(len(pp)), 10):
 md(r"""
 ### 6b. Explainability — why each flag fires (TreeSHAP)
 
-The problem statement *requires* explainable output. Native TreeSHAP gives an
+The project *requires* explainable output. Native TreeSHAP gives an
 exact per-prediction attribution. Here are the top factors for the Assam Day-4
 bust — no external `shap` package needed, this uses XGBoost's own C++ path.
 """)

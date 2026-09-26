@@ -75,7 +75,7 @@ Inline SVG, `stroke-dasharray` + `stroke-dashoffset` to draw on scroll via
 `IntersectionObserver`. No library. Data is live from
 `/api/bulletin?init_date=…&lead_day=…` (`bust_probability` vs
 `baseline_probability`) — do not hardcode it; hardcoded numbers drift from the
-archive and a judge may ask you to change the date.
+archive and a reviewer may ask you to change the date.
 
 **Done when:** it draws on scroll, reads correctly at 360 px wide, and the
 numbers come from the API.
@@ -154,8 +154,8 @@ Copy everything between the lines. Attach `FRONTEND_LOGIC.md` alongside it.
 
 ---
 
-> You are building the frontend for **SIH26079 — AI-Based Forecast Bust
-> Detection for Medium-Range Weather Forecasts** (Ministry of Earth Sciences).
+> You are building the frontend for **Forecast Bust Detection for
+> Medium-Range Weather Forecasts**.
 >
 > **What the system does.** It does not forecast weather. It is a meta-model
 > over an existing IMD rainfall forecast that predicts whether *that forecast

@@ -1,10 +1,9 @@
 # PROJECT BLUEPRINT — Forecast Bust Detection for the Indian Monsoon
-## SIH 2026 Problem Statement 26079 · Ministry of Earth Sciences / IMD
 
 **Author:** Harsh Trivedi (trivediharsh1505@gmail.com), SRMIST Kattankulathur
-**Repository:** `C:\Users\ASUS\Desktop\sih`
+**Repository:** `github.com/blazingarrows1525/forecast-bust-detection`
 **Session snapshot:** 15:45 IST, 23 August 2026
-**Purpose of this file:** a single self-contained brief that lets a new contributor — or a teammate, or you three weeks from now — pick up the project without re-reading the earlier transcript, and that spells out the concrete moves that make this an SIH-winning entry rather than just a working prototype.
+**Purpose of this file:** a single self-contained brief that lets a new contributor, or you three weeks from now, pick up the project without re-reading the earlier transcript.
 
 Read alongside (all three exist in the repo root):
 - **LOGIC.md** — the LOCKED engineering contract and mathematical spec.
@@ -38,13 +37,13 @@ Every clause of that paragraph is defensible from evidence in this repo.
 - **Docker container is still up on port 8912.** Stop it with `docker compose down` when you don't need it.
 
 ### Yellow — worth knowing but not breaking
-- **D-012's ablation numbers moved on rebuild.** ERA5-state row 0.8425 → 0.8405; regime row 0.8375 → 0.8401; regime delta now −0.0004 (was −0.0048). Well inside the ±0.01 sampling noise the doc already declared, and it *strengthens* the "regime adds nothing" conclusion. Refresh the table in D-012 before judges see it — I did not touch a LOCKED-adjacent record without your call.
+- **D-012's ablation numbers moved on rebuild.** ERA5-state row 0.8425 → 0.8405; regime row 0.8375 → 0.8401; regime delta now −0.0004 (was −0.0048). Well inside the ±0.01 sampling noise the doc already declared, and it *strengthens* the "regime adds nothing" conclusion. Refresh the table in D-012 before anyone relies on it — I did not touch a LOCKED-adjacent record without your call.
 - **The headline `+0.082 AUROC over spread` was measured against the *lagged proxy*, not the real ensemble.** Against real 50-member IFS ENS the honest margin is **+0.025**. The README now leads with the corrected number; slides / posters must too.
 
 ### Not started
 - IMD live-feed adapter (system currently serves only the 2016-2022 archive; `/api/health` reports STALE by design).
-- **Any actual cloud deployment.** Terraform is written but never applied, and no Bedrock call has ever run — see the verification ledger in §9A.
-- Multi-model ensembling of AI weather models (GraphCast + Pangu + GenCast bust prediction) — still the highest-value remaining item; see §9.3 A.
+- **Any actual cloud deployment.** Terraform is written but never applied, and no Bedrock call has ever run — see the verification ledger in §9.
+- Multi-model ensembling of AI weather models (GraphCast + Pangu + GenCast bust prediction) — still the highest-value remaining item.
 
 ---
 
@@ -91,7 +90,7 @@ That third clause is what stops the label triggering on 0.1 mm vs 3.0 mm shifts 
 | Ensemble spread — lagged proxy | 0.7579 | 0.0310 | +0.031 | 0.0109 | 293.5 | 0.112 |
 | **XGBoost + isotonic (our model)** | **0.8400** | **0.0291** | **+0.088** | **0.0108** | **237.3** | **0.282** |
 
-### The correction that matters for judging
+### The correction that matters
 
 Above the proxy baseline our margin is +0.082 AUROC and -19.2 % decision cost. That was measured against the **lagged-ensemble proxy**, not against a real ensemble. When the true 50-member IFS ENS is pulled and scored on identical rows (6,732 decision-band rows, bust rate 3.36 %):
 
@@ -102,7 +101,7 @@ Above the proxy baseline our margin is +0.082 AUROC and -19.2 % decision cost. T
 | **true IFS ENS spread (raw)** | **0.807** |
 | **our model** | **0.832** |
 
-The honest margin over a genuine operational ensemble is **+0.025 AUROC**. The model still wins on a like-for-like comparison, on a held-out year, with no calibration advantage (AUROC needs none) — but by a quarter of what the proxy comparison suggested. Say this out loud in front of a judge before they ask. See D-014.
+The honest margin over a genuine operational ensemble is **+0.025 AUROC**. The model still wins on a like-for-like comparison, on a held-out year, with no calibration advantage (AUROC needs none) — but by a quarter of what the proxy comparison suggested. Say this up front, before anyone asks. See D-014.
 
 ### Skill breakdown (from D-012's ablation)
 - Forecast rainfall amount alone: 0.795 AUROC (feature-rich only if you count "how much rain is forecast").
@@ -261,7 +260,7 @@ Written so you can answer the sceptical question with the correct claim rather t
 - **BSS 0.088 is small in absolute terms.** For rare events (3.3 % base rate) it is respectable and the metric is dominated by the huge easy-negative mass. Cost reduction and PR-space performance matter more than BSS for this problem shape.
 - **ECE 0.011 is genuinely good calibration.** Compare to a stated aim of <= 0.02 for the ECMWF operational products.
 - **19 % decision-cost reduction is against the spread proxy** at cost ratio 10:1 (miss:false-alarm). At more forgiving ratios the model wins by less; at more punishing ratios it wins by more. `metrics.value_at_cost_ratio` reports the curve, not just one point.
-- **The Assam & Meghalaya 14-June-2022 demo case is real, not cherry-picked.** Model flagged 70.6 % at Day 4 while the ensemble spread proxy flagged 11.2 %. The subdivision recorded 128 mm the next day. But the demo is one point; ablation and stress-test tables show the *distribution* — cite those when a judge asks whether one good day means anything.
+- **The Assam & Meghalaya 14-June-2022 demo case is real, not cherry-picked.** Model flagged 70.6 % at Day 4 while the ensemble spread proxy flagged 11.2 %. The subdivision recorded 128 mm the next day. But the demo is one point; ablation and stress-test tables show the *distribution* — cite those when asked whether one good day means anything.
 
 ---
 
@@ -287,110 +286,11 @@ docker push  ghcr.io/<user>/fbd:0.1.0
 # then a Fly.io / Railway / Render deploy — the image is self-contained.
 ```
 
-Judges will not run your Docker image in the room. They *will* click a URL you paste into the demo doc. Have both.
+Not every reviewer will run the Docker image. Most *will* click a URL. Have both.
 
 ---
 
-## 9. The strategy that turns this into an SIH-winning entry
-
-This section is the *reason* you asked for the blueprint. The analysis draws on your own SIH2026 strategy document (`SIH2026_Disaster_Management_Strategy.md`) — which scores SIH26079 as **8.6/10 overall**, the top statement in the theme, and identifies exactly the moves that convert technical work into judging outcomes.
-
-### 9.1 The judging shape you are optimising for
-
-SIH does not publish a rubric for 26079 specifically, but the sister statement 26073 does (Innovation & Novelty 25 %, Detection Accuracy 20 %, Real-Time 15 %, Explainability 10 %, Scalability 10 %, Deployability 10 %, Viz/UI 5 %, Energy Efficiency 5 %). **A safe assumption is that 26079 weights novelty and accuracy heavily, explainability is mandatory, and deployability is required.** Optimise the build in that order.
-
-Your strengths against this rubric today: **accuracy (validated on a held-out year against a real ensemble), explainability (per-flag SHAP reasons in plain English), deployability (63 MB SQLite + offline container).** Your weaknesses: **novelty framing is fragile if you claim "we predict forecast error" (that is Scher & Messori 2018 — prior art)**, and *demo* is currently one map with one slider.
-
-### 9.2 The novelty framing that survives a hostile judge question
-
-**Do not say:** "We use ML to predict forecast error." Prior art (Scher & Messori 2018) will be brought up.
-
-**Do say:** *"Regime-conditioned, decision-relevant, refused-when-uncertain bust prediction for the Indian monsoon, benchmarked against a real 50-member ECMWF ensemble on a held-out year."* Each clause is defensible:
-- **Regime-conditioned:** six named monsoon regimes with independently-validated physics (D-012 shows the depression classifier picks 25.1 vs 5.3 mm/day discrimination over Odisha).
-- **Decision-relevant:** asymmetric 10:1 cost, value curve reported, category-flip requirement in the label so the metric matches how a forecaster actually thinks.
-- **Refused-when-uncertain:** the OOD detector is earned — refused rows have 7x the bust rate of accepted rows.
-- **Real 50-member benchmark:** D-014.
-- **Held-out year:** 2022, never touched during training or calibration.
-
-The strategy document's own words: *"nobody has published regime-conditioned, rainfall-decision-relevant bust prediction for India."* That is your novelty statement. Memorise it.
-
-### 9.3 High-leverage additions, ranked by effort x judging impact
-
-Each item includes a rough time estimate and which rubric axis it moves.
-
-**A. (~2 h · novelty + accuracy) Multi-model ensembling of AI weather models.**
-Pull GraphCast, Pangu-Weather, and IFS from WeatherBench 2 for JJAS 2022. Add three features: `graphcast_disagreement_from_hres`, `pangu_disagreement_from_hres`, `ai_ensemble_std`. The strategy doc cites *Science Advances* 2026 showing AI models systematically miss record-breaking extremes, and ECMWF's own blog noting Pangu and IFS *"share a forecast bust near the end of January"* with day-6 error correlation 0.54 between IFS and Pangu. **This is the killer research angle** — you would be quantifying, for the first time on the Indian monsoon, how much AI-vs-AI disagreement (as opposed to physics-ensemble disagreement) predicts bust risk. Even a small improvement here is a publishable claim.
-
-**B. (~3 h · demo + explainability) Retrospective case studies with a narrative.**
-Currently the demo is Assam & Meghalaya 14 June 2022. Add:
-- **Uttarakhand cloudburst 15 August 2022** (Uttarkashi and Chamoli) — if the model flagged it, this is your headline slide.
-- **Chennai floods 15 November 2021** — an out-of-JJAS case that tests generalisation, or an honest "the model refused to answer" if OOD.
-- **Wayanad landslide precursor rainfall 30 July 2024** — outside training window; treat as "would this have caught it if run in 2024".
-Each case as a two-panel figure: forecast issued vs observed, with the model's flag, ensemble spread's flag, and the reason list. Turn these into a *"days when it worked, days when it did not"* section — honest wins better than heroic.
-
-**C. (~4 h · demo + viz/UI) Uncertainty visualisation on the map.**
-Right now polygons are filled by bust probability. Add:
-- Diagonal-hatch fill for OOD-refused subdivisions (make the refusal *visible*, not hidden in JSON).
-- A thin ring around each polygon showing the 90 % prediction interval width — thick ring = the model is unsure how sure it is.
-- A regime-strip mini-chart along the top of each region popup showing the six regime probabilities as a stacked bar (turns "monsoon depression 0.65" into something a duty forecaster reads in one glance).
-Judges look at demos more than they read code. This is one afternoon that changes what they *remember*.
-
-**D. (~2 h · deployability + demo) PDF bulletin export.**
-`GET /api/bulletin/pdf?init_date=...` returning a one-page bulletin — map + top-10 review queue + reasons + regime breakdown, styled like an IMD product. Use `weasyprint` or `wkhtmltopdf`. This is the exact artefact a duty forecaster would print and hand to the RMC director. Nothing sells operational readiness like producing the actual paper.
-
-**E. (~2 h · scalability + realism) Cost-sensitivity slider.**
-The 10:1 miss/false-alarm cost is a business decision, not a physics one. Expose it in the dashboard: a slider from 3:1 to 30:1 that recomputes decision cost and value live using `metrics.value_at_cost_ratio`. A judge asks "what if we care more about false alarms?" and you drag the slider. That is a memorable answer.
-
-**F. (~1 h · explainability) A "why refused?" panel for OOD subdivisions.**
-When a subdivision is refused, show which two atmospheric-state features are furthest from training distribution (in Mahalanobis units) and what their historical range was. Turns the refusal from a black box into evidence that the detector is watching *specific* physics.
-
-**G. (~3 h · real-time) Live IMD adapter (aspirational).**
-IMD does not publish real-time NWP output openly, so a *true* live feed is blocked. But: a **scheduled cron that pulls the latest available WB2 HRES + ERA5 nowcast and generates a fresh bulletin daily** would let you demo "yesterday's forecast, today's observation, and here is what the system said" — pushing the demo out of the 2016-2022 archive into the current calendar. `/api/health` would then report `data_quality: OK` instead of `STALE`.
-
-**H. (~1 h · viz + accessibility) Mobile-responsive dashboard.**
-Duty forecasters may pull the review queue on a tablet during a monsoon-depression call. `index.html` needs a media query that stacks the map and queue vertically below 900 px. Cheap, buys a rubric point.
-
-**I. (~2 h · deployability) Public hosted demo URL.**
-Ship the container to Fly.io / Railway / Render and paste the URL into the SIH submission form. See §8.
-
-**J. (~1 h · storytelling) A crisp 90-second demo script.**
-Not a code task. Draft, rehearse, cut. Structure:
-1. *"Every monsoon, forecasts bust about 15 days a season. When they bust, IMD's own ensemble often does not warn — because the AI and physics models bust on the same days."* [0-15 s]
-2. *"So we built a meta-model that watches the forecast being issued and predicts, per subdivision per lead day, whether it is about to fail. Held out 2022 — beats the real 50-member ECMWF ensemble by +0.025 AUROC, cuts asymmetric decision cost by 19 percent against the operational baseline."* [15-45 s]
-3. *"Here it is on the June 14, 2022 forecast for Assam & Meghalaya."* [demo, 45-75 s]
-4. *"It refuses to answer on days it does not recognise — those days have a 23 percent bust rate versus 3 percent for the rest. Serves offline from a 63 MB SQLite. The forecaster is always in the loop."* [75-90 s]
-
-### 9.4 The traps to actively avoid in front of judges
-
-From the strategy document, transplanted here:
-
-- **Do not claim "we forecast the weather with a neural network."** You do not, and that framing loses in one question because GraphCast / Pangu / GenCast already beat physics on most standard scores. Your framing is meta-prediction. Stay there.
-- **Do not claim your work is the first to predict forecast error.** Scher & Messori 2018 exists. Your novelty is regime-conditioning, decision-relevance, refusal, and the India-specific benchmark against a real ensemble.
-- **Do not overstate the +0.082 AUROC.** It was measured against a lagged proxy. The real number vs a genuine ensemble is +0.025. Judges who know the domain will know the difference.
-- **Do not hide the null result on regimes.** Own it: "regimes cost us zero AUROC but they are how a forecaster reads the flag. The problem statement mandates regime-based explanation, so they stay."
-- **Do not demo against a URL that needs venue wifi.** The offline SQLite build is your insurance policy — carry it, tested, on the presenter's laptop.
-
-### 9.5 Cross-theme moves (only if you have slack time)
-
-- **26073 (AWS anomaly)** shares your architecture: same tabular ML + isotonic + rubric. A shared `fbd.evaluate.metrics` + `fbd.ood` package would let you enter both statements with one codebase.
-- **26080 (regime-aware post-processing)** literally reuses your regime classifier. If a teammate wants a second statement, that is the cheapest fork.
-
-### 9.6 Judging-day checklist
-
-- [ ] README headline table shows the corrected `+0.025 AUROC vs true ENS` row.
-- [ ] Demo laptop has the container running with wifi *off* to prove offline.
-- [ ] `docker compose up` cold-start is timed (should be < 10 s to `healthy`).
-- [ ] Backup: the raw `data/artifacts/` folder on a USB.
-- [ ] Slides pre-loaded, phone hotspot as second backup wifi, printed one-pager of the headline table.
-- [ ] 90-second script rehearsed against a stopwatch three times.
-- [ ] One teammate can answer the "why not deep learning" question without hedging.
-- [ ] One teammate can answer the "isn't this just Scher & Messori" question without hedging.
-- [ ] `/api/bulletin/pdf` exists if you built E — print one and hand it over.
-- [ ] Public URL pasted into the submission form.
-
----
-
-## 9A. The expanded platform (D-015 / D-016 / D-017)
+## 9. The expanded platform (D-015 / D-016 / D-017)
 
 Added after the original build, under an explicitly authorised override of the
 LOGIC.md 13/14 non-goals. Read D-015 before touching any of it.
@@ -428,7 +328,7 @@ With the flag off, `/api/assistant/*` is **not registered at all** -- not a
 route that declines, which would still be an egress surface.
 
 `/api/assistant/search` needs no credentials and no network: it answers "where
-is that documented?" against the decision log. That alone is a good judge demo.
+is that documented?" against the decision log. That alone is a good demo.
 
 ### Drift monitoring -- `src/fbd/mlops/drift.py`, `scripts/monitor_drift.py`
 
@@ -491,10 +391,8 @@ Roughly in decreasing importance.
 
 1. **Should D-012's ablation table be refreshed in place, or should the current table stay and a footnote note the drift?** The numbers are inside sampling noise but the doc is a public-facing evidence log.
 2. ~~**Do the 2019 and 2020 ENS parquets complete cleanly?**~~ **Resolved 15:38 IST.** Both parquets landed (90 kB each, 7,560 rows). Calibrated comparison run, D-014 addendum written, README row filled. Model beats true calibrated ENS by +0.040 AUROC, -16.8% cost, ~2x value on identical rows.
-3. **Is the LOCKED status of LOGIC.md still true?** The bust definition, split years, and cost ratios have all held. If any of them need to change (e.g. a judge asks about seasonal cost variation), it becomes a D-015 rather than an in-place edit.
-4. **How much of §9's roadmap is worth doing?** A/B/C/D are the highest-impact-per-hour set. E and I are close seconds. G is aspirational; H is trivial. Rank against your teammates' actual hours before the internal-scrutiny deadline.
-5. **Git.** The project is not under version control. Every session so far has trusted the filesystem. `git init && git add -A && git commit -m "state as of 2026-08-23"` before making any of §9's changes is cheap insurance.
-6. **Does the strategy doc's cross-theme suggestion (26073 + 26080) belong in this project's scope, or is that a fork for a separate team?** Same codebase would work; the question is submission-limit logistics.
+3. **Is the LOCKED status of LOGIC.md still true?** The bust definition, split years, and cost ratios have all held. If any of them need to change (e.g. seasonal cost variation), it becomes a D-015 rather than an in-place edit.
+4. **Git.** The project is not under version control. Every session so far has trusted the filesystem. `git init && git add -A && git commit -m "state as of 2026-08-23"` before making further changes is cheap insurance.
 
 ---
 
@@ -515,7 +413,7 @@ Roughly in decreasing importance.
 ## 12. If everything else is lost — the shortest path to running
 
 ```bash
-cd C:/Users/ASUS/Desktop/sih
+cd forecast-bust-detection
 docker compose up -d
 curl http://localhost:8912/api/health
 # open http://localhost:8912 in a browser

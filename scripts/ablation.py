@@ -1,6 +1,6 @@
 """Feature-group ablation + SHAP importance.
 
-Answers the two questions a technical judge will actually ask:
+Answers the two questions a technical reviewer will actually ask:
   1. "Does the India-specific regime conditioning earn its place, or is the
       whole gain coming from forecast rainfall amount?"
   2. "What is the model really keying on?"

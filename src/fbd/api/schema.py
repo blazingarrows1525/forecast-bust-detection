@@ -94,7 +94,7 @@ class BustPrediction(BaseModel):
     ood_distance: float | None = None
 
     # Calibrated ensemble-spread baseline for the same row, so the UI can toggle
-    # model vs baseline on the same map and a judge can see the gap directly.
+    # model vs baseline on the same map and a reviewer can see the gap directly.
     baseline_probability: float | None = None
 
     # Kept for the verification log; absent for a live forecast.

@@ -1,4 +1,4 @@
-# Decision log — Forecast Bust Detection (SIH26079)
+# Decision log — Forecast Bust Detection
 
 `LOGIC.md` is the engineering contract. This file records every place where the
 build deviates from it, or where LOGIC.md left a choice open, together with the
@@ -158,7 +158,7 @@ the unverifiable claim the strategy document warns against.
 
 No deviation. Recorded to confirm it was considered, not defaulted into.
 LOGIC.md §6 forbids swapping in a deep model to look sophisticated: explainability
-is a hard requirement of the problem statement, the labelled sample is ~10⁴ rows,
+is a hard requirement of the project, the labelled sample is ~10⁴ rows,
 and busts are rare. SHAP on trees delivers the mandated per-flag meteorological
 reasons directly.
 
@@ -201,7 +201,7 @@ validation year (2021). Beating a strawman proves nothing; the strategy document
 warns specifically against unverifiable claimed wins.
 
 A fourth baseline was added for the same reason: **forecast rainfall amount
-alone**. A sceptical judge will ask whether the model has learned flow-dependent
+alone**. A sceptical reviewer will ask whether the model has learned flow-dependent
 predictability or merely "heavy rain days bust more often". That baseline scores
 AUROC 0.754 on its own, so the honest claim is that roughly half of the model's
 edge over spread comes from rainfall magnitude and the rest from disagreement
@@ -262,7 +262,7 @@ AUROC standard error of roughly ±0.01).
 It is reported rather than buried, and the regime layer is **kept** anyway, for
 two reasons that are not about the AUROC:
 
-1. The problem statement mandates explainable output naming the *meteorological
+1. The project requires explainable output naming the *meteorological
    reasons*, and names these six regimes specifically. SHAP can only cite a
    regime if the regime is a model input.
 2. The regime classifier is **independently validated**: on the top-10% of days
@@ -327,7 +327,7 @@ fitting at all. All four predictors are scored on the identical 6,732 rows:**
    against the *lagged proxy*, and therefore **overstates the margin against a
    genuine operational ensemble**. On identical rows the model beats true ENS
    spread by **+0.0251 AUROC**. That is the number to defend. The +0.082 figure
-   is not wrong, but it answers a weaker question than a judge will ask.
+   is not wrong, but it answers a weaker question than a reviewer will ask.
 2. **The proxy tracks the real thing, but only loosely.** correlation(true ENS
    spread, lagged proxy) = **0.665**. This is the check D-007 promised. It
    justifies using the proxy as a *feature* across the full archive, and it
@@ -388,7 +388,7 @@ decision-band rows scored above:
 
 **Bottom line updated:** the meta-model beats a *real, calibrated* 50-member
 IFS ensemble on the same rows -- +0.040 AUROC, -16.8% decision cost, ~2x
-economic value. That is the number to defend in front of a judge. The +0.025
+economic value. That is the number to defend in front of a reviewer. The +0.025
 AUROC in the parent entry above is the *raw* comparison and should always be
 cited alongside so no one can accuse cherry-picking of the friendlier metric.
 
@@ -418,9 +418,8 @@ visible, not to relitigate it):
 
 1. Bedrock, RAG and tool calling all require network egress. The air-gap
    guarantee is the project's demo insurance policy and was empirically verified.
-2. The project's own strategy analysis scores this problem statement 8.6/10
-   largely because it is *not* a retrieval-chatbot-over-weather-data, and scores
-   the "WeatherGPT" statement 4.9/10 as a saturated trap.
+2. The project's value lies in *not* being a retrieval chatbot over weather
+   data; a "WeatherGPT" framing is a saturated trap.
 3. §14 is LOCKED, so moving it is a contract change rather than a refinement.
 
 **The mitigation that makes the trade survivable, and is binding on the build:**
@@ -517,7 +516,7 @@ model performed well. That is not a false positive to be tuned away; it is
 what the statistic measures. Input drift says "the world your model was fitted
 on has moved, go and check", not "your model is now wrong". Anyone presenting
 this must say so, because the alternative reading -- monitor says RETRAIN,
-therefore the headline result is unsafe -- is wrong and a judge may reach for
+therefore the headline result is unsafe -- is wrong and a reviewer may reach for
 it. Verdicts are three-valued (OK / WATCH / RETRAIN) precisely so that a rare
 event model does not fire a binary alarm on sampling noise.
 
@@ -599,7 +598,7 @@ suspended, and still enforced in this build:
 **What it costs.** The honest answer to "why did you not build a fancy 3D
 front end?" — previously *"because §14 forbids scope that adds no scientific
 defensibility"* — is no longer available. That answer was worth something with
-a technical judge.
+a technical reviewer.
 
 **What it buys, and why this is not pure decoration.** The 2D choropleth can
 only show **one lead day at a time**; a forecaster must click through ten
@@ -732,7 +731,7 @@ The Terraform under `infra/` is kept as written, clearly labelled as
 un-applied, because it documents what a funded deployment would look like. It
 is not claimed as working infrastructure.
 
-**What this costs in the pitch, stated plainly:** "deployed on AWS" is no
+**What this costs in the project's claims, stated plainly:** "deployed on AWS" is no
 longer available as an answer. What replaces it is defensible on its own terms
 — the system is a daily batch job producing a static artifact, it runs
 air-gapped by design, and a container that anyone can pull and run in one

@@ -1,4 +1,4 @@
-"""Figures for the two claims this project is judged on.
+"""Figures for the two claims this project rests on.
 
 The repo had no figures at all -- not one PNG or SVG -- while asserting in prose
 that the model is calibrated and that its refusals are earned. Both claims are

@@ -67,7 +67,7 @@ text for each — render it, do not paraphrase it.
 
 The `REVIEW` threshold is **0.0909**, and it is not a free parameter: it is
 `C_fa / (C_fa + C_miss)` with a 10:1 cost ratio (a missed bust costs 10× a
-false alarm). If a judge asks why the threshold "seems low", that is the
+false alarm). If a reviewer asks why the threshold "seems low", that is the
 answer, and it is arithmetic rather than taste.
 
 ### 2.3 Never invent or interpolate a number
@@ -209,7 +209,7 @@ Returns a `Bulletin`: `init_date`, `issued_at`, `lead_day`, `n_regions`,
 }
 ```
 `baseline_probability` exists **so the UI can toggle model vs baseline on the
-same map** and a judge can see the gap directly. Use it.
+same map** and a reviewer can see the gap directly. Use it.
 
 `observed_rain_mm` / `actual_bust` are present for historical replay and absent
 for a live forecast — that is the "show truth" toggle.
@@ -392,7 +392,7 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   the ENS spread by a two-input logistic regression (D-030). An MLP outranks
   the served XGBoost in a registered backtest across 2019–2022 (**+0.0088
   [+0.0023, +0.0157]**, D-027), but it is not served, and XGBoost is the better
-  of the two in 2022. Claiming otherwise fails the first question a judge asks.
+  of the two in 2022. Claiming otherwise fails the first question a reviewer asks.
 - That the MLP outranks a real ensemble. Its lead over ENS spread in 2019–2021
   was an uncorrected secondary; the registered confirmation on 2018 did not
   confirm it, **−0.0080 [−0.0254, +0.0087]** (D-028).

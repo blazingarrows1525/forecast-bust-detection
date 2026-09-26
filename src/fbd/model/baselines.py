@@ -127,7 +127,7 @@ class LogisticBaseline:
 class PersistenceBaseline:
     """Bonus baseline: today's forecast magnitude alone.
 
-    Included because a sceptical judge will ask whether the model is really
+    Included because a sceptical reviewer will ask whether the model is really
     learning predictability or just "it rains hard in Konkan".  If raw forecast
     rainfall alone scores nearly as well as the model, we need to say so.
     """

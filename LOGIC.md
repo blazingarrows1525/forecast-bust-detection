@@ -1,13 +1,13 @@
-# LOGIC.md — Engineering Contract & System Blueprint (SIH26079)
+# LOGIC.md — Engineering Contract & System Blueprint
 
-**Problem Statement:** SIH26079 · Medium-Range Forecast Bust Detection for Weather Forecasts  
-**Ministry / Stakeholder:** Ministry of Earth Sciences (MoES) / India Meteorological Department (IMD)  
+**Problem:** Medium-Range Forecast Bust Detection for Weather Forecasts  
+**Intended users:** India Meteorological Department (IMD) duty forecasters  
 **System Class:** Operational Meteorological Decision-Support Meta-Model  
 **Status:** Canonical Engineering Specification (LOCKED)
 
 ---
 
-## 1. Problem Statement & Core Philosophy
+## 1. Problem & Core Philosophy
 
 ### 1.1 The Operational Problem
 Medium-range weather forecasts (Day 1–10) over the Indian subcontinent are produced by numerical weather prediction (NWP) models (e.g., ECMWF IFS HRES, NCMRWF, IMD GFS). While skill has steadily improved, **unannounced forecast busts**—sudden catastrophic forecast failures where the NWP model predicts heavy rain that never arrives, or misses a localized extreme torrential event—carry devastating socioeconomic and disaster-management costs.
@@ -282,7 +282,7 @@ AI weather models degrade significantly on unprecedented climatic extremes. When
 
 ## 14. Explicit Non-Goals & Architectural Boundaries
 
-To preserve scientific rigor and avoid hackathon scope bloat, the following are strictly **out of scope**:
+To preserve scientific rigor and avoid scope bloat, the following are strictly **out of scope**:
 1. **No Raw Weather Forecasting:** The system does not simulate fluid equations or output rainfall grids.
 2. **No Black-Box Deep Learning (CNN/Transformers/GNN):** Tabular gradient boosting is chosen for interpretability, speed, and sample efficiency.
 3. **No Distributed Cloud Bloat:** No Kubernetes, Kafka, Spark, or microservice meshes; single-node reproducibility is mandated.

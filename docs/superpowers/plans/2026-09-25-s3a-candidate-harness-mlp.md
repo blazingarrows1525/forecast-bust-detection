@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Commit messages carry **no** `Co-Authored-By` or Claude attribution lines (standing user instruction).
-- No SIH / SIH26079 on any product surface.
+- No competition branding on any product surface.
 - Slate **mlp, temporal, spatial**; family alpha **0.05**; per-candidate alpha **0.05/3**; years **2019–2022**; ENS secondary years **2019–2021**; seed **20260919**; primary and ENS-mean resamples **10,000**; per-year and exploratory **2,000**; lead days **3–7**.
 - MLP frozen per spec §5: hidden [128, 64], ReLU, dropout 0.2, AdamW lr 1e-3 wd 1e-4, batch 1,024, ≤60 epochs, patience 5 on validation-year weighted BCE, seeds 20260920–20260924, isotonic calibration on the validation year, CPU, deterministic, 8 threads, float32.
 - Torch goes in `requirements.txt` only. Nothing CI or the serving image imports may import torch at module level.

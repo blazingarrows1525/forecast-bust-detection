@@ -62,7 +62,7 @@ Ranked by fit for this project.
 
 ### 3a. Hugging Face Spaces — recommended
 
-Best fit: it is ML-native, judges and reviewers recognise it, Docker Spaces are
+Best fit: it is ML-native, reviewers recognise it, Docker Spaces are
 free and persistent, and the URL is stable.
 
 1. Create a Space → SDK **Docker** → visibility Public.

@@ -34,3 +34,6 @@ offline-demo/
 # Notebook scratch
 .ipynb_checkpoints/
 Untitled*.ipynb
+
+# Local Claude Code / desktop-app settings; not part of the project.
+.claude/

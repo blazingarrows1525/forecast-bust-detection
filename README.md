@@ -1,7 +1,5 @@
 # Forecast Bust Detection for Medium-Range Weather Forecasts
 
-**SIH 2026 · Software · Disaster Management · PS SIH26079 · Ministry of Earth Sciences**
-
 Predicts **when an existing medium-range rainfall forecast is about to fail** over
 India — which subdivision, which lead day, and why — instead of predicting the
 weather itself.
@@ -249,7 +247,7 @@ Regenerate with `PYTHONPATH=src python scripts/plot_evaluation_figures.py`.
 
 ## What it does
 
-Five outputs, matching the five the problem statement names:
+Five outputs:
 
 1. **Forecast confidence map** — subdivision-wise, Day 1 to Day 10.
 2. **Bust probability** — per subdivision and lead time, from the model and
@@ -435,7 +433,7 @@ These are reported because they are true, not because they help.
   remaining gain comes from run-to-run disagreement (+0.023) and atmospheric
   state (+0.021).
 * **Regime features add no predictive skill** (−0.005 AUROC, within noise). They
-  are kept because the problem statement mandates regime-based explanation and
+  are kept because the project requires regime-based explanation and
   because the classifier is independently validated — on its top-10% monsoon
   depression days, Odisha observes **25.1 mm/day vs 5.3 mm/day** otherwise.
 * **The real ensemble is a much stronger baseline than our proxy.** In 2022

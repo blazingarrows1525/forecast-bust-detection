@@ -36,7 +36,7 @@ This file does not duplicate them.
 
 ## 2. Sub-project A — landing page (`web/landing.html`)
 
-**Job:** tell the June 2022 story in a way a judge can read in under a minute,
+**Job:** tell the June 2022 story in a way a reviewer can read in under a minute,
 without a single number that isn't live from the API.
 
 **The invariant.** Every claim on the page reads live from the API: the

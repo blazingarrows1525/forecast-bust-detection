@@ -1,12 +1,10 @@
-# TECHNICAL_STUDY_GUIDE.md — deep implementation reference for mentor review
+# TECHNICAL_STUDY_GUIDE.md — deep implementation reference for technical review
 
-**Audience:** a faculty mentor or industry reviewer who wants to test *how the system actually works* — the mathematics, the algorithms, the causality guarantees, the code paths. Read alongside the codebase, not instead of it.
+**Audience:** a technical reviewer who wants to test *how the system actually works* — the mathematics, the algorithms, the causality guarantees, the code paths. Read alongside the codebase, not instead of it.
 
-**Different from `TEAMMATE_BRIEFING.md`:** that file is the presentation-defence brief for a jury (fast, defensive, headline numbers, Q&A). This one is depth for a supervisor who will ask *"walk me through what happens when …"* and *"show me where that guarantee is enforced."*
+**Suggested reading time:** ~90 minutes for full read, ~30 minutes for the parts a reviewer is most likely to probe (§2, §5, §7, §10, §14).
 
-**Suggested reading time:** ~90 minutes for full read, ~30 minutes for the parts your mentor is most likely to probe (§2, §5, §7, §10, §14).
-
-**How to use:** every claim in this document ends with a code reference (`path:function` or `path` for whole-module) so you can open the file and read the actual implementation while your mentor is in the room. If a claim looks weak, verify it in the code before you say it out loud.
+**How to use:** every claim in this document ends with a code reference (`path:function` or `path` for whole-module) so you can open the file and read the actual implementation while a reviewer is in the room. If a claim looks weak, verify it in the code before you say it out loud.
 
 ---
 
@@ -166,7 +164,7 @@ Enforced at [`src/fbd/features/forecast.py:lagged_ensemble`](src/fbd/features/fo
 
 **The poison test.** [`tests/test_core.py:test_lagged_ensemble_uses_only_leads_at_or_beyond_L`](tests/test_core.py:107-135) constructs a synthetic day where leads 1–4 hold the value 1000 and leads 5–10 hold 10. If the code obeyed causality, leads 5–8 would show zero spread (their members are all from `{5, …, 10}`, all equal to 10) and lead 4 would show huge spread (its members `{4, 5, 6}` = `{1000, 10, 10}`). The test asserts exactly this. Every code change that touches feature construction re-runs this test.
 
-Reading this test in your mentor's presence is the single strongest defence of the causality claim.
+Reading this test in a reviewer's presence is the single strongest defence of the causality claim.
 
 ### Both axioms extend to derived features
 
@@ -353,7 +351,7 @@ Consecutive-run change for the same valid day: `jumpiness(s, t₀, L) = |F(s, t�
 
 The same statistic is used as both **baseline #1** (§16) and as a **feature**. Legitimate because it is fitted on training data only, and the baseline is scored on held-out data. The model is not allowed to peek at test-year bust labels via this feature. Laplace smoothing with `k = 20` prevents a subdivision-lead cell with 40 samples and zero busts from claiming a 0% rate.
 
-### National ERA5 indices — the ones your mentor may probe
+### National ERA5 indices — the ones a reviewer may probe
 
 Implemented at [`src/fbd/features/era5.py:national_indices`](src/fbd/features/era5.py:59-100). Physically-motivated, all reduced to India-domain area-weighted (`cos(lat)`) means or extrema over specific boxes:
 
@@ -388,7 +386,7 @@ Implemented at [`src/fbd/regime/classify.py`](src/fbd/regime/classify.py). Weak 
 
 ### The six regimes
 
-`active_monsoon`, `break_monsoon`, `monsoon_depression`, `western_disturbance`, `orographic`, `coastal`. These are the ministry's own named regimes from the problem statement, not something we invented.
+`active_monsoon`, `break_monsoon`, `monsoon_depression`, `western_disturbance`, `orographic`, `coastal`. These are IMD's own named regimes, not something we invented.
 
 ### Two honest observations
 
@@ -431,7 +429,7 @@ H(s, t) = -Σ_r p(r | s, t) · log(p(r | s, t)) / log(|R|)
 
 Normalised to [0, 1]. **Fed to the bust model as a feature.** High entropy means the classifier itself is ambiguous about which regime applies, which is itself a predictor of low predictability (LOGIC.md §5.3: "regime uncertainty is itself evidence of low predictability"). This is one of the more elegant modelling choices — a meta-signal from the auxiliary model.
 
-### Independent validation your mentor should like
+### Independent validation a reviewer should like
 
 Not fitted on bust labels, so the regime vector cannot leak the target. Validation done post-hoc: on top-10% depression-score days over Odisha, mean rainfall is **25.1 mm/day**, vs **5.3 mm/day** on low-depression days — a 4.7× ratio, meteorologically consistent with what a depression should do. On Coastal AP: 8.4 vs 4.5 (~2×). On Gangetic WB: 9.2 vs 6.8 (~1.4×). The signal is strongest where it should be strongest.
 
@@ -948,7 +946,7 @@ The tests that would silently break the whole project if removed:
 - `test_ood_cells_never_carry_a_probability` (refusal invariant)
 - `test_subdivision_config_is_an_exact_partition_of_districts` (domain artifact)
 
-If your mentor wants to verify the causality claim in real time, open [`tests/test_core.py:107-135`](tests/test_core.py:107) and read the poison test aloud.
+If a reviewer wants to verify the causality claim in real time, open [`tests/test_core.py:107-135`](tests/test_core.py:107) and read the poison test aloud.
 
 ## §27. Reproducibility from a cold clone
 
@@ -986,7 +984,7 @@ python scripts/fetch_ens.py --year 2022 --every 3
 
 ## §28. Known limitations we did not close
 
-**Do not hide these; a mentor will ask.**
+**Do not hide these; a reviewer will ask.**
 
 1. **3-hour observation/forecast window offset (D-005).** IMD's rainfall day is 03Z–03Z; WB2's 24h accumulation is 00Z–00Z. WB2 does not publish 3-hourly precip at this resolution so the offset cannot be removed. Second-order for subdivision-scale area-means (19,000–222,000 km²) and applies identically to model + all baselines so it cannot manufacture a win — but it is real.
 
@@ -994,7 +992,7 @@ python scripts/fetch_ens.py --year 2022 --every 3
 
 3. **`spread_growth` slightly leaky at long leads.** It is defined as `spread(L) − spread(L−1)`, both computed with the same causal window rule, but this makes the value depend on `spread(L−1)` which uses leads `{L−1, L, L+1}` — a superset of the causal set for lead `L`. Impact on features is minor because the difference cancels most of the leaked information, but a strict-purist would flag it. Fixable by defining growth as `spread(L+1) − spread(L)` (forward difference) instead of backward.
 
-4. **Regime classifier is weak supervision.** Physically-motivated scores + softmax, not a supervised classifier trained on expert-labelled days. Justification: the ministry accepts weak labels for the MVP (LOGIC.md §5.2), the scores are physically defensible, and independent validation (§11) shows they carry real signal. But a supervised classifier trained on IMD-labelled days would likely be better.
+4. **Regime classifier is weak supervision.** Physically-motivated scores + softmax, not a supervised classifier trained on expert-labelled days. Justification: LOGIC.md accepts weak labels for the MVP (LOGIC.md §5.2), the scores are physically defensible, and independent validation (§11) shows they carry real signal. But a supervised classifier trained on IMD-labelled days would likely be better.
 
 5. **No real Bedrock invocation yet.** The GenAI layer is tested against a fake client (28 tests pass). The account is on AWS Free Plan which blocks Bedrock; upgrade in progress. The offline system does not depend on Bedrock for any function — the LLM layer is opt-in via `FBD_GENAI_ENABLED=1` and provides an explanation-narration layer on top of the SHAP sentences, not a substitute for them.
 
@@ -1011,7 +1009,7 @@ python scripts/fetch_ens.py --year 2022 --every 3
 - **A calibrated ENS baseline over the whole record**, not just JJAS 2022. Currently only D-014's decision-band subset has a true-ENS baseline. Requires downloading ~50 GB of ENS spread across all training years; feasible but was deferred against the $2 AWS budget.
 - **OOD threshold sweep.** Currently 99.5th percentile. A proper Pareto-frontier analysis over refusal rate vs. earned-refusal-ratio would give a defensible operating point rather than a chosen constant.
 - **Explanation-stability check.** Perturb feature values by ±ε and measure how much the top-3 reason list changes. If reasons are stable to noise, they are trustworthy; if they flip under 1% noise, they are decoration. Script drafted, not yet run.
-- **PDF bulletin export.** Judges remember paper artefacts. `weasyprint` + a Jinja template on `/api/bulletin` output. Half a day.
+- **PDF bulletin export.** People remember paper artefacts. `weasyprint` + a Jinja template on `/api/bulletin` output. Half a day.
 
 ## §30. Extension research directions
 
@@ -1056,10 +1054,10 @@ python scripts/fetch_ens.py --year 2022 --every 3
 
 ---
 
-## §32. What to say when your mentor asks the hard question
+## §32. What to say when a reviewer asks the hard question
 
 > **"How do you know you didn't overfit the 2022 test year through your own iteration?"**
 
 The honest answer: *"I looked at the 2022 test set once, at final evaluation, after freezing the model on 2016–2020 with hyperparameters chosen on 2021. The test set was never used for feature selection or hyperparameter search. But you're right that any published number could in principle be the result of many hidden trials. The strongest defence I can offer is (a) our drift monitor shows 2022 is a genuinely atypical year — PSI 2.64 on upper-level wind shear — so the model was evaluated under distribution shift, not on an easy in-distribution slice; and (b) every hyperparameter and threshold choice is in the code with a `TRAIN_YEARS` guard. We'd need to run rolling cross-validation for a definitive answer, which is item #1 on §29."*
 
-Do not lie about this. It is the most sophisticated question a mentor can ask, and the honest answer earns more respect than a confident false one.
+Do not lie about this. It is the most sophisticated question a reviewer can ask, and the honest answer earns more respect than a confident false one.

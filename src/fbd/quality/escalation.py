@@ -40,7 +40,7 @@ def cost_optimal_threshold(
     Flag when  p * C_miss > (1 - p) * C_fa,  i.e.  p > C_fa / (C_fa + C_miss).
     With 10:1 that is 0.0909 -- deliberately low, because under a 10:1 cost
     ratio a forecaster looking at a few extra regions is much cheaper than one
-    missed flood. Judges ask why the threshold "seems low"; this is the answer,
+    missed flood. Reviewers ask why the threshold "seems low"; this is the answer,
     and it is arithmetic rather than taste.
     """
     return cost_false_alarm / (cost_false_alarm + cost_miss)

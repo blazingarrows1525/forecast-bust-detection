@@ -1,4 +1,4 @@
-# Forecast Bust Detection (SIH26079) — pinned to the versions this build was
+# Forecast Bust Detection — pinned to the versions this build was
 # developed and verified against.  No GPU anywhere: if a design needs one, it is
 # the wrong design for this problem (LOGIC.md sec 11).
 

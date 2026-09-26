@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Commit messages carry **no** `Co-Authored-By` or Claude attribution lines (standing user instruction).
-- No SIH / SIH26079 on any product surface.
+- No competition branding on any product surface.
 - `data/processed/dataset.parquet` and `data/artifacts/bust_model.joblib` are **never modified**. Never run `scripts/build_dataset.py` without `--fold`: its default writes `dataset.parquet`.
 - Folds: 2019 = train 2016–2017, val 2018; 2020 = train 2016–2018, val 2019; 2021 = train 2016–2019, val 2020; 2022 = train 2016–2020, val 2021.
 - Primary years **2019, 2020, 2021**; seed **20260919**; primary and secondary-mean resamples **10,000**; per-year and exploratory resamples **2,000**; alpha **0.05**; decision band **Day 3–7**.

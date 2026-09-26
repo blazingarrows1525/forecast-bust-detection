@@ -88,7 +88,7 @@ of refusing the hardest rows, not a discrepancy.
 
 The distinction a binary flag destroys. When the Mahalanobis detector puts a
 region-day outside the training distribution, the system returns
-`OUT_OF_DISTRIBUTION` and no probability. The question a judge should ask is
+`OUT_OF_DISTRIBUTION` and no probability. The question a reviewer should ask is
 whether that refusal is a real signal or an excuse.
 
 On the 2022 test year:
