@@ -1,0 +1,96 @@
+{
+  "registration_sha256": "e7677e43428b4575f29764b395284a1824ed9457bfc8f0ececfe410a4d149aee",
+  "params_sha256": {
+    "mlp": "f4af16c632f3192f9dd06913cd65880c862df947bbb6b91daeca5898b946f4b4",
+    "xgboost": "205d618ace558e0bc2a72b48feb5ac5f0455604602fb582931d80080d86403cf"
+  },
+  "n_ens_dates": {
+    "2018": 122,
+    "2019": 122,
+    "2020": 122,
+    "2021": 122,
+    "2022": 122
+  },
+  "fold": {
+    "test": 2018,
+    "train": [
+      2016
+    ],
+    "val": [
+      2017
+    ],
+    "n_features": 52,
+    "n_rows": 20060,
+    "n_init_dates": 120,
+    "comparator": "raw",
+    "auroc": {
+      "mlp": 0.7869611327018323,
+      "xgboost": 0.6806256515200876,
+      "ens": 0.7949498786615199
+    },
+    "mlp_fit_seconds": 8.4,
+    "mlp_history": [
+      {
+        "seed": 20260920,
+        "best_epoch": 1,
+        "val_loss": 1.1381618976593018
+      },
+      {
+        "seed": 20260921,
+        "best_epoch": 1,
+        "val_loss": 1.1100300550460815
+      },
+      {
+        "seed": 20260922,
+        "best_epoch": 2,
+        "val_loss": 1.1772035360336304
+      },
+      {
+        "seed": 20260923,
+        "best_epoch": 2,
+        "val_loss": 1.1600720882415771
+      },
+      {
+        "seed": 20260924,
+        "best_epoch": 1,
+        "val_loss": 1.1509851217269897
+      }
+    ],
+    "dataset_sha256": "cc8f4dbea2b118fea6f7a255f9a227141cf9250fb7dffae4c436a89fc2f64f93"
+  },
+  "row_rule": "comparison_rows() on the fold-2018 dataset: Day 3-7 rows with a label and ENS spread; every row scored by both models",
+  "primary": {
+    "point": -0.007988745959687571,
+    "lo": -0.02541670791921964,
+    "hi": 0.008743161748048262,
+    "n_boot": 10000,
+    "n_clusters": 120,
+    "n_degenerate": 0,
+    "alpha": 0.05,
+    "excludes_zero": false,
+    "verdict": "indistinguishable",
+    "text": "the MLP's lead over ENS spread is not confirmed in 2018"
+  },
+  "secondary": {
+    "xgboost_minus_ens": {
+      "point": -0.11432422714143231,
+      "lo": -0.14193184135110362,
+      "hi": -0.08784481105996746,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true
+    },
+    "mlp_minus_xgboost": {
+      "point": 0.10633548118174474,
+      "lo": 0.08751742911733681,
+      "hi": 0.12504575813169222,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true
+    }
+  }
+}

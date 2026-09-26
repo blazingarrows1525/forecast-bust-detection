@@ -109,3 +109,65 @@ def test_unknown_init_date_is_404_not_500(client):
 def test_malformed_mode_is_rejected_by_validation(client, an_init_date):
     r = client.get(f"/api/risk-cube?init_date={an_init_date}&mode=wormhole")
     assert r.status_code == 422
+
+
+# ----------------------------------------------------- convergence (landing)
+# The orthogonal cut: one region-day, every forecast ever issued for it. This
+# is what the landing page plots, and the ordering and the null handling are
+# both load-bearing for that chart.
+def test_convergence_returns_every_lead_longest_first(client):
+    r = client.get("/api/convergence?region_id=ASSAM_MEGHALAYA&valid_date=2022-06-17")
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) > 1
+    leads = [x["lead_day"] for x in rows]
+    assert leads == sorted(leads, reverse=True), (
+        "rows must descend by lead day so reading left to right is time "
+        "approaching the event"
+    )
+    assert {x["valid_date"] for x in rows} == {"2022-06-17"}
+    # Each row is a different forecast, so each has its own init date.
+    assert len({x["init_date"] for x in rows}) == len(rows)
+
+
+def test_convergence_refused_rows_carry_no_probability(client):
+    rows = client.get(
+        "/api/convergence?region_id=ASSAM_MEGHALAYA&valid_date=2022-06-17"
+    ).json()
+    refused = [x for x in rows if x["status"] == "OUT_OF_DISTRIBUTION"]
+    if not refused:
+        pytest.skip("no refusals on this region-day")
+    for x in refused:
+        assert x["bust_probability"] is None, (
+            "a refused row must be null, never 0 -- the chart draws a gap from "
+            "null and a low reading from 0"
+        )
+        assert x["review_tier"] == "REFUSE"
+
+
+def test_convergence_unknown_region_day_is_404_not_empty(client):
+    r = client.get("/api/convergence?region_id=NOT_A_REGION&valid_date=2022-06-17")
+    assert r.status_code == 404
+
+
+# ------------------------------------------------------------- overrides
+def test_override_rejects_a_reason_too_short_to_reconstruct_a_decision(client):
+    """Server-side backstop, independent of any HTML attribute.
+
+    The UI guards this too, but the reason requirement is the point of the
+    endpoint and must not depend on the client that happens to call it.
+    """
+    r = client.post("/api/override", json={
+        "region_id": "CHHATTISGARH", "init_date": "2022-06-21", "lead_day": 9,
+        "action": "escalate", "reason": "no", "user": "x",
+    })
+    assert r.status_code == 422
+    assert "at least 3 characters" in str(r.json())
+
+
+def test_override_rejects_an_action_it_does_not_define(client):
+    r = client.post("/api/override", json={
+        "region_id": "CHHATTISGARH", "init_date": "2022-06-21", "lead_day": 9,
+        "action": "delete", "reason": "trying an undefined action", "user": "x",
+    })
+    assert r.status_code == 422

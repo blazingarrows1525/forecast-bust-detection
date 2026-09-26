@@ -33,6 +33,7 @@ import pandas as pd
 import xarray as xr
 
 from fbd import config
+from fbd.features import standardise as S
 from fbd.regions import masks
 
 ERA5_DIR = config.WB2_RAW / "era5"
@@ -133,17 +134,19 @@ def _daily_at_00z(df: pd.DataFrame) -> pd.DataFrame:
     return d.drop(columns="time")
 
 
-def national_daily(years=None) -> pd.DataFrame:
-    """Daily 00Z indices plus standardised anomalies and multi-day tendencies."""
+def national_daily(years=None, train_years=None) -> pd.DataFrame:
+    """Daily 00Z indices plus standardised anomalies and multi-day tendencies.
+
+    ``train_years`` defaults to ``config.TRAIN_YEARS``; an S1b fold passes its own.
+    """
     idx = _daily_at_00z(national_indices(years)).sort_values("date").reset_index(drop=True)
     cols = [c for c in idx.columns if c != "date"]
 
     # Standardise against the training-year climatology only.
-    train_mask = idx.date.dt.year.isin(list(config.TRAIN_YEARS))
-    mu = idx.loc[train_mask, cols].mean()
-    sd = idx.loc[train_mask, cols].std().replace(0, 1.0)
+    mask = S.fit_mask(idx.date, train_years or config.TRAIN_YEARS)
+    z = S.standardise(idx, cols, mask)
     for c in cols:
-        idx[f"{c}_z"] = (idx[c] - mu[c]) / sd[c]
+        idx[f"{c}_z"] = z[f"{c}_z"]
 
     # Tendencies: how the situation has been evolving up to t0.
     #

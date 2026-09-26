@@ -1,4 +1,4 @@
-# Forecast Bust Detection (SIH26079) — pinned to the versions this build was
+# Forecast Bust Detection — pinned to the versions this build was
 # developed and verified against.  No GPU anywhere: if a design needs one, it is
 # the wrong design for this problem (LOGIC.md sec 11).
 
@@ -37,3 +37,7 @@ pydantic>=2.7
 # --- dev ---
 pytest>=8.0
 tqdm>=4.66
+
+# S3 candidate models (local only; not in the serving image or CI). CPU build:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.2

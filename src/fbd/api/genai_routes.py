@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from fbd.genai import agent, retrieval
-from fbd.genai.client import availability
+from fbd.genai.client import provider_availability
 from fbd.genai.settings import load
 from fbd.obs.metrics import REGISTRY, get_logger, log_event, timed
 
@@ -44,9 +44,15 @@ class AskResponse(BaseModel):
 
 @router.get("/status")
 def status() -> dict:
-    """Whether the layer could actually serve a request, and why not if not."""
+    """Whether the layer could actually serve a request, and why not if not.
+
+    Asks the *configured* provider, not the cloud one.  Reporting missing AWS
+    credentials on a build whose default backend is a local model told the
+    operator to fix something that was not broken, and contradicted what
+    ``settings.describe()`` on the same response said.
+    """
     settings = load()
-    check = availability()
+    check = provider_availability(settings)
     return {
         "settings": settings.describe(),
         "backend": check.as_dict(),

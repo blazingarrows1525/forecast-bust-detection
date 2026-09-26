@@ -1,7 +1,7 @@
 [project]
 name = "fbd"
 version = "0.1.0"
-description = "Forecast Bust Detection for medium-range weather forecasts over India (SIH26079)"
+description = "Forecast Bust Detection for medium-range weather forecasts over India"
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]

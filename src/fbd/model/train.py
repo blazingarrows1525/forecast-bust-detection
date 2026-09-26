@@ -1,7 +1,7 @@
 """Gradient-boosted bust model + isotonic calibration.
 
 Model family is fixed by LOGIC.md sec 6 and is not up for negotiation on
-aesthetic grounds: the problem statement mandates explainable output naming the
+aesthetic grounds: the project requires explainable output naming the
 meteorological reasons, the labelled sample is ~10^5 rows, and busts are rare.
 SHAP on trees delivers the mandated per-flag reasons directly; a CNN does not.
 
@@ -28,6 +28,7 @@ import pandas as pd
 from sklearn.isotonic import IsotonicRegression
 
 from fbd import config
+from fbd.model.params import DEFAULT_PARAMS
 
 # Feature groups.  Any column absent from the dataset is skipped, so the model
 # trains with or without the ERA5 stage having completed.
@@ -112,21 +113,9 @@ class BustModel:
 
         pos = max(int(y.sum()), 1)
         neg = int((y == 0).sum())
-        params = dict(
-            n_estimators=600,
-            max_depth=5,
-            learning_rate=0.04,
-            subsample=0.85,
-            colsample_bytree=0.75,
-            min_child_weight=20,
-            reg_lambda=2.0,
-            # Busts are rare; class weighting is mandated by LOGIC.md sec 4.5.
-            scale_pos_weight=neg / pos,
-            eval_metric="logloss",
-            tree_method="hist",
-            random_state=config.RANDOM_SEED,
-            n_jobs=0,
-        )
+        params = dict(DEFAULT_PARAMS)
+        # Busts are rare; class weighting is mandated by LOGIC.md sec 4.5.
+        params["scale_pos_weight"] = neg / pos
         params.update(overrides)
         self.params = params
 

@@ -1,6 +1,6 @@
 """SHAP values -> plain-language meteorological reasons.
 
-The problem statement demands "key meteorological reasons for low confidence".
+The project requires "key meteorological reasons for low confidence".
 That is a hard requirement, not a nice-to-have, and it is the main reason the
 model is a tree ensemble rather than a neural network (LOGIC.md sec 6).
 

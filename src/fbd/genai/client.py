@@ -90,7 +90,7 @@ def _credentials_present() -> tuple[bool, str]:
     return True, "credentials resolved"
 
 
-def build_client(settings: BedrockSettings | None = None):
+def build_bedrock_client(settings: BedrockSettings | None = None):
     """Construct the Bedrock Mantle client.
 
     Raises RuntimeError with an actionable message rather than an ImportError
@@ -104,3 +104,69 @@ def build_client(settings: BedrockSettings | None = None):
     from anthropic import AnthropicBedrockMantle
 
     return AnthropicBedrockMantle(aws_region=settings.region)
+
+
+# --------------------------------------------------------------------------
+# Provider dispatch (D-019)
+# --------------------------------------------------------------------------
+# `build_client` used to construct the managed cloud backend unconditionally,
+# which made the whole assistant layer un-runnable without a funded account.
+# It now dispatches on the configured provider and defaults to the local model,
+# so the assistant works offline with no credentials and no spend. The response
+# contract is identical across providers, so guardrails, tool dispatch and the
+# numeric-grounding checks are unaffected by the choice.
+
+
+def build_client(settings=None):
+    """Return a Messages-API client for the configured provider.
+
+    Accepts either a full ``GenAISettings`` or a bare backend settings object.
+    A bare ``BedrockSettings`` keeps the old behaviour, so existing callers and
+    tests that pass one continue to work unchanged.
+    """
+    from fbd.genai.providers import build
+    from fbd.genai.settings import BedrockSettings as _BS, load
+
+    if settings is None:
+        settings = load()
+
+    # Bare backend settings: infer the provider from the type.
+    if isinstance(settings, _BS):
+        return build_bedrock_client(settings)
+    if not hasattr(settings, "provider"):
+        # A LocalSettings (or duck-typed equivalent) was passed directly.
+        return build("local", settings)
+
+    return build(settings.provider, settings.backend)
+
+
+def provider_availability(settings=None):
+    """Can the configured provider actually serve a call right now?
+
+    Never makes a network call for the cloud backend (it runs on the health
+    path); the local backend does a 5-second localhost probe, which is cheap
+    and tells the operator something actionable.
+    """
+    from fbd.genai.providers import SUPPORTED, is_supported, normalise
+    from fbd.genai.settings import load
+
+    settings = settings or load()
+    provider = getattr(settings, "provider", "local")
+
+    if not is_supported(provider):
+        return Availability(
+            ok=False,
+            reason=(
+                f"FBD_GENAI_PROVIDER={provider!r} is not a backend this build "
+                f"can construct; expected one of: {', '.join(SUPPORTED)}."
+            ),
+        )
+
+    if normalise(provider) == "bedrock":
+        check = availability()
+        return Availability(ok=check.ok, reason=check.reason, sdk_installed=check.sdk_installed)
+
+    from fbd.genai.providers.ollama import OllamaClient
+
+    ok, reason = OllamaClient(settings.local).availability()
+    return Availability(ok=ok, reason=reason, sdk_installed=True)

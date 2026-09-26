@@ -1,0 +1,294 @@
+{
+  "registration_sha256": "1f19009fb00ef5f6a9ce0766f5f04e988a85f3f026fe95faf69876f092077b31",
+  "hashes": {
+    "model_sha256": "577578e7391e42eac5bf5390b8f713ce811957e77ac30073ff9d3d15dfb3e020",
+    "dataset_sha256": "9f8b4063a14aff844a24071d0d780b27445c9913b8d82e0974e33d906ae0a306"
+  },
+  "n_ens_dates": {
+    "2019": 21,
+    "2020": 21,
+    "2021": 122,
+    "2022": 122
+  },
+  "row_rule": "comparison_rows(): Day 3-7 test rows with a label and ENS spread; the model scores every row, including ones the served product would refuse as out-of-distribution",
+  "primary": {
+    "point": 0.03156417884589935,
+    "lo": 0.014057280924635606,
+    "hi": 0.048483939297395376,
+    "n_boot": 10000,
+    "n_clusters": 120,
+    "n_degenerate": 0,
+    "alpha": 0.05,
+    "excludes_zero": true,
+    "verdict": "model_better",
+    "text": "the model outranks ENS spread over the full held-out season",
+    "n_rows": 20060,
+    "n_init_dates": 120,
+    "model_auroc": 0.8399658839190121,
+    "ens_auroc": 0.8084017050731127,
+    "comparator": "raw"
+  },
+  "secondary": {
+    "a_calibrated_2021": {
+      "fit_rows_2021": 39950,
+      "auroc": {
+        "point": 0.04386770948003893,
+        "lo": 0.02582472820035401,
+        "hi": 0.06129607902454852,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "brier": {
+        "point": -0.0021029290381910162,
+        "lo": -0.0030400794672545382,
+        "hi": -0.0012120028199188852,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "bss": {
+        "point": 0.06580189201503783,
+        "lo": 0.03926767247565413,
+        "hi": 0.09243361670315547,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "cost_per_1000": {
+        "point": -51.04685942173478,
+        "lo": -66.08937991440231,
+        "hi": -36.343686817989145,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "note": "model minus ENS calibrated on 2021; lower Brier and cost are better; cost at the review threshold 0.0909"
+    },
+    "b_model_plus_ens": {
+      "fit_rows_2021": 20060,
+      "coefficients": {
+        "logit_p_model": 0.7514301905979471,
+        "log1p_ens_spread": 1.0573801267241938,
+        "intercept": -2.802222958373304
+      },
+      "combined_minus_ens": {
+        "point": 0.04691567657793483,
+        "lo": 0.03672317031407667,
+        "hi": 0.057112283987257505,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "combined_minus_model": {
+        "point": 0.01535149773203548,
+        "lo": 0.007316673972056015,
+        "hi": 0.02396607513121486,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "caveat": "The model's isotonic calibration was fitted on 2021, so this combination is fitted on probabilities in-sample for calibration. Evaluation on 2022 is out of sample."
+    },
+    "c_pooled_calibration": {
+      "auroc": {
+        "point": 0.04075127538731693,
+        "lo": 0.02306913795147106,
+        "hi": 0.05763463542377917,
+        "n_boot": 10000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "fit_years": [
+        2019,
+        2020,
+        2021
+      ],
+      "note": "continuity with the published pooled fit (train + val ENS rows)"
+    }
+  },
+  "exploratory": {
+    "by_lead": {
+      "1": {
+        "point": 0.09402024322575708,
+        "lo": 0.05242281681860819,
+        "hi": 0.133846625189888,
+        "n_boot": 2000,
+        "n_clusters": 122,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "10": {
+        "point": 0.07395302637059831,
+        "lo": 0.035974312747278504,
+        "hi": 0.11282428406767113,
+        "n_boot": 2000,
+        "n_clusters": 113,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "2": {
+        "point": 0.09509240759240767,
+        "lo": 0.05608702472411644,
+        "hi": 0.13513357681619392,
+        "n_boot": 2000,
+        "n_clusters": 121,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "3": {
+        "point": 0.04379634621144057,
+        "lo": 0.016051621969808662,
+        "hi": 0.07068911173099521,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "4": {
+        "point": 0.05281833543715653,
+        "lo": 0.013887718192365117,
+        "hi": 0.08995902359679644,
+        "n_boot": 2000,
+        "n_clusters": 119,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "5": {
+        "point": 0.006167176830703891,
+        "lo": -0.029495423683265274,
+        "hi": 0.038966990120234475,
+        "n_boot": 2000,
+        "n_clusters": 118,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false
+      },
+      "6": {
+        "point": 0.030497920059402883,
+        "lo": 0.000285414156643402,
+        "hi": 0.05867624204287998,
+        "n_boot": 2000,
+        "n_clusters": 117,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "7": {
+        "point": 0.0319375266153239,
+        "lo": -0.0075750276531905,
+        "hi": 0.06839404430790848,
+        "n_boot": 2000,
+        "n_clusters": 116,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false
+      },
+      "8": {
+        "point": 0.057327816337426674,
+        "lo": 0.012873847330816385,
+        "hi": 0.10212591969272083,
+        "n_boot": 2000,
+        "n_clusters": 115,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "9": {
+        "point": 0.07911706349206338,
+        "lo": 0.03899083606699698,
+        "hi": 0.11925869784360868,
+        "n_boot": 2000,
+        "n_clusters": 114,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      }
+    },
+    "by_month": {
+      "6": {
+        "point": 0.028249555037788587,
+        "lo": 0.0026452988082542764,
+        "hi": 0.050734579567578174,
+        "n_boot": 2000,
+        "n_clusters": 30,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "7": {
+        "point": 0.07838502084243903,
+        "lo": 0.050171306296720355,
+        "hi": 0.10678370149010212,
+        "n_boot": 2000,
+        "n_clusters": 31,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "8": {
+        "point": 0.0009255506481332665,
+        "lo": -0.04495792105643673,
+        "hi": 0.041982646062726905,
+        "n_boot": 2000,
+        "n_clusters": 31,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false
+      },
+      "9": {
+        "point": 0.008232013192023269,
+        "lo": -0.014578868727361041,
+        "hi": 0.03453591693672359,
+        "n_boot": 2000,
+        "n_clusters": 28,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false
+      }
+    },
+    "original_vs_new_dates": {
+      "new": {
+        "point": 0.03509118081602025,
+        "lo": 0.015699603918683462,
+        "hi": 0.05386656518935002,
+        "n_boot": 2000,
+        "n_clusters": 80,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true
+      },
+      "original_40": {
+        "point": 0.02514629110229083,
+        "lo": -0.008278887707087323,
+        "hi": 0.05799218377243233,
+        "n_boot": 2000,
+        "n_clusters": 40,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false
+      }
+    },
+    "n_boot": 2000,
+    "note": "exploratory: no claims are drawn from these"
+  }
+}

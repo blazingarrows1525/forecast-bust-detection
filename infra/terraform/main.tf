@@ -1,5 +1,5 @@
 ###############################################################################
-# Forecast Bust Detection -- AWS deployment (SIH26079)
+# Forecast Bust Detection -- AWS deployment
 #
 # NEVER APPLIED. This machine has no AWS credentials (D-015 verification
 # boundary), so this configuration has been written and `terraform fmt`-shaped
@@ -37,8 +37,7 @@ provider "aws" {
   default_tags {
     tags = {
       Project = "forecast-bust-detection"
-      PS      = "SIH26079"
-      Owner   = "MoES-IMD-decision-support"
+      Owner   = "forecast-bust-detection"
       ManagedBy = "terraform"
     }
   }

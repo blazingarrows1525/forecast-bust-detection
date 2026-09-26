@@ -1,0 +1,10 @@
+{
+  "logit_p_model": 0.5410348513026407,
+  "log1p_ens_spread": 1.065786713313329,
+  "intercept": -4.697520498002492,
+  "ref_log1p_spread": 1.5873868676976268,
+  "fit_year": 2021,
+  "n_rows": 20060,
+  "model_sha256": "577578e7391e42eac5bf5390b8f713ce811957e77ac30073ff9d3d15dfb3e020",
+  "recipe": "D-029: logit(uncalibrated model probability), log1p(ENS spread); Day 3-7 rows of the validation year"
+}

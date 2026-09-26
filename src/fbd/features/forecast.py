@@ -147,7 +147,8 @@ def climatological_bust_rate(labelled: pd.DataFrame, train_years=None) -> pd.Dat
     return cell
 
 
-def build(pairs: pd.DataFrame, labelled: pd.DataFrame | None = None) -> pd.DataFrame:
+def build(pairs: pd.DataFrame, labelled: pd.DataFrame | None = None,
+          train_years=None) -> pd.DataFrame:
     """Assemble all forecast-derived features onto the pair table."""
     lag = spread_growth(lagged_ensemble(pairs))
     jump = jumpiness(pairs)
@@ -156,7 +157,7 @@ def build(pairs: pd.DataFrame, labelled: pd.DataFrame | None = None) -> pd.DataF
     out = out.merge(jump, on=["subdivision_id", "valid_date", "lead_day"], how="left")
 
     out["month"] = out.valid_date.dt.month
-    out = out.merge(climatology(pairs), on=["subdivision_id", "month"], how="left")
+    out = out.merge(climatology(pairs, train_years), on=["subdivision_id", "month"], how="left")
 
     # Where does today's forecast sit in this subdivision's own climatology?
     out["fcst_anomaly"] = out.fcst_rain_mm - out.clim_fcst_mean
@@ -166,7 +167,7 @@ def build(pairs: pd.DataFrame, labelled: pd.DataFrame | None = None) -> pd.DataF
     ).dt.days
 
     if labelled is not None:
-        cbr = climatological_bust_rate(labelled)
+        cbr = climatological_bust_rate(labelled, train_years)
         out = out.merge(
             cbr[["subdivision_id", "month", "lead_day", "clim_bust_rate"]],
             on=["subdivision_id", "month", "lead_day"],

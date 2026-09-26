@@ -1,0 +1,100 @@
+{
+  "checks": [
+    {
+      "check": "harness reproduces the S1b incumbent and ENS AUROC exactly",
+      "ok": true,
+      "folds": [
+        {
+          "year": 2019,
+          "model": [
+            0.7829065826684753,
+            0.7829065826684753
+          ],
+          "ens": [
+            0.8024934817097004,
+            0.8024934817097004
+          ],
+          "exact": true
+        },
+        {
+          "year": 2020,
+          "model": [
+            0.841478039979675,
+            0.841478039979675
+          ],
+          "ens": [
+            0.8027086615795306,
+            0.8027086615795306
+          ],
+          "exact": true
+        },
+        {
+          "year": 2021,
+          "model": [
+            0.815429338072502,
+            0.815429338072502
+          ],
+          "ens": [
+            0.8238886574902348,
+            0.8238886574902348
+          ],
+          "exact": true
+        },
+        {
+          "year": 2022,
+          "model": [
+            0.8408289724017748,
+            0.8408289724017748
+          ],
+          "ens": [
+            0.8084017050731127,
+            0.8084017050731127
+          ],
+          "exact": true
+        }
+      ]
+    },
+    {
+      "check": "two fits give bit-identical validation-year output",
+      "ok": true,
+      "fit_seconds": 12.2,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 1,
+          "val_loss": 1.0331699848175049
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 3,
+          "val_loss": 1.046333909034729
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 1,
+          "val_loss": 1.04627525806427
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 3,
+          "val_loss": 1.0537924766540527
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 3,
+          "val_loss": 1.043656349182129
+        }
+      ]
+    },
+    {
+      "check": "validation-year AUROC at least 0.6",
+      "ok": true,
+      "validation_auroc_2018": 0.8281755250623555
+    }
+  ],
+  "ok": true,
+  "hashes": {
+    "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+    "mlp_params_sha256": "f4af16c632f3192f9dd06913cd65880c862df947bbb6b91daeca5898b946f4b4"
+  }
+}

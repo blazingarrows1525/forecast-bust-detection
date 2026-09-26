@@ -1,4 +1,4 @@
-"""Central configuration for the Forecast Bust Detection system (SIH26079).
+"""Central configuration for the Forecast Bust Detection system.
 
 Every magic number in this project lives here so that a reviewer can audit the
 whole experimental setup from one file.  See LOGIC.md for the reasoning behind

@@ -1,0 +1,11 @@
+# Test-only dependencies.  Kept out of requirements-serve.txt so nothing here
+# can reach the serving image (D-020).
+-r requirements-serve.txt
+
+pytest==8.4.2
+
+# starlette.testclient imports httpx2 first and falls back to httpx with a
+# deprecation warning.  Without either installed it raises at import time, so
+# every TestClient-based test errors out -- which is exactly how CI was failing
+# while the same tests passed locally on a machine that happened to have httpx.
+httpx2==2.13.0

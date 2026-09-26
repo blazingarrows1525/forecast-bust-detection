@@ -1,10 +1,10 @@
-# HANDOFF — Forecast Bust Detection (SIH26079)
+# HANDOFF — Forecast Bust Detection
 
 **⚠️ READ THIS BEFORE STARTING WORK ON THIS REPOSITORY ⚠️**
 This is a mature, benchmark-beating ML project for the Indian monsoon. Before writing any code:
 1. **Understand the current state:** the project spans GenAI, MLOps, CI and Terraform, but with strict boundaries. Read the Verification Ledger (Section 3).
-2. **Respect the contracts:** `LOGIC.md` is the locked engineering contract — do not silently deviate from it. `DECISIONS.md` holds the decision log (D-001 through D-018). `PROJECT_BLUEPRINT.md` is the long-form strategy.
-3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
+2. **Respect the contracts:** `LOGIC.md` is the locked engineering contract — do not silently deviate from it. `DECISIONS.md` holds the decision log (D-001 through D-025). `PROJECT_BLUEPRINT.md` is the long-form strategy.
+3. **Run the sanity check:** `PYTHONPATH=src pytest tests/ -v` (expect 297 passed) and `PYTHONPATH=src python scripts/monitor_drift.py` should both come back green.
 4. **Pick the next task** from Section 5.
 
 ---
@@ -18,9 +18,11 @@ Since the initial build, the project has expanded significantly in scope, adding
 **Day 3–7 Decision Band, 20,060 subdivision-days, bust base rate 3.31%.**  
 Every predictor is evaluated under the *same* Isotonic Calibration fitted on the 2021 validation year:
 
-- **True 50-member IFS ENS comparison (D-014 complete):** On the 6,732 decision-band rows where 50-member ENS exists, the model beats the true calibrated ensemble by **+0.040 AUROC (0.832 vs 0.792)**, **-16.8% decision cost**, and delivers **~2x the economic value**.
+- **True 50-member IFS ENS comparison (D-025, settled):** over the full 2022 held-out season (20,060 decision-band rows, 120 init dates) the model outranks raw ENS spread by **+0.0316 AUROC [+0.0141, +0.0485]**, on a test registered before the data was fetched (`docs/PREREGISTRATION_S1.md`). One season only; the edge sits in June–July, and a model + spread combination beats the model alone, so the ensemble is not redundant. The earlier 6,732-row, 40-date figures (+0.025 raw, +0.040 calibrated) are superseded. **It does not replicate outside 2022** (D-026, rolling-origin backtest, registered): averaged over 2019–2021 the margin is +0.0036 [−0.0059, +0.0127], and in 2019 ENS spread outranks the model. The claim that holds every year is the one over the lagged proxy.
 - **Overall Model vs Spread Proxy:** AUROC 0.8400, Brier 0.0291, BSS +0.088, ECE 0.0108, Cost 237.3/1000.
-- **Tests:** **62/62 unit tests pass** covering causality poison tests, exact partitions, bust invariants, GenAI guardrails, and drift monitors.
+- **Model + ensemble together (D-029, registered):** a logistic combination of the model's uncalibrated probability and ENS spread, fitted per fold on its validation year, outranks ENS spread alone on average over 2019–2021, **+0.0244 [+0.0178, +0.0308]**, and beats both parts in every year. This is the first repeatable edge over a real ensemble. **Served since store v0.2.0 (D-030):** `bust_probability` is the combination, with `model_probability` and `ens_spread` beside it. On 2022's scored Day 3–7 rows it ranks 0.852 against 0.835 for the model alone and 0.802 for raw ENS spread (descriptive, since 2022 had been seen). It ranks slightly below the model alone at Days 1–2. Shipped as Release `v0.2.0`, pinned by SHA-256 in `scripts/fetch_release_artifacts.py`.
+- **Other model families (D-027, registered):** an MLP on the same 52 features outranks the XGBoost model across 2019–2022, **+0.0088 [+0.0023, +0.0157]** at a Bonferroni 98.33% interval, but XGBoost is clearly better in 2022. The MLP is not served. Two more declared candidates, temporal (S3b) and spatial (S3c), are to be scored under the same rule (`docs/PREREGISTRATION_S3.md`). Its apparent lead over the ensemble was **not confirmed** on 2018, the one untouched season (D-028): MLP − ENS spread −0.0080 [−0.0254, +0.0087].
+- **Tests:** **297 tests pass** covering causality poison tests, exact partitions, bust invariants, GenAI guardrails, and drift monitors.
 - **Offline Serving:** FastAPI backend with an interactive Leaflet dashboard (vendored JS/CSS). Air-gap validated.
 
 ---
@@ -54,14 +56,17 @@ Do not claim what has not been run. The verification boundaries are explicit (D-
 | Component | Status |
 |---|---|
 | Full pipeline, end to end | **Executed**, reproduces D-001..D-014 |
-| 62 tests | **Executed**, 62/62 |
+| 297 tests | **Executed**, 297/297 (25 Sep 2026) |
 | Drift monitor | **Executed**, findings in D-016 |
 | Docker + container health + dashboard air-gap | **Executed**, verified in a browser |
 | GenAI guardrails / retrieval / tools / agent | **Executed** against a fake client |
 | CI gates | **Executed locally**; never run on GitHub Actions |
-| Any real Bedrock call | **NEVER** -- no SDK, no credentials on machine |
-| Terraform | **NEVER** -- no binary; not even `validate`d |
-| ECR push / ECS deploy / public URL | **NEVER** |
+| Any real LLM call | **EXECUTED** 19 Sep 2026 -- local, zero cost (D-019). Default is now `llama3.1:8b`, chosen on a measured fabrication rate (D-019 addendum 3) |
+| LLM free-form narration | **EXECUTED and FAILED** -- fabricated a false status on a high-risk cell. The status-grounding guardrail now blocks it 6/6 on both models (D-019 addendum 4); narration still OFF, because a phrase list is evidence about the cases it covers and silence about the rest |
+| Any real *cloud* LLM call | **NEVER** -- no credentials, no funding; local provider used instead |
+| Terraform | **WITHDRAWN** -- never applied or validated; AWS path dropped for cost (D-021) |
+| ECR push / ECS deploy | **WITHDRAWN** -- replaced by GHCR + free-tier hosting (D-021, `docs/DEPLOY.md`) |
+| Container build + smoke test in CI | **AUTOMATED**, not yet run on GitHub Actions |
 
 ---
 
@@ -90,6 +95,9 @@ PYTHONPATH=src python scripts/build_dataset.py
 PYTHONPATH=src python scripts/train_model.py
 
 # 6. Generate SQLite bulletins with bagged uncertainty intervals & TreeSHAP reasons
+#    v0.2.0 serves model + ENS spread (D-030): needs ENS for 2021-2022 on disk
+#    (scripts/fetch_ens.py --year 2021 / --year 2022) and data/artifacts/combiner.json
+PYTHONPATH=src python scripts/fit_combiner.py      # only if the model changes
 PYTHONPATH=src python scripts/generate_bulletins.py
 
 # 7. Verification, MLOps, ablation, and stress testing
@@ -107,9 +115,11 @@ FBD_GENAI_ENABLED=1 FBD_GENAI_TOOLS=1 FBD_GENAI_RAG=1 PYTHONPATH=src uvicorn fbd
 
 ---
 
-## 5. Next Steps for a Winning SIH Entry (from `PROJECT_BLUEPRINT.md`)
+## 5. Next Steps
 
-If you are picking this up to continue, focus on the high-leverage tasks detailed in the blueprint's Section 9:
+**Queue as of D-030, in order:** S3b (temporal) and S3c (spatial) candidates under the registered S3 rule (`docs/PREREGISTRATION_S3.md`), each with its own design approval; pin the ENS fit years in the calibrated-ENS scripts.
+
+Older ideas:
 
 1. **Multi-model AI ensembling (~2h):** Add GraphCast / Pangu / GenCast disagreement features. This is the killer novelty angle.
 2. **Retrospective Narrative Case Studies (~3h):** e.g., Uttarakhand cloudburst 15 Aug 2022, Chennai floods 15 Nov 2021.
@@ -122,7 +132,7 @@ If you are picking this up to continue, focus on the high-leverage tasks detaile
 ## 6. First Commands in a New Session
 
 ```bash
-# 1. Check full test suite health (Expect 62/62)
+# 1. Check full test suite health (Expect 297/297)
 PYTHONPATH=src pytest tests/ -v
 
 # 2. Check the drift monitor

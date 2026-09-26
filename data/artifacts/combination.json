@@ -1,0 +1,335 @@
+{
+  "registration_sha256": "47ea9fd1c92f1e01433a764525532528418221a1c5f2769f8e612dd2de7ba6dd",
+  "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+  "mlp_json_sha256": "b8d8b911cee6f2e157c9e27045c9aae1dd87f0bd58ea3e1669ab755ac9b33ae1",
+  "combiner_params_sha256": "835dcb7ed5adfe0b23784e47ed16e7b021ce7c0a434dc6d359c8f190db46e780",
+  "n_ens_dates": {
+    "2018": 122,
+    "2019": 122,
+    "2020": 122,
+    "2021": 122,
+    "2022": 122
+  },
+  "row_rule": "per fold: combiner fitted on the validation year's Day 3-7 rows with a label and ENS spread; scored on that fold's S1b comparison rows",
+  "folds": {
+    "2019": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "n_fit_rows": 20060,
+      "fit_year": 2018,
+      "auroc": {
+        "combination": 0.8179513944772722,
+        "ens": 0.8024934817097004,
+        "xgboost": 0.7829065826684753,
+        "mlp_combination": 0.8286430919918147,
+        "mlp": 0.8148184075598369
+      },
+      "coefficients": {
+        "xgb": {
+          "logit_p_model": 0.38101273356005566,
+          "log1p_ens_spread": 0.9892541805858862,
+          "intercept": -4.306531696554872
+        },
+        "mlp": {
+          "logit_p_model": 0.6683074298675025,
+          "log1p_ens_spread": 0.6099135568258036,
+          "intercept": -4.084882399118507
+        }
+      }
+    },
+    "2020": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "n_fit_rows": 20060,
+      "fit_year": 2019,
+      "auroc": {
+        "combination": 0.8514776631315407,
+        "ens": 0.8027086615795306,
+        "xgboost": 0.841478039979675,
+        "mlp_combination": 0.8503023525376167,
+        "mlp": 0.8465061399257425
+      },
+      "coefficients": {
+        "xgb": {
+          "logit_p_model": 0.4738533098267569,
+          "log1p_ens_spread": 1.0630703494244587,
+          "intercept": -4.456555269778982
+        },
+        "mlp": {
+          "logit_p_model": 0.5534681894317918,
+          "log1p_ens_spread": 0.8951774210103978,
+          "intercept": -4.5496263186350525
+        }
+      }
+    },
+    "2021": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "n_fit_rows": 20060,
+      "fit_year": 2020,
+      "auroc": {
+        "combination": 0.8327981268822494,
+        "ens": 0.8238886574902348,
+        "xgboost": 0.815429338072502,
+        "mlp_combination": 0.8502556993954438,
+        "mlp": 0.8390818524595968
+      },
+      "coefficients": {
+        "xgb": {
+          "logit_p_model": 0.708129269029092,
+          "log1p_ens_spread": 0.6473704985957529,
+          "intercept": -3.937763393572796
+        },
+        "mlp": {
+          "logit_p_model": 0.7918869982519571,
+          "log1p_ens_spread": 0.5848908659195075,
+          "intercept": -4.235374758032441
+        }
+      }
+    },
+    "2022": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "n_fit_rows": 20060,
+      "fit_year": 2021,
+      "auroc": {
+        "combination": 0.8561464504742574,
+        "ens": 0.8084017050731127,
+        "xgboost": 0.8408289724017748,
+        "mlp_combination": 0.8370068733708956,
+        "mlp": 0.8153204873543677
+      },
+      "coefficients": {
+        "xgb": {
+          "logit_p_model": 0.5339448002767417,
+          "log1p_ens_spread": 1.0824525598091994,
+          "intercept": -4.730261743645106
+        },
+        "mlp": {
+          "logit_p_model": 0.6093349062754267,
+          "log1p_ens_spread": 0.9145949328091267,
+          "intercept": -4.732670324209026
+        }
+      }
+    }
+  },
+  "primary": {
+    "point": 0.024378794570532197,
+    "lo": 0.017793145203439942,
+    "hi": 0.030789693053510557,
+    "n_boot": 10000,
+    "n_clusters": 360,
+    "n_degenerate": 0,
+    "alpha": 0.05,
+    "excludes_zero": true,
+    "years": [
+      2019,
+      2020,
+      2021
+    ],
+    "verdict": "model_better",
+    "text": "model + ENS spread outranks ENS spread alone on average over 2019\u20132021"
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.015457912767571802,
+      "lo": 0.005637600387739613,
+      "hi": 0.025454465848688636,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2020": {
+      "point": 0.04876900155201014,
+      "lo": 0.03881835725141498,
+      "hi": 0.05886356896466678,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2021": {
+      "point": 0.008909469392014646,
+      "lo": -0.004692985721003262,
+      "hi": 0.020924954148171766,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2022": {
+      "point": 0.047744745401144706,
+      "lo": 0.036499781793328315,
+      "hi": 0.0581226104289772,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    }
+  },
+  "secondary": {
+    "combination_minus_xgboost": {
+      "mean": {
+        "point": 0.02080440792347001,
+        "lo": 0.017199399011439118,
+        "hi": 0.024482764133371256,
+        "n_boot": 10000,
+        "n_clusters": 360,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.035044811808796816,
+          "lo": 0.02702582436210261,
+          "hi": 0.043205619946122466,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.009999623151865755,
+          "lo": 0.004781094841921771,
+          "hi": 0.015368900959784609,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.01736878880974746,
+          "lo": 0.012531085930019037,
+          "hi": 0.02238136909006553,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.015317478072482626,
+          "lo": 0.008126952753046238,
+          "hi": 0.023565133551553187,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    },
+    "mlp_combination_minus_ens": {
+      "mean": {
+        "point": 0.03337011438180315,
+        "lo": 0.028153294516185215,
+        "hi": 0.03847235657120022,
+        "n_boot": 10000,
+        "n_clusters": 360,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.026149610282114377,
+          "lo": 0.0179495912052541,
+          "hi": 0.03497123222376165,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.04759369095808608,
+          "lo": 0.040452055621882754,
+          "hi": 0.055221506322586406,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.026367041905209,
+          "lo": 0.015675981414883126,
+          "hi": 0.03645994720436039,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.028605168297782924,
+          "lo": 0.016913233828056134,
+          "hi": 0.039586572634073454,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    }
+  }
+}

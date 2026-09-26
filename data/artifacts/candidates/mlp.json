@@ -1,0 +1,534 @@
+{
+  "candidate": "mlp",
+  "registration_sha256": "a2f15901e07f7b9074701c85f3dcb302bcf46107eb23e1691978f71e67532f0c",
+  "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+  "params_sha256": "f4af16c632f3192f9dd06913cd65880c862df947bbb6b91daeca5898b946f4b4",
+  "row_rule": "S1b comparison_rows per fold; both models score every row",
+  "folds": {
+    "2019": {
+      "candidate_auroc": 0.8148184075598369,
+      "incumbent_auroc": 0.7829065826684753,
+      "ens_auroc": 0.8024934817097004,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 12.1,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 1,
+          "val_loss": 1.0331699848175049
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 3,
+          "val_loss": 1.046333909034729
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 1,
+          "val_loss": 1.04627525806427
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 3,
+          "val_loss": 1.0537924766540527
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 3,
+          "val_loss": 1.043656349182129
+        }
+      ],
+      "model_sha256": "1cc22efcb8a00fbd5945739a3c834dc755b096ab9874a1ac4443ffe1179d664b",
+      "seed_auroc": [
+        0.8056150644931367,
+        0.8173002552134827,
+        0.8091565999126297,
+        0.8141396316648657,
+        0.8160692985078057
+      ]
+    },
+    "2020": {
+      "candidate_auroc": 0.8465061399257425,
+      "incumbent_auroc": 0.841478039979675,
+      "ens_auroc": 0.8027086615795306,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 16.1,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 7,
+          "val_loss": 1.2133389711380005
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 1,
+          "val_loss": 1.2070176601409912
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 1,
+          "val_loss": 1.2093608379364014
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 5,
+          "val_loss": 1.1998611688613892
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 1,
+          "val_loss": 1.2250608205795288
+        }
+      ],
+      "model_sha256": "d5289d71c6199257345849ab853de93cd851d6d5b1a58048d1ea2cbcac94b2dd",
+      "seed_auroc": [
+        0.8422968304496857,
+        0.8449003509045421,
+        0.8438444085665653,
+        0.843264924089861,
+        0.8465508565966078
+      ]
+    },
+    "2021": {
+      "candidate_auroc": 0.8390818524595968,
+      "incumbent_auroc": 0.815429338072502,
+      "ens_auroc": 0.8238886574902348,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 31.0,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 7,
+          "val_loss": 0.9942453503608704
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 5,
+          "val_loss": 0.9937290549278259
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 5,
+          "val_loss": 0.9963231086730957
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 9,
+          "val_loss": 0.985400915145874
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 3,
+          "val_loss": 0.9957118034362793
+        }
+      ],
+      "model_sha256": "40ba6eb0220a787b31fc8e2c3095c0b1772dbccef148355f70fe3cb025daf635",
+      "seed_auroc": [
+        0.8355074421068522,
+        0.8398719371515043,
+        0.8333522024182246,
+        0.8379858148742434,
+        0.8367588875719355
+      ]
+    },
+    "2022": {
+      "candidate_auroc": 0.8153204873543677,
+      "incumbent_auroc": 0.8408289724017748,
+      "ens_auroc": 0.8084017050731127,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 32.4,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 4,
+          "val_loss": 1.0201663970947266
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 6,
+          "val_loss": 0.9878136515617371
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 6,
+          "val_loss": 1.0031795501708984
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 4,
+          "val_loss": 0.9924571514129639
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 5,
+          "val_loss": 0.9991627335548401
+        }
+      ],
+      "model_sha256": "a58ee034657872ef98f6758db13dded651b1145685c3149ffbaf2c629a564fb0",
+      "seed_auroc": [
+        0.808119400218239,
+        0.8151992218479153,
+        0.8186068642264112,
+        0.813585290319109,
+        0.8106349888038384
+      ]
+    }
+  },
+  "primary": {
+    "point": 0.008770988544279212,
+    "lo": 0.002258657503108645,
+    "hi": 0.0156502281297874,
+    "n_boot": 10000,
+    "n_clusters": 480,
+    "n_degenerate": 0,
+    "alpha": 0.016666666666666666,
+    "excludes_zero": true,
+    "years": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "verdict": "promoted",
+    "text": "the MLP outranks the XGBoost incumbent across 2019\u20132022"
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.03191182489136157,
+      "lo": 0.018705632375947936,
+      "hi": 0.046077431885269776,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2020": {
+      "point": 0.005028099946067566,
+      "lo": -0.004108520879299199,
+      "hi": 0.01396140594420947,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2021": {
+      "point": 0.023652514387094814,
+      "lo": 0.014336953073613459,
+      "hi": 0.03402844424864166,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2022": {
+      "point": -0.025508485047407103,
+      "lo": -0.03535096164497307,
+      "hi": -0.015688010218837124,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": "the XGBoost incumbent outranks the MLP in 2022",
+      "n_rows": 20060,
+      "n_init_dates": 120
+    }
+  },
+  "secondary": {
+    "ens": {
+      "mean": {
+        "point": 0.023771866388570168,
+        "lo": 0.016697703744529613,
+        "hi": 0.030692858655669956,
+        "n_boot": 10000,
+        "n_clusters": 360,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.012324925850136559,
+          "lo": 0.00031520483308812304,
+          "hi": 0.02461932555067044,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.04379747834621195,
+          "lo": 0.033008928907476684,
+          "hi": 0.05539895812362339,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.015193194969362,
+          "lo": 0.0011804181461452373,
+          "hi": 0.028274763996072375,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.006918782281254976,
+          "lo": -0.011020030595709112,
+          "hi": 0.022870255509044028,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    }
+  },
+  "exploratory": {
+    "by_month": {
+      "2019": {
+        "6": {
+          "point": 0.015475932518185909,
+          "lo": -0.010801506449801351,
+          "hi": 0.04720817748349238,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.014069378664508303,
+          "lo": -0.0019119439783233522,
+          "hi": 0.030809706134367548,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "8": {
+          "point": 0.057398720483455845,
+          "lo": 0.028388377318688478,
+          "hi": 0.08565708627709441,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "9": {
+          "point": 0.032063896136956704,
+          "lo": 0.0001293684083634258,
+          "hi": 0.06602624276032301,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        }
+      },
+      "2020": {
+        "6": {
+          "point": 0.002807286561910316,
+          "lo": -0.010539511448510171,
+          "hi": 0.017605114446835782,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.002847508298653434,
+          "lo": -0.01848010579694681,
+          "hi": 0.02199892011491639,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "8": {
+          "point": -0.005368647854937292,
+          "lo": -0.01716720819740636,
+          "hi": 0.00560683324786013,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": 0.015439114571528911,
+          "lo": -0.014650243571002934,
+          "hi": 0.03996381406224275,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        }
+      },
+      "2021": {
+        "6": {
+          "point": 0.01764623695976153,
+          "lo": 0.0034405639344890857,
+          "hi": 0.03225837020737591,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "7": {
+          "point": 0.008578244436534987,
+          "lo": -0.006632401482833705,
+          "hi": 0.026356966018445314,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "8": {
+          "point": 0.00558867362146076,
+          "lo": -0.007435561967081128,
+          "hi": 0.018008547370167622,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": 0.026834002677376234,
+          "lo": 0.0024502821405539945,
+          "hi": 0.05089389701861522,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        }
+      },
+      "2022": {
+        "6": {
+          "point": -0.02181069009513248,
+          "lo": -0.05482198185774373,
+          "hi": 0.004528941058374757,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": -0.028155639853091774,
+          "lo": -0.04160259188222214,
+          "hi": -0.014995208812856882,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "8": {
+          "point": -0.014185996042131332,
+          "lo": -0.030951115035650335,
+          "hi": 0.004378085095677518,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": -0.027525997256718004,
+          "lo": -0.056385467825812996,
+          "hi": -0.003292942980666209,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        }
+      }
+    },
+    "seed_auroc": {
+      "2019": [
+        0.8056150644931367,
+        0.8173002552134827,
+        0.8091565999126297,
+        0.8141396316648657,
+        0.8160692985078057
+      ],
+      "2020": [
+        0.8422968304496857,
+        0.8449003509045421,
+        0.8438444085665653,
+        0.843264924089861,
+        0.8465508565966078
+      ],
+      "2021": [
+        0.8355074421068522,
+        0.8398719371515043,
+        0.8333522024182246,
+        0.8379858148742434,
+        0.8367588875719355
+      ],
+      "2022": [
+        0.808119400218239,
+        0.8151992218479153,
+        0.8186068642264112,
+        0.813585290319109,
+        0.8106349888038384
+      ]
+    },
+    "n_boot": 2000,
+    "note": "exploratory: no claims are drawn from these"
+  }
+}
