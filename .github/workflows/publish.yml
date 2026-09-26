@@ -104,6 +104,11 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
+          # Otherwise copied from the GitHub repo description, which still names
+          # the competition the project started in. The image is a personal
+          # project's product surface, so it says what the image does.
+          labels: |
+            org.opencontainers.image.description=Forecast bust detection for medium-range rainfall forecasts over India: which subdivision, which lead day, and why an existing forecast is about to fail.
 
       # Load into the local daemon first so the image can be smoke-tested
       # before anything is published. Pushing an image that cannot boot is
