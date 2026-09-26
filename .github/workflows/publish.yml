@@ -155,8 +155,11 @@ jobs:
           open("/tmp/latest_init", "w").write(h["latest_init_date"] or "")
           CHECK
           # The dashboard's own endpoints must return rows, not merely exist.
+          # The latest init date (30 Sep) has only Day 1 rows: its later leads
+          # verify after the season. The default Day 3-7 queue is empty there by
+          # construction, so ask for every lead.
           init=$(cat /tmp/latest_init)
-          queue=$(curl -fsS "http://localhost:8912/api/review-queue?init_date=${init}" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+          queue=$(curl -fsS "http://localhost:8912/api/review-queue?init_date=${init}&decision_band_only=false" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
           echo "/api/review-queue returned $queue items for $init"
           [ "$queue" -ge 1 ] || { echo "review queue is empty"; exit 1; }
           # The geo endpoints must work without geopandas in the image (D-020).
