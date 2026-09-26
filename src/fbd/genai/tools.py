@@ -151,21 +151,39 @@ def _collect_numbers(obj: Any, out: list[float]) -> None:
 # --------------------------------------------------------------------------
 # Implementations
 # --------------------------------------------------------------------------
-def _optional_cols(con: sqlite3.Connection) -> str:
-    """The combination's ingredients, on stores new enough to have them (v0.2.0)."""
+def _combined(con: sqlite3.Connection) -> bool:
+    """Whether the store carries the combination's ingredients (v0.2.0)."""
     have = {r[1] for r in con.execute("PRAGMA table_info(bulletins)")}
-    return "".join(f", {c}" for c in ("model_probability", "ens_spread") if c in have)
+    return {"model_probability", "ens_spread"} <= have
+
+
+# Each query in two literal forms, picked by the store's schema, so the SQL is
+# always fixed text and never assembled from strings.
+_BULLETIN_SQL = {
+    True: "SELECT region, region_id, lead_day, valid_date, bust_probability, "
+          "       status, forecast_rain_mm, pi_low, pi_high, dominant_factors, "
+          "       model_probability, ens_spread "
+          "FROM bulletins WHERE region_id = ? AND init_date = ? ORDER BY lead_day",
+    False: "SELECT region, region_id, lead_day, valid_date, bust_probability, "
+           "       status, forecast_rain_mm, pi_low, pi_high, dominant_factors "
+           "FROM bulletins WHERE region_id = ? AND init_date = ? ORDER BY lead_day",
+}
+_QUEUE_SQL = {
+    True: "SELECT region, region_id, lead_day, valid_date, bust_probability, "
+          "       status, forecast_rain_mm, dominant_factors, "
+          "       model_probability, ens_spread "
+          "FROM bulletins WHERE init_date = ? AND bust_probability IS NOT NULL "
+          "ORDER BY bust_probability DESC LIMIT ?",
+    False: "SELECT region, region_id, lead_day, valid_date, bust_probability, "
+           "       status, forecast_rain_mm, dominant_factors "
+           "FROM bulletins WHERE init_date = ? AND bust_probability IS NOT NULL "
+           "ORDER BY bust_probability DESC LIMIT ?",
+}
 
 
 def get_bulletin(region_id: str, init_date: str) -> dict:
     con = _con()
-    rows = con.execute(
-        "SELECT region, region_id, lead_day, valid_date, bust_probability, "
-        "       status, forecast_rain_mm, pi_low, pi_high, dominant_factors"
-        + _optional_cols(con) + " "
-        "FROM bulletins WHERE region_id = ? AND init_date = ? ORDER BY lead_day",
-        (region_id, init_date),
-    ).fetchall()
+    rows = con.execute(_BULLETIN_SQL[_combined(con)], (region_id, init_date)).fetchall()
     con.close()
     if not rows:
         return {"error": f"no bulletin for {region_id} at {init_date}"}
@@ -185,14 +203,7 @@ def get_bulletin(region_id: str, init_date: str) -> dict:
 def get_review_queue(init_date: str, top: int = 10) -> dict:
     top = max(1, min(int(top), 25))
     con = _con()
-    rows = con.execute(
-        "SELECT region, region_id, lead_day, valid_date, bust_probability, "
-        "       status, forecast_rain_mm, dominant_factors"
-        + _optional_cols(con) + " "
-        "FROM bulletins WHERE init_date = ? AND bust_probability IS NOT NULL "
-        "ORDER BY bust_probability DESC LIMIT ?",
-        (init_date, top),
-    ).fetchall()
+    rows = con.execute(_QUEUE_SQL[_combined(con)], (init_date, top)).fetchall()
     con.close()
     if not rows:
         return {"error": f"no bulletin rows for {init_date}"}
