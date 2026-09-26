@@ -296,7 +296,7 @@ pip install -r requirements.txt
 export PYTHONPATH=src                                  # Windows: set PYTHONPATH=src
 
 python -m pytest tests/ -q                             # 68 tests, all pass from the clone
-python scripts/fetch_release_artifacts.py              # downloads bulletins.sqlite (~60 MB), checksum-verified
+python scripts/fetch_release_artifacts.py              # downloads bulletins.sqlite (~74 MB), checksum-verified
 python -m uvicorn fbd.api.app:app --app-dir src --port 8912
 ```
 

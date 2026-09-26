@@ -1,10 +1,11 @@
 """Download the large precomputed artifacts that ship as GitHub Release assets.
 
-Only `bulletins.sqlite` (~60 MB) is distributed this way -- it is too large to
+Only `bulletins.sqlite` (~74 MB) is distributed this way -- it is too large to
 keep in git history but is what the offline dashboard serves. It is fully
-regenerable from the committed `dataset.parquet` + `bust_model.joblib` via
+regenerable from the committed `dataset.parquet`, `bust_model.joblib` and
+`combiner.json` plus the 2021-2022 ENS spread (`scripts/fetch_ens.py`) via
 `scripts/generate_bulletins.py`, so this downloader is a convenience, not a
-dependency.
+dependency. v0.2.0 serves the model + ENS combination (D-030).
 
 The download is checksum-verified: a truncated or tampered asset is rejected
 rather than silently served to the dashboard. See DATA.md for the policy.
@@ -17,14 +18,14 @@ import urllib.request
 from pathlib import Path
 
 REPO = "blazingarrows1525/forecast-bust-detection"
-TAG = "v0.1.0"
+TAG = "v0.2.0"
 
 # (release asset name, destination path relative to repo root, expected sha256)
 ASSETS = [
     (
         "bulletins.sqlite",
         "data/artifacts/bulletins.sqlite",
-        "5cbb61350c2ba63dbcf2dc00bc1d13b9a3d2f9a70e66d8317121cf996e6f241c",
+        "deeac846b62e88e1169c349b75b4dacdd2a7f8b8b99191026de0bdc9f002a468",
     ),
 ]
 

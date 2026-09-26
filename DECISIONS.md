@@ -1902,9 +1902,10 @@ leads (Days 10 and 8 are refused), and the gap is widest at Day 4.
 
 - `FRONTEND_LOGIC.md` §8's condition is met: the landing page states the
   combination, and renders it only when the served store says `combined`.
-- **Release.** A fresh clone fetches Release `v0.1.0` (the model-alone store)
-  until `v0.2.0` is published and pinned; publishing waits for approval. The
-  API reads a v0.1.0 store without error, shows no combination, and the landing
-  sentence stays hidden.
+- **Release.** Approved and published as Release `v0.2.0`, with SHA-256
+  `deeac846…f002a468` pinned in `scripts/fetch_release_artifacts.py`. The tag
+  sits on this branch, so the image workflow also builds, smoke-tests and
+  pushes `ghcr.io/…:0.2.0`. The API still reads a v0.1.0 store without error,
+  shows no combination there, and hides the landing sentence.
 - S3b and S3c candidates are judged on the S3 rule as registered. A winner that
   also improves the combination is worth serving; one that does not is not.

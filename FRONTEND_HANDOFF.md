@@ -19,7 +19,7 @@ pip install -r requirements-serve.txt
 PYTHONPATH=src python -m uvicorn fbd.api.app:app --port 8912
 ```
 
-Then open <http://localhost:8912>. The first command pulls the ~63 MB bulletin
+Then open <http://localhost:8912>. The first command pulls the ~74 MB bulletin
 store (checksum-verified); it is gitignored, so **a fresh clone has no data
 until you run it**. If the dashboard loads but every panel is empty, that is
 the cause — check `/api/health`, it will say `status: "unavailable"`.
