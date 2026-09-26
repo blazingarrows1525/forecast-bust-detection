@@ -121,7 +121,7 @@ def plot_reliability(d: dict) -> Path:
                 label="climatology baseline")
 
     ax.plot(rc.mean_predicted, rc.observed_frequency, "o-", color=MODEL_C,
-            ms=7, lw=2.2, zorder=3, label="XGBoost + isotonic")
+            ms=7, lw=2.2, zorder=3, label="served: model + ENS spread (D-030)")
 
     ax.set_xlim(0, top)
     ax.set_ylim(0, top)
@@ -146,7 +146,7 @@ def plot_reliability(d: dict) -> Path:
             f"observes {hi.observed_frequency:.3f}\n"
             f"({'over' if gap > 0 else 'under'}confident by {abs(gap):.3f})",
             xy=(hi.mean_predicted, hi.observed_frequency),
-            xytext=(hi.mean_predicted * 0.44, hi.observed_frequency * 1.30),
+            xytext=(hi.mean_predicted * 0.15, hi.observed_frequency * 0.82),
             fontsize=8.5, color=REFUSE_C, ha="left",
             arrowprops=dict(arrowstyle="->", color=REFUSE_C, lw=1),
         )
