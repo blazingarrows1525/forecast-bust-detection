@@ -1,0 +1,108 @@
+{
+  "temporal_params_sha256": "e484ab556b3a5d63af6d75b2ec3eaee0bcadd543c8e7f61b060d731e1733f96e",
+  "neutrality": {
+    "folds": {
+      "2019": {
+        "got": {
+          "candidate_auroc": 0.8148184075598369,
+          "incumbent_auroc": 0.7829065826684753,
+          "ens_auroc": 0.8024934817097004
+        },
+        "want": {
+          "candidate_auroc": 0.8148184075598369,
+          "incumbent_auroc": 0.7829065826684753,
+          "ens_auroc": 0.8024934817097004
+        },
+        "loaded_mlp_auroc": 0.8148184075598369,
+        "ok": true
+      },
+      "2020": {
+        "got": {
+          "candidate_auroc": 0.8465061399257425,
+          "incumbent_auroc": 0.841478039979675,
+          "ens_auroc": 0.8027086615795306
+        },
+        "want": {
+          "candidate_auroc": 0.8465061399257425,
+          "incumbent_auroc": 0.841478039979675,
+          "ens_auroc": 0.8027086615795306
+        },
+        "loaded_mlp_auroc": 0.8465061399257425,
+        "ok": true
+      },
+      "2021": {
+        "got": {
+          "candidate_auroc": 0.8390818524595968,
+          "incumbent_auroc": 0.815429338072502,
+          "ens_auroc": 0.8238886574902348
+        },
+        "want": {
+          "candidate_auroc": 0.8390818524595968,
+          "incumbent_auroc": 0.815429338072502,
+          "ens_auroc": 0.8238886574902348
+        },
+        "loaded_mlp_auroc": 0.8390818524595968,
+        "ok": true
+      },
+      "2022": {
+        "got": {
+          "candidate_auroc": 0.8153204873543677,
+          "incumbent_auroc": 0.8408289724017748,
+          "ens_auroc": 0.8084017050731127
+        },
+        "want": {
+          "candidate_auroc": 0.8153204873543677,
+          "incumbent_auroc": 0.8408289724017748,
+          "ens_auroc": 0.8084017050731127
+        },
+        "loaded_mlp_auroc": 0.8153204873543677,
+        "ok": true
+      }
+    },
+    "ok": true
+  },
+  "causality": {
+    "n": 20,
+    "violations": [],
+    "ok": true
+  },
+  "determinism": {
+    "bit_identical": true,
+    "val_year": 2018,
+    "val_auroc": 0.8303549521277835,
+    "floor": 0.6,
+    "fit_seconds": [
+      49.4,
+      49.1
+    ],
+    "history": [
+      {
+        "seed": 20260920,
+        "best_epoch": 1,
+        "val_loss": 1.0464428663253784
+      },
+      {
+        "seed": 20260921,
+        "best_epoch": 3,
+        "val_loss": 1.0595698356628418
+      },
+      {
+        "seed": 20260922,
+        "best_epoch": 2,
+        "val_loss": 1.0271313190460205
+      },
+      {
+        "seed": 20260923,
+        "best_epoch": 1,
+        "val_loss": 1.0358871221542358
+      },
+      {
+        "seed": 20260924,
+        "best_epoch": 1,
+        "val_loss": 1.0405529737472534
+      }
+    ],
+    "ok": true
+  },
+  "ok": true
+}
