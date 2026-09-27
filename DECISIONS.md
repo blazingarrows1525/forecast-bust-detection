@@ -1908,3 +1908,94 @@ leads (Days 10 and 8 are refused), and the gap is widest at Day 4.
   shows no combination there, and hides the landing sentence.
 - S3b and S3c candidates are judged on the S3 rule as registered. A winner that
   also improves the combination is worth serving; one that does not is not.
+
+## D-031 — S3b: the temporal model is not distinguishable from XGBoost, and history adds nothing over the MLP — LOCKED
+
+Registration: `docs/PREREGISTRATION_S3B.md`, commit `2c01a4f`. It was pushed,
+with CI 5/5 green, before any temporal model predicted 2019–2022. Design:
+`docs/superpowers/specs/2026-09-27-s3b-temporal-candidate-design.md`. Output:
+`data/artifacts/candidates/temporal.json`; figure:
+`docs/figures/candidate_temporal.png`.
+
+S3b is the temporal candidate in the S3 slate. It is S3a's MLP with a one-layer
+GRU in front of its head. The GRU reads 14 days of history per subdivision:
+- **Weather:** the analysis up to the issue day.
+- **Verification:** observed rain and the error and bust of the Day 1, 3 and 5
+  forecasts, up to two days before issue.
+
+Everything else is S3a's: inputs, head, training, seeds and calibration. So
+temporal − MLP measures what the history adds. The audit (`s3b_audit.json`)
+proved three things before registering:
+- **The scoring changes are neutral:** the MLP was re-scored through the
+  changed `promote.py` and reproduced `mlp.json` exactly in all four folds.
+- **The history is causal:** poisoning everything after both cutoffs on 20 real
+  2018 sequences changed nothing.
+- **Fits are deterministic:** two fits were bit-identical, with 2018 validation
+  AUROC 0.8304.
+
+### Result — registered primary, run once
+
+| test year | temporal | MLP | XGBoost | ENS | temporal − XGBoost [95%] |
+|---|---|---|---|---|---|
+| 2019 | 0.8149 | 0.8148 | 0.7829 | 0.8025 | +0.0320 [+0.0187, +0.0462] |
+| 2020 | 0.8449 | 0.8465 | 0.8415 | 0.8027 | +0.0034 [−0.0063, +0.0129] |
+| 2021 | 0.8302 | 0.8391 | 0.8154 | 0.8239 | +0.0147 [+0.0042, +0.0258] |
+| 2022 | 0.8148 | 0.8153 | 0.8408 | 0.8084 | **−0.0260 [−0.0370, −0.0149]** |
+
+Mean over 2019–2022, stratified cluster bootstrap, 10,000 resamples, seed
+20260919, 98.33% (Bonferroni over the slate), no degenerate resample:
+
+**+0.0060 [−0.0010, +0.0131] → the temporal model is not distinguishable from
+the XGBoost incumbent across 2019–2022.** The XGBoost incumbent outranks it in
+2022.
+
+### Secondary
+
+- **Temporal − MLP:** −0.0027 [−0.0050, −0.0005] as the mean over 2019–2022.
+  Per year: 2019 +0.0001, 2020 −0.0016, 2021 −0.0089 [−0.0149, −0.0033], 2022
+  −0.0005. On average the MLP outranks the temporal model; the history made the
+  network slightly worse, not better.
+- **Temporal − ENS spread:** +0.0203 [+0.0135, +0.0270] as the mean over
+  2019–2021. Per year: 2019 +0.0124 [+0.0008, +0.0249], 2020 +0.0422, 2021
+  +0.0063 [−0.0066, +0.0183], and 2022 +0.0064 [−0.0110, +0.0220]. This is
+  uncorrected, and the MLP's similar lead was not confirmed on 2018 (D-028). No
+  claim is drawn.
+
+### Exploratory (no claims)
+
+- **Group shuffle:** permuting each channel group across sequences on the test
+  rows changes AUROC by at most 0.008.
+  - Weather history: 0.0006, 0.0023, 0.0063 and −0.0059 (2019–2022). In 2022,
+    scrambling it *raised* AUROC.
+  - Verification history: 0.0006, 0.0040, 0.0002, 0.0082.
+  The network barely reads its history.
+- **Training:** every seed in every fold reached its best validation loss at
+  epoch 1–4. The 2022 seeds span 0.794–0.822.
+- **By month against XGBoost:** negative in every month of 2022.
+
+### Reading it
+
+This is the third row of the committed consequences: **14 days of history
+adds nothing detectable over XGBoost.** The temporal model's per-year pattern is
+the MLP's almost exactly. It is ahead in 2019 and 2021, level in 2020, and
+clearly behind in 2022. It also ranks slightly below the MLP on average. What S3a
+found, that a network on the 52 features outranks trees on average, is not
+improved by recent verification or weather history. That fits the 52 features
+already carrying the useful history (the 1- and 3-day tendencies and the
+lagged-ensemble spread), and busts being driven by the day's own forecast
+rather than by recent persistence.
+
+### Consequences, as registered
+
+- README "Other model families" states the result, and `FRONTEND_LOGIC.md` §8
+  adds that a temporal model was tested and was not distinguishable. Nothing
+  is served; the product is unchanged.
+- S3c (spatial) is next, under the same rule. The MLP secondary and the
+  addendum mechanism built here serve it unchanged.
+
+### What this does not settle
+
+- Whether a longer window, other history (for example neighbouring
+  subdivisions' errors) or another encoder would help. Each would be a new
+  candidate, needing a new registration and a wider correction.
+- 2022 remains XGBoost's season for every network tested so far.

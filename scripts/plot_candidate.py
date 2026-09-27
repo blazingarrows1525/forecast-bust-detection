@@ -30,6 +30,9 @@ def main() -> int:
     p, per, ens = s["primary"], s["per_year"], s["secondary"]["ens"]
     rows = [(f"PRIMARY  mean 2019–2022, {label} − XGBoost ({1 - p['alpha']:.2%})", p, ACCENT, True)]
     rows += [(f"{y}: {label} − XGBoost", per[y], INK, False) for y in sorted(per, key=int)]
+    if "mlp" in s["secondary"]:
+        rows.append((f"secondary: mean 2019–2022, {label} − MLP",
+                     s["secondary"]["mlp"]["mean"], MUTED, False))
     rows.append((f"secondary: mean 2019–2021, {label} − ENS spread", ens["mean"], MUTED, False))
 
     fig, ax = plt.subplots(figsize=(8, 0.45 * len(rows) + 1.4))

@@ -56,3 +56,9 @@ CONFIRM_TEXT = {
     "ens_better": "ENS spread outranks the MLP in 2018",
     "indistinguishable": "the MLP's lead over ENS spread is not confirmed in 2018",
 }
+
+
+def build_candidate(cls_, dataset):
+    """S3b spec §5: a candidate that reads history is given the fold dataset;
+    every other candidate is built exactly as before, with no arguments."""
+    return cls_(dataset=dataset) if getattr(cls_, "needs_dataset", False) else cls_()

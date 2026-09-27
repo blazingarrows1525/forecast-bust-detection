@@ -60,6 +60,18 @@ def test_doc_states_the_mlp_interval(doc):
     assert s in text, f"{doc} does not state the S3a interval {s}"
 
 
+TEMPORAL = config.ARTIFACTS / "candidates" / "temporal.json"
+
+
+@pytest.mark.skipif(not TEMPORAL.exists(), reason="S3b not run yet")
+@pytest.mark.parametrize("doc", ["README.md", "DECISIONS.md"])
+def test_doc_states_the_temporal_interval(doc):
+    p = json.loads(TEMPORAL.read_text(encoding="utf-8"))["primary"]
+    s = f"{p['point']:+.4f} [{p['lo']:+.4f}, {p['hi']:+.4f}]"
+    text = (config.ROOT / doc).read_text(encoding="utf-8").replace("−", "-")
+    assert s in text, f"{doc} does not state the S3b interval {s}"
+
+
 CONFIRM = config.ARTIFACTS / "confirm_2018.json"
 
 

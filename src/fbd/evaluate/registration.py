@@ -98,3 +98,12 @@ def year_statement(year: int, lo: float, hi: float, who: str = "ENS spread",
                    whom: str = "the model"):
     """The registered per-year rule: a year the comparator wins is said plainly."""
     return f"{who} outranks {whom} in {year}" if hi < 0 else None
+
+
+def merge_addendum(base: dict, addendum: dict, name: str) -> dict:
+    """An S3 addendum registers one candidate's keys on top of S3's block."""
+    clash = sorted(set(base) & set(addendum))
+    if clash:
+        raise RegistrationError(f"the {name} addendum redefines registered keys {clash}; "
+                                "an addendum adds, it never overrides")
+    return {**base, **addendum}
