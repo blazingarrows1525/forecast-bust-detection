@@ -37,12 +37,19 @@ from fbd.model import params as PR  # noqa: E402
 PREREG = ROOT / "docs" / "PREREGISTRATION_S3.md"
 BACKTEST = config.ARTIFACTS / "backtest.json"
 OUT_DIR = config.ARTIFACTS / "candidates"
-#: slate name -> (module, class, frozen parameters). S3b and S3c add theirs.
-CANDIDATES = {"mlp": ("fbd.model.mlp", "MLPModel", PR.MLP_PARAMS)}
+MLP_JSON = OUT_DIR / "mlp.json"
+#: addenda that register a candidate's own keys (docs/PREREGISTRATION_S3.md §3)
+ADDENDA = {"temporal": ROOT / "docs" / "PREREGISTRATION_S3B.md"}
+#: slate name -> (module, class, frozen parameters). S3c adds its own.
+CANDIDATES = {"mlp": ("fbd.model.mlp", "MLPModel", PR.MLP_PARAMS),
+              "temporal": ("fbd.model.temporal", "TemporalModel", PR.TEMPORAL_PARAMS)}
 
 
 def guards(name: str):
     reg = R.guard(PREREG, {"backtest_sha256": BACKTEST}, repo=ROOT)
+    if name in ADDENDA:
+        add = R.guard(ADDENDA[name], {"mlp_json_sha256": MLP_JSON}, repo=ROOT)
+        reg = R.merge_addendum(reg, add, name)
     PM.check_candidate(name, reg)
     if name not in CANDIDATES:
         raise R.RegistrationError(f"{name!r} is declared but not implemented yet")
@@ -65,7 +72,23 @@ def guards(name: str):
     return reg, ens, bt
 
 
-def score_fold(name: str, year: int, ens, lead_days, bt: dict):
+def mlp_probabilities(year: int, test: pd.DataFrame, y, mlp: dict):
+    """The pinned S3a fold model's probabilities, verified before use (S3b §5.4)."""
+    from fbd.evaluate import metrics as M
+    from fbd.model.mlp import MLPModel
+
+    want = mlp["folds"][str(year)]
+    path = F.FOLD_DIR / f"candidate_mlp_{year}.joblib"
+    if P.sha256_file(path) != want["model_sha256"]:
+        raise R.RegistrationError(f"{path.name} does not match mlp.json")
+    p = MLPModel.load(path).predict_proba(test)
+    if M.auroc(y, p) != want["candidate_auroc"]:
+        raise RuntimeError(f"fold {year}: the MLP does not reproduce mlp.json")
+    return p
+
+
+def score_fold(name: str, year: int, ens, lead_days, bt: dict, seed: int,
+               out_dir: Path = F.FOLD_DIR, mlp: dict | None = None):
     from fbd.evaluate import metrics as M
     from fbd.evaluate import settle as S
     from fbd.model import train as T
@@ -75,9 +98,10 @@ def score_fold(name: str, year: int, ens, lead_days, bt: dict):
     incumbent = T.BustModel.load(F.model_path(year, "strict"))
     module, cls, _p = CANDIDATES[name]
     t0 = time.time()
-    cand = getattr(importlib.import_module(module), cls)().fit(tr, va, list(incumbent.features))
+    cand = PM.build_candidate(getattr(importlib.import_module(module), cls), ds).fit(
+        tr, va, list(incumbent.features))
     fit_s = time.time() - t0
-    mpath = F.FOLD_DIR / f"candidate_{name}_{year}.joblib"
+    mpath = Path(out_dir) / f"candidate_{name}_{year}.joblib"
     cand.save(mpath)
 
     test, _fit = E.comparison_rows(ds, ens, lead_days=lead_days)
@@ -94,6 +118,8 @@ def score_fold(name: str, year: int, ens, lead_days, bt: dict):
         "p_inc": incumbent.predict_proba(test),
         "p_ens": p_ens,
     })
+    if mlp is not None:
+        rows["p_mlp"] = mlp_probabilities(year, test, y, mlp)
     inc_auc = M.auroc(y, rows.p_inc)
     if inc_auc != bt["folds"][str(year)]["model_auroc"]:
         raise RuntimeError(f"fold {year}: incumbent AUROC {inc_auc!r} does not reproduce "
@@ -105,6 +131,10 @@ def score_fold(name: str, year: int, ens, lead_days, bt: dict):
             "fit_seconds": round(fit_s, 1), "history": getattr(cand, "history", None),
             "model_sha256": P.sha256_file(mpath),
             "seed_auroc": ([M.auroc(y, s) for s in seeds] if seeds is not None else None)}
+    groups = getattr(cand, "SHUFFLE_GROUPS", ())
+    if groups:
+        info["shuffle_auroc"] = {g: M.auroc(y, cand.predict_proba(test, shuffle=g, seed=seed))
+                                 for g in groups}
     return rows, info
 
 
@@ -125,10 +155,11 @@ def main() -> int:
 
     from fbd.evaluate import backtest_stats as BS
 
+    mlp = json.loads(MLP_JSON.read_text(encoding="utf-8")) if name != "mlp" else None
     frames, folds = [], {}
     for y in PM.YEARS:
         print(f"fold {y}: fit {name}, score ...", flush=True)
-        rows, info = score_fold(name, y, ens, lead_days, bt)
+        rows, info = score_fold(name, y, ens, lead_days, bt, seed, mlp=mlp)
         frames.append(rows)
         folds[str(y)] = info
         print(f"  {info['n_rows']:,} rows; {name} {info['candidate_auroc']:.4f}, "
@@ -150,8 +181,17 @@ def main() -> int:
     secondary = {"ens": {
         "mean": BS.mean_margin(rows, "p_cand", "p_ens", PM.ENS_YEARS, n_boot, seed),
         "per_year": BS.per_year(rows, "p_cand", "p_ens", n_year, seed, whom=whom)}}
+    if mlp is not None:
+        secondary["mlp"] = {
+            "mean": BS.mean_margin(rows, "p_cand", "p_mlp", PM.YEARS, n_boot, seed),
+            "per_year": BS.per_year(rows, "p_cand", "p_mlp", n_year, seed,
+                                    who="the MLP", whom=whom)}
+        m = secondary["mlp"]["mean"]
+        print(f"secondary, {name} - MLP over {list(PM.YEARS)}: {m['point']:+.4f} "
+              f"[{m['lo']:+.4f}, {m['hi']:+.4f}]", flush=True)
     exploratory = {
         "by_month": BS.by_month(rows, "p_cand", "p_inc", n_year, seed),
+        "shuffle_auroc": {y: f.get("shuffle_auroc") for y, f in folds.items()},
         "seed_auroc": {y: f["seed_auroc"] for y, f in folds.items()},
         "n_boot": n_year, "note": "exploratory: no claims are drawn from these"}
 

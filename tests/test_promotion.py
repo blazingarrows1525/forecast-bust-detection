@@ -65,6 +65,30 @@ def test_temporal_params_are_frozen_and_hashable():
     assert PR.params_sha256(dict(p, window=7)) != PR.params_sha256(p)
 
 
+def test_addendum_adds_and_never_overrides():
+    base = {"slate": "mlp,temporal,spatial", "mlp_params_sha256": "a"}
+    got = R.merge_addendum(base, {"temporal_params_sha256": "b"}, "temporal")
+    assert got == {**base, "temporal_params_sha256": "b"}
+    with pytest.raises(R.RegistrationError, match="never overrides"):
+        R.merge_addendum(base, {"mlp_params_sha256": "z"}, "temporal")
+
+
+def test_build_candidate_gives_the_dataset_only_to_those_that_ask():
+    class Plain:
+        def __init__(self):
+            self.got = None
+
+    class Reader:
+        needs_dataset = True
+
+        def __init__(self, dataset=None):
+            self.got = dataset
+
+    ds = object()
+    assert PM.build_candidate(Plain, ds).got is None
+    assert PM.build_candidate(Reader, ds).got is ds
+
+
 def test_year_statement_names_the_loser():
     assert R.year_statement(2019, -0.05, -0.01, whom="the MLP") == \
         "ENS spread outranks the MLP in 2019"
