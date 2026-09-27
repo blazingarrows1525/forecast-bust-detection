@@ -1,0 +1,640 @@
+{
+  "candidate": "temporal",
+  "registration_sha256": "a2f15901e07f7b9074701c85f3dcb302bcf46107eb23e1691978f71e67532f0c",
+  "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+  "params_sha256": "e484ab556b3a5d63af6d75b2ec3eaee0bcadd543c8e7f61b060d731e1733f96e",
+  "row_rule": "S1b comparison_rows per fold; both models score every row",
+  "folds": {
+    "2019": {
+      "candidate_auroc": 0.8149283332950129,
+      "incumbent_auroc": 0.7829065826684753,
+      "ens_auroc": 0.8024934817097004,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 51.3,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 1,
+          "val_loss": 1.0464428663253784
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 3,
+          "val_loss": 1.0595698356628418
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 2,
+          "val_loss": 1.0271313190460205
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 1,
+          "val_loss": 1.0358871221542358
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 1,
+          "val_loss": 1.0405529737472534
+        }
+      ],
+      "model_sha256": "75af23b712886180d32f9a6c7b2f085501dffb8fcc3ce081d58ce6de0b9015c6",
+      "seed_auroc": [
+        0.8098871542547076,
+        0.8123619662934264,
+        0.8131889729381739,
+        0.8172331869496242,
+        0.8115595613087162
+      ],
+      "shuffle_auroc": {
+        "weather": 0.8142814705814729,
+        "verification": 0.8143015657692042
+      }
+    },
+    "2020": {
+      "candidate_auroc": 0.8449229320805269,
+      "incumbent_auroc": 0.841478039979675,
+      "ens_auroc": 0.8027086615795306,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 73.5,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 2,
+          "val_loss": 1.2011576890945435
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 1,
+          "val_loss": 1.218015193939209
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 1,
+          "val_loss": 1.2156248092651367
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 1,
+          "val_loss": 1.218542456626892
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 4,
+          "val_loss": 1.229780673980713
+        }
+      ],
+      "model_sha256": "c0683dea9378125f247764ec1a52367f8473739e1186afff94a2461231d4e38f",
+      "seed_auroc": [
+        0.8385384512116113,
+        0.8487012679280797,
+        0.8442390096648918,
+        0.8439377292379334,
+        0.8389861131214905
+      ],
+      "shuffle_auroc": {
+        "weather": 0.8426569160224389,
+        "verification": 0.8408909789241862
+      }
+    },
+    "2021": {
+      "candidate_auroc": 0.8301617837668097,
+      "incumbent_auroc": 0.815429338072502,
+      "ens_auroc": 0.8238886574902348,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 89.9,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 1,
+          "val_loss": 0.9959596991539001
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 1,
+          "val_loss": 1.0103954076766968
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 1,
+          "val_loss": 1.0009944438934326
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 2,
+          "val_loss": 1.0059773921966553
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 1,
+          "val_loss": 0.9931537508964539
+        }
+      ],
+      "model_sha256": "8a1cbd80fcfc947a73deb6f30b6424d947e20d999a7a49d1b7578f02079274f5",
+      "seed_auroc": [
+        0.8327351134567792,
+        0.8300853173826669,
+        0.8256388524707786,
+        0.8360800373002206,
+        0.8299364321495661
+      ],
+      "shuffle_auroc": {
+        "weather": 0.8238904337466828,
+        "verification": 0.8299771695720397
+      }
+    },
+    "2022": {
+      "candidate_auroc": 0.814808948313523,
+      "incumbent_auroc": 0.8408289724017748,
+      "ens_auroc": 0.8084017050731127,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 147.4,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 2,
+          "val_loss": 1.0252708196640015
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 3,
+          "val_loss": 1.0187989473342896
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 4,
+          "val_loss": 1.0078415870666504
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 1,
+          "val_loss": 1.024414300918579
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 3,
+          "val_loss": 1.0271047353744507
+        }
+      ],
+      "model_sha256": "d2727b28ca79c6ba888bc3e81d5330e10c2ef3876320ffe9145ea44d0c0a9d47",
+      "seed_auroc": [
+        0.8222495727325159,
+        0.794066909166576,
+        0.8089656149498636,
+        0.8205758443621181,
+        0.8178859584807745
+      ],
+      "shuffle_auroc": {
+        "weather": 0.8207263862155916,
+        "verification": 0.8066331493316865
+      }
+    }
+  },
+  "primary": {
+    "point": 0.00604476608336138,
+    "lo": -0.001039242603961482,
+    "hi": 0.013133246998994402,
+    "n_boot": 10000,
+    "n_clusters": 480,
+    "n_degenerate": 0,
+    "alpha": 0.016666666666666666,
+    "excludes_zero": false,
+    "years": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "verdict": "indistinguishable",
+    "text": "the temporal model is not distinguishable from the XGBoost incumbent across 2019\u20132022"
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.03202175062653756,
+      "lo": 0.01873447022067155,
+      "hi": 0.046191447721153724,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2020": {
+      "point": 0.0034448921008519706,
+      "lo": -0.006252532827087168,
+      "hi": 0.012935972151382277,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2021": {
+      "point": 0.01473244569430776,
+      "lo": 0.004172100972251116,
+      "hi": 0.025836828307439278,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2022": {
+      "point": -0.02602002408825177,
+      "lo": -0.0370193033062924,
+      "hi": -0.01487235755220422,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": "the XGBoost incumbent outranks the temporal model in 2022",
+      "n_rows": 20060,
+      "n_init_dates": 120
+    }
+  },
+  "secondary": {
+    "ens": {
+      "mean": {
+        "point": 0.02030741612096128,
+        "lo": 0.013481611276694854,
+        "hi": 0.026964736272760748,
+        "n_boot": 10000,
+        "n_clusters": 360,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.012434851585312545,
+          "lo": 0.0008093273623608678,
+          "hi": 0.02494486976279613,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.042214270500996354,
+          "lo": 0.031707268344878345,
+          "hi": 0.053415582955407374,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.006273126276574947,
+          "lo": -0.006598895710801469,
+          "hi": 0.018253544237773534,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.00640724324041031,
+          "lo": -0.010988630206024799,
+          "hi": 0.02195506918324532,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    },
+    "mlp": {
+      "mean": {
+        "point": -0.002726222460917832,
+        "lo": -0.005007298184946162,
+        "hi": -0.0004713593459305207,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.00010992573517598636,
+          "lo": -0.002499413590973318,
+          "hi": 0.002542830975430236,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": -0.001583207845215595,
+          "lo": -0.003980704688410369,
+          "hi": 0.0008160102045460659,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": -0.008920068692787053,
+          "lo": -0.014912442235841105,
+          "hi": -0.0032923327034346645,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": "the MLP outranks the temporal model in 2021",
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": -0.0005115390408446663,
+          "lo": -0.00575483632085178,
+          "hi": 0.0051523564545867765,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    }
+  },
+  "exploratory": {
+    "by_month": {
+      "2019": {
+        "6": {
+          "point": 0.013094722179229246,
+          "lo": -0.015288900304335815,
+          "hi": 0.045890684873286805,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.015525460798547996,
+          "lo": 0.00044636307292545975,
+          "hi": 0.03186998950004346,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "8": {
+          "point": 0.05540064162345659,
+          "lo": 0.026295234812428896,
+          "hi": 0.08403574937522641,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "9": {
+          "point": 0.034627378603703796,
+          "lo": 0.002746887007227264,
+          "hi": 0.06813121663665783,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        }
+      },
+      "2020": {
+        "6": {
+          "point": 0.0010775975634174095,
+          "lo": -0.011622280639134152,
+          "hi": 0.015486509643532103,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.006339785112251195,
+          "lo": -0.015455737717844534,
+          "hi": 0.027212998647182383,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "8": {
+          "point": -0.003704095782976813,
+          "lo": -0.015616188527830019,
+          "hi": 0.007693464710676886,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": 0.015001933152905877,
+          "lo": -0.01743118989054369,
+          "hi": 0.03945322693431489,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        }
+      },
+      "2021": {
+        "6": {
+          "point": -0.003686661698956928,
+          "lo": -0.024293054817424824,
+          "hi": 0.014471593153353723,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.009429571815166904,
+          "lo": -0.00719794385790401,
+          "hi": 0.029407779369692702,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "8": {
+          "point": -0.015157087902989308,
+          "lo": -0.033478679470636014,
+          "hi": 0.004537175874980865,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": 0.021701472556894252,
+          "lo": -0.0059445597170263145,
+          "hi": 0.048654654899466285,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        }
+      },
+      "2022": {
+        "6": {
+          "point": -0.02629846450328388,
+          "lo": -0.055409542687245184,
+          "hi": -0.000369065901567415,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "7": {
+          "point": -0.034794886263560754,
+          "lo": -0.05071822386603359,
+          "hi": -0.019877843953489637,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "8": {
+          "point": -0.007441565944492745,
+          "lo": -0.02725147005957091,
+          "hi": 0.017540179302207734,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": -0.028166313102530816,
+          "lo": -0.059450881989295566,
+          "hi": -0.0016382463005323214,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        }
+      }
+    },
+    "shuffle_auroc": {
+      "2019": {
+        "weather": 0.8142814705814729,
+        "verification": 0.8143015657692042
+      },
+      "2020": {
+        "weather": 0.8426569160224389,
+        "verification": 0.8408909789241862
+      },
+      "2021": {
+        "weather": 0.8238904337466828,
+        "verification": 0.8299771695720397
+      },
+      "2022": {
+        "weather": 0.8207263862155916,
+        "verification": 0.8066331493316865
+      }
+    },
+    "seed_auroc": {
+      "2019": [
+        0.8098871542547076,
+        0.8123619662934264,
+        0.8131889729381739,
+        0.8172331869496242,
+        0.8115595613087162
+      ],
+      "2020": [
+        0.8385384512116113,
+        0.8487012679280797,
+        0.8442390096648918,
+        0.8439377292379334,
+        0.8389861131214905
+      ],
+      "2021": [
+        0.8327351134567792,
+        0.8300853173826669,
+        0.8256388524707786,
+        0.8360800373002206,
+        0.8299364321495661
+      ],
+      "2022": [
+        0.8222495727325159,
+        0.794066909166576,
+        0.8089656149498636,
+        0.8205758443621181,
+        0.8178859584807745
+      ]
+    },
+    "n_boot": 2000,
+    "note": "exploratory: no claims are drawn from these"
+  }
+}
