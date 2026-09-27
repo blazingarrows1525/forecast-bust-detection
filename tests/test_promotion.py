@@ -55,6 +55,16 @@ def test_mlp_params_are_frozen_and_hashable():
     assert PR.params_sha256(dict(p, dropout=0.3)) != PR.params_sha256(p)
 
 
+def test_temporal_params_are_frozen_and_hashable():
+    p = PR.TEMPORAL_PARAMS
+    assert p["window"] == 14 and p["verify_lag"] == 2 and p["verify_leads"] == [1, 3, 5]
+    assert len(p["weather"]) == 17 and p["gru_hidden"] == 32
+    assert p["hidden"] == PR.MLP_PARAMS["hidden"] and p["seeds"] == PR.MLP_PARAMS["seeds"]
+    json.dumps(p)
+    assert PR.params_sha256(p) == PR.params_sha256(dict(p))
+    assert PR.params_sha256(dict(p, window=7)) != PR.params_sha256(p)
+
+
 def test_year_statement_names_the_loser():
     assert R.year_statement(2019, -0.05, -0.01, whom="the MLP") == \
         "ENS spread outranks the MLP in 2019"

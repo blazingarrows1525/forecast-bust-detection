@@ -52,6 +52,41 @@ MLP_PARAMS = dict(
 )
 
 
+#: S3b candidate, frozen before any run (spec 2026-09-27, docs/PREREGISTRATION_S3B.md).
+#: The channel lists, window, lag and leads are here so that changing any of them
+#: changes temporal_params_sha256.
+TEMPORAL_PARAMS = dict(
+    window=14,
+    verify_lag=2,
+    verify_leads=[1, 3, 5],
+    weather=["moisture_flux_850", "wind_shear", "u850", "v850", "z500", "tcwv", "mslp",
+             "onshore_wind", "somali_jet_z", "monsoon_trough_mslp_z", "nw_z500_z",
+             "india_shear_z", "india_tcwv_z", "india_q850_z", "mcz_q850_z",
+             "bob_vorticity_max_z", "bob_mslp_min_z"],
+    verification=["obs_rain_mm on d - 2", "error and bust of leads 1, 3, 5 verifying on d - 2"],
+    sequence_scaling="training-rows mean and sd of present entries per value channel; "
+                     "absent -> 0 after scaling; 5 presence masks, unscaled",
+    gru_hidden=32,
+    gru_layers=1,
+    static="S3a Preprocessor on the incumbent's 52 features",
+    hidden=[128, 64],
+    activation="relu",
+    dropout=0.2,
+    lr=1e-3,
+    weight_decay=1e-4,
+    batch_size=1024,
+    max_epochs=60,
+    patience=5,
+    seeds=[20260920, 20260921, 20260922, 20260923, 20260924],
+    threads=8,
+    dtype="float32",
+    device="cpu",
+    loss="bce with pos_weight = negatives / positives on training rows",
+    stopping="validation-year weighted bce, restore best epoch",
+    calibration="isotonic on the validation year, on the seed-averaged probability",
+)
+
+
 #: S1c combiner, frozen before any run (docs/PREREGISTRATION_S1C.md).
 COMBINER_PARAMS = dict(
     inputs=["logit of the uncalibrated model probability", "log(1 + ENS spread)"],
