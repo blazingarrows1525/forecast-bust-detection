@@ -329,6 +329,16 @@ Open <http://localhost:8912>. The map, replay slider, reason panel,
 model-vs-baseline toggle and review queue are all served from the local SQLite
 file — **no network access is required once the data is cached.**
 
+Or run the published image, which CI builds and smoke-tests on every push to
+`master` (no clone, no data download):
+
+```bash
+docker run -p 8912:8912 ghcr.io/blazingarrows1525/forecast-bust-detection:latest
+```
+
+For a free public URL (a Hugging Face Space running that image, read-only),
+see [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 ### Run the demo
 
 ```bash
