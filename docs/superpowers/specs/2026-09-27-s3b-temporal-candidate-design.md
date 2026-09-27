@@ -75,9 +75,10 @@ the window (14), the verification lag (2) and the leads (1, 3, 5), so that
 changing any of them changes `temporal_params_sha256`.
 
 The model needs the fold dataset to find each row's history, so it takes it at
-construction: `TemporalModel(history=ds)`, with `needs_history = True` on the
-class. `save` stores the weights, the scaler and the calibrator, not the
-dataset; `load(path, history=ds)` takes it again.
+construction: `TemporalModel(dataset=ds)`, with `needs_dataset = True` on the
+class. (`history` is already the per-seed training log that `promote.py`
+records, as on the MLP.) `save` stores the weights, the scaler and the
+calibrator, not the dataset; `load(path, dataset=ds)` takes it again.
 
 ### Alternatives considered
 
@@ -88,8 +89,8 @@ dataset; `load(path, history=ds)` takes it again.
 
 ## 5. Harness changes (additive, proven neutral)
 
-1. **History hook.** `score_fold` builds `cls(history=ds)` when the class sets
-   `needs_history`, and `cls()` otherwise. The MLP path is unchanged.
+1. **Dataset hook.** `score_fold` builds `cls(dataset=ds)` when the class sets
+   `needs_dataset`, and `cls()` otherwise. The MLP path is unchanged.
 2. **Output directory.** `score_fold` takes an `out_dir` for the saved fold
    model, which defaults to today's `FOLD_DIR`. The audit writes to a scratch
    directory so it never overwrites the pinned MLP fold models.
@@ -146,7 +147,7 @@ into the product is decided after S3c.
 | file | CI | proves |
 |---|---|---|
 | `tests/test_temporal_sequence.py` | yes | poisoning every observation after t − 2 and every weather value after t with 1000 leaves the sequence unchanged; step d holds d's weather and d − 2's verification; steps before 1 June have values 0 and masks 0; a lead missing on d − 2 zeroes only that lead's channels and mask |
-| `tests/test_promotion.py` | yes | `TEMPORAL_PARAMS` hash is stable and changes when any entry changes; an addendum key clashing with S3's is refused; a candidate without `needs_history` is built with no arguments |
+| `tests/test_promotion.py` | yes | `TEMPORAL_PARAMS` hash is stable and changes when any entry changes; an addendum key clashing with S3's is refused; a candidate without `needs_dataset` is built with no arguments |
 | `tests/test_temporal_model.py` | skips without torch | fit/predict on a small synthetic frame; two fits give bit-identical probabilities; save/load round-trip |
 
 ## 9. Audit before registering — `scripts/audit_s3b.py`
