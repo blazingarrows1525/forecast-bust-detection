@@ -182,9 +182,9 @@ jobs:
           echo "confirmed: geo stack absent, geo endpoints still serve"
           docker rm -f fbd-smoke
 
-          # The Hugging Face Space (deploy/huggingface) runs this image as UID
-          # 1000, not the image's own user, with FBD_READ_ONLY=1. It must still
-          # serve, and must refuse an override write with a clear 403, not a 500.
+          # A public host runs this image with FBD_READ_ONLY=1 (docs/DEPLOY.md), and
+          # some hosts run it as another user (Hugging Face Spaces use UID 1000).
+          # It must still serve, and refuse an override with a clear 403, not a 500.
           docker run -d --name fbd-space --user 1000 -e FBD_READ_ONLY=1 -p 8913:8912 fbd:verify
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8913/api/health >/dev/null 2>&1; then break; fi

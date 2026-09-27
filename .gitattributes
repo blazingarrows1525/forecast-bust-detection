@@ -1,2 +1,0 @@
-# Uploaded to a Hugging Face Space as-is: keep Unix line endings on every checkout.
-deploy/huggingface/* text eol=lf
