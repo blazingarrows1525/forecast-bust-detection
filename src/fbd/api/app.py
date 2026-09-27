@@ -16,6 +16,7 @@ Two clock modes, because honesty about staleness is a core requirement:
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -507,6 +508,12 @@ def metrics() -> dict:
 @app.post("/api/override")
 def override(req: OverrideRequest) -> dict:
     """Forecaster override, logged immutably with user and reason."""
+    # A public demo takes no anonymous writes to the audit log (and a Hugging
+    # Face Space runs as a user that cannot write the store). Read at request
+    # time so a deployment sets it with one environment variable.
+    if os.environ.get("FBD_READ_ONLY", "").strip() == "1":
+        raise HTTPException(403, "This is a read-only public demo: overrides are not "
+                                 "recorded here. Run it locally to use the audit log.")
     con = _con()
     con.execute(
         "INSERT INTO overrides (region_id, init_date, lead_day, action, reason, user,"

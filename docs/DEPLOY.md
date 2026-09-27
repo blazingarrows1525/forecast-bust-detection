@@ -12,7 +12,7 @@ The serving layer is deliberately small, and that is what makes free hosting
 viable rather than a compromise:
 
 * one FastAPI process,
-* one ~60 MB SQLite file of precomputed bulletins,
+* one ~74 MB SQLite file of precomputed bulletins,
 * two precomputed geo assets (0.64 MB),
 * vendored frontend assets (no CDN).
 
@@ -62,24 +62,43 @@ Ranked by fit for this project.
 
 ### 3a. Hugging Face Spaces — recommended
 
-Best fit: it is ML-native, reviewers recognise it, Docker Spaces are
-free and persistent, and the URL is stable.
+Best fit: it is ML-native, reviewers recognise it, Docker Spaces are free with
+no card, and the URL is stable. The Space does not build this repo. It runs
+the published image through the two files in
+[`deploy/huggingface/`](../deploy/huggingface/). Pushing this repo to a Space
+would build an image without the bulletin store, which is a Release asset and
+not in git (`DATA.md`), so every panel would be empty.
 
-1. Create a Space → SDK **Docker** → visibility Public.
-2. Push this repo to the Space remote (it builds the `Dockerfile` directly).
-3. HF serves on port 7860, so either set `app_port: 8912` in the Space README
-   front-matter, or override the command:
+1. Create a free account at <https://huggingface.co/join>.
+2. Create a Space at <https://huggingface.co/new-space>: name
+   `forecast-bust-detection`, SDK **Docker** (blank template), hardware
+   **CPU basic** (free), visibility **Public**.
+3. Put the two files in it. The simplest way is in the browser: **Files → Add
+   file → Upload files**, then upload `deploy/huggingface/Dockerfile` and
+   `deploy/huggingface/README.md` (replacing the generated README) and commit.
+   Or with git (git asks for your username and an access token with write
+   access):
 
-```yaml
----
-title: Forecast Bust Detection
-sdk: docker
-app_port: 8912
----
+```bash
+git clone https://huggingface.co/spaces/<your-username>/forecast-bust-detection hf-space
+cp deploy/huggingface/Dockerfile deploy/huggingface/README.md hf-space/
+cd hf-space && git add . && git commit -m "Run the published image" && git push
 ```
 
-**Limit to know:** free Spaces sleep after inactivity and cold-start in ~30 s.
-Wake it before a demo.
+4. The Space pulls the image and starts in a few minutes. The URL is
+   `https://<your-username>-forecast-bust-detection.hf.space`.
+5. When a new image is published (every push to `master`), open the Space's
+   **Settings → Factory rebuild** so it pulls the new `:latest`.
+
+**Read-only by design.** The Space sets `FBD_READ_ONLY=1`, so
+`POST /api/override` answers 403 with a message instead of writing
+anonymous entries into the forecaster audit log. A Space also runs the
+container as UID 1000, which cannot write the image's data directory.
+`publish.yml` runs the image exactly that way, as UID 1000 in read-only mode,
+before every push to GHCR, and refuses to publish if it does not serve.
+
+**Limit to know:** free Spaces sleep when idle and cold-start in about 30 s.
+Wake it before showing it to anyone.
 
 ### 3b. Google Cloud Run
 
@@ -106,8 +125,11 @@ workload. If that is not acceptable, use Spaces.
 
 ### 3c. Fly.io / Render
 
-Both have free allowances that fit. Render free web services sleep on
-inactivity, same caveat as Spaces.
+Both have free allowances that fit, and both can run the published image
+directly. Point the service at
+`ghcr.io/blazingarrows1525/forecast-bust-detection:latest`, set port 8912, and
+set `FBD_READ_ONLY=1` for a public instance. Render free web services sleep
+when idle, with the same caveat as Spaces.
 
 ---
 

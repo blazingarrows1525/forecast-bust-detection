@@ -182,6 +182,26 @@ jobs:
           echo "confirmed: geo stack absent, geo endpoints still serve"
           docker rm -f fbd-smoke
 
+          # The Hugging Face Space (deploy/huggingface) runs this image as UID
+          # 1000, not the image's own user, with FBD_READ_ONLY=1. It must still
+          # serve, and must refuse an override write with a clear 403, not a 500.
+          docker run -d --name fbd-space --user 1000 -e FBD_READ_ONLY=1 -p 8913:8912 fbd:verify
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8913/api/health >/dev/null 2>&1; then break; fi
+            if [ "$i" -eq 30 ]; then
+              echo "UID 1000 container never became healthy"; docker logs fbd-space; exit 1
+            fi
+            sleep 1
+          done
+          q=$(curl -fsS "http://localhost:8913/api/review-queue?init_date=${init}&decision_band_only=false" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+          [ "$q" -ge 1 ] || { echo "UID 1000: review queue empty"; exit 1; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+            -d '{"region_id":"ASSAM_MEGHALAYA","init_date":"2022-06-14","lead_day":3,"action":"escalate","reason":"smoke test","user":"ci"}' \
+            http://localhost:8913/api/override)
+          [ "$code" = "403" ] || { echo "read-only override returned $code, expected 403"; docker logs fbd-space; exit 1; }
+          echo "confirmed: serves as UID 1000; read-only refuses overrides with 403"
+          docker rm -f fbd-space
+
       - name: Push
         uses: docker/build-push-action@v6
         with:
