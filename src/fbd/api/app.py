@@ -511,7 +511,7 @@ def override(req: OverrideRequest) -> dict:
     # A public demo takes no anonymous writes to the audit log (and a Hugging
     # Face Space runs as a user that cannot write the store). Read at request
     # time so a deployment sets it with one environment variable.
-    if os.environ.get("FBD_READ_ONLY") == "1":
+    if os.environ.get("FBD_READ_ONLY", "").strip() == "1":
         raise HTTPException(403, "This is a read-only public demo: overrides are not "
                                  "recorded here. Run it locally to use the audit log.")
     con = _con()
