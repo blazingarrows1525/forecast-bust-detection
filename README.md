@@ -171,6 +171,25 @@ the temporal and spatial candidates.
 Figure: [`docs/figures/candidate_mlp.png`](docs/figures/candidate_mlp.png);
 record: D-027.
 
+The second candidate asked whether *history* helps. It is the same MLP with a
+GRU reading the last 14 days of each subdivision's record: the weather up to
+the issue day, and the observed rain and forecast errors and busts up to two
+days before it, which is when the observation is complete. It was registered
+before it was scored
+([`docs/PREREGISTRATION_S3B.md`](docs/PREREGISTRATION_S3B.md)) and scored once:
+
+**The temporal model is not distinguishable from XGBoost across 2019–2022:**
+**+0.0060 [−0.0010, +0.0131]**.
+
+Its per-year pattern is the MLP's almost exactly: ahead in 2019 (+0.0320) and
+2021 (+0.0147), level in 2020, and clearly behind in 2022 (−0.0260). Against
+the MLP itself it is slightly *worse* on average, −0.0027 [−0.0050, −0.0005].
+Scrambling its history across rows moves AUROC by less than 0.01. Recent
+verification and weather history add nothing the 52 current-day inputs do not
+already carry. Figure:
+[`docs/figures/candidate_temporal.png`](docs/figures/candidate_temporal.png);
+record: D-031.
+
 Against the lagged proxy the margin is **+0.082 AUROC** with a 19% reduction in
 asymmetric decision cost, and every predictor is given the *same* isotonic
 calibration on the *same* validation year so the comparison is fair.
