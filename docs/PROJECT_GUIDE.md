@@ -245,7 +245,7 @@ GenAI routes (`/api/assistant/*`) mount only when `FBD_GENAI_ENABLED=1`
   (3-D) — never a cool/green colour for a refusal.
 - **Claims gate:** headline numbers come from `/api/metrics`, gated on
   `served.*`; never hardcode them (`FRONTEND_LOGIC.md` §8).
-- Light/dark theme persisted in `localStorage`. No SIH/competition branding.
+- Light/dark theme persisted in `localStorage`. No competition branding.
 
 ### 6.4 Geometry & the 3-D data
 - **`centroids.json`** — `{region_id: [lon, lat]}`, a *representative interior
@@ -373,7 +373,7 @@ analysis** (pip-audit, bandit, secret scan), **Docker image builds and serves**
 
 Notable tests: `test_core.py` (causality poison tests), `test_fold_leakage.py`,
 `test_published_numbers.py` (docs ↔ artifacts), `test_web_pages.py` (air-gap,
-no-SIH, claims gate), `test_voxel_grid.py` (geometry agreement),
+no competition branding, claims gate), `test_voxel_grid.py` (geometry agreement),
 `test_promotion.py` (S3 rule), `test_combined*.py` (the served combination),
 `test_temporal_*` (S3b).
 
@@ -435,7 +435,7 @@ map uncertainty (hatch OOD, draw the 90% interval); retrospective case studies.
   shown beside it, not instead.
 - **Registered before scored.** New comparative results follow the
   pre-registration discipline; `promote.py`/the guards enforce it.
-- **No SIH / competition branding** on any product surface.
+- **No competition branding** on any product surface.
 - **Read-only public deploy:** `FBD_READ_ONLY=1` → `POST /api/override` = 403.
 
 ---

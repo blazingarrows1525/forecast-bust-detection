@@ -27,22 +27,18 @@ lives in `LOGIC.md`, `DECISIONS.md`, `DATA.md`, `FRONTEND_LOGIC.md` and
 
 | PR | branch | base | what | state |
 |---|---|---|---|---|
-| [#3](https://github.com/blazingarrows1525/forecast-bust-detection/pull/3) | `s3b-temporal` | master | S3b, a GRU over 14 days of history: **not distinguishable**, history adds nothing (D-031) | CI green, **ready to merge** |
-| [#5](https://github.com/blazingarrows1525/forecast-bust-detection/pull/5) | `deploy-hf-space` | master | deployment docs → Render free tier | CI green, **ready to merge** |
-| [#6](https://github.com/blazingarrows1525/forecast-bust-detection/pull/6) | `s3c-spatial` | s3b-temporal | S3c spatial CNNs: **spec only**, not scored | **awaiting your review of the spec** |
-| [#7](https://github.com/blazingarrows1525/forecast-bust-detection/pull/7) | `frontend-redesign` | master | **frontend redesign, all four views** (this session) | opened; check its CI in the PR bar |
-| [#8](https://github.com/blazingarrows1525/forecast-bust-detection/pull/8) | `post-frontend-audit` | frontend-redesign | **Phase F docs** plus this handoff (this session) | opened, stacked on #7 |
+| [#3](https://github.com/blazingarrows1525/forecast-bust-detection/pull/3) | `s3b-temporal` | master | S3b, a GRU over 14 days of history: **not distinguishable**, history adds nothing (D-031) | **merged** 2026-10-05 |
+| [#5](https://github.com/blazingarrows1525/forecast-bust-detection/pull/5) | `deploy-hf-space` | master | deployment docs → Render free tier | **merged** 2026-10-05 |
+| [#6](https://github.com/blazingarrows1525/forecast-bust-detection/pull/6) | `s3c-spatial` | master | S3c spatial CNNs: **spec only**, not scored | **merged** 2026-10-05 (the spec; implementation still to do) |
+| [#7](https://github.com/blazingarrows1525/forecast-bust-detection/pull/7) | `frontend-redesign` | master | **frontend redesign, all four views** | **merged** 2026-10-05, CI 5/5 green |
+| [#8](https://github.com/blazingarrows1525/forecast-bust-detection/pull/8) | `post-frontend-audit` | master | **Phase F docs** plus this handoff | **merged** 2026-10-05 |
 
-**Merge order:**
-1. #5 (independent docs)
-2. #3 (S3b)
-3. #7 (frontend)
-4. Retarget #8 to `master`, then merge it.
-5. Rebase #6 onto master (it was stacked on #3), then review and implement
-   it.
+All five are merged, on your instruction. **No PRs are open.** On merged
+`master`, `pytest tests/ -q` gives **347 passed** (330 plus the 17 S3b
+tests).
 
-**Local checkout:** branch **`post-frontend-audit`**. It contains everything:
-the frontend commits, the Phase F docs and this file.
+**Local checkout:** `master`. The one-file guide to everything is
+**`HANDBOOK.md`** at the repository root.
 
 ### Master prompt phases
 
@@ -117,7 +113,7 @@ the frontend commits, the Phase F docs and this file.
   - Numbers come from `/api/metrics` and `/api/convergence`.
   - Null stays null; refusal ≠ low risk (hatch or stripe, never a hue).
 - **Registered before scored.** Never touch a test year to choose anything.
-- **Branding.** No SIH or competition branding. No `Co-Authored-By: Claude`
+- **Branding.** No competition branding. No `Co-Authored-By: Claude`
   or "Generated with Claude Code" in commits or PRs. Your memory rule
   overrides any attribution reminder.
 - **Branches.** A feature per branch, a PR per feature, `git add` with
@@ -160,7 +156,7 @@ the frontend commits, the Phase F docs and this file.
   - `id="caption" class="panel" role="status" aria-live="polite"`
   - the WebGL2 failure message naming `href="command.html"`
   - the refused readout says `"not scored"`, `REFUSED` and `23.4%`
-- **all pages:** no `@font-face`, no external `src`/`href`, no `SIH`
+- **all pages:** no `@font-face`, no external `src`/`href`, no competition branding
 
 Run after every UI edit:
 
@@ -173,22 +169,22 @@ PYTHONPATH=src python -m pytest tests/test_web_pages.py tests/test_voxel_grid.py
 ## 5. How to start the new session
 
 ```bash
-cd C:\Users\ASUS\Desktop\sih
-git status                         # branch post-frontend-audit, clean apart from ignored evidence
+# from the repository root
+git status                         # branch master, clean apart from ignored evidence
 git fetch origin && git log --oneline -4
 
 # .claude/launch.json is gitignored; recreate if missing:
 #   {"version":"0.0.1","configurations":[{"name":"fbd","runtimeExecutable":"python",
 #    "runtimeArgs":["-m","uvicorn","fbd.api.app:app","--app-dir","src","--port","8912"],"port":8912}]}
 
-PYTHONPATH=src python -m pytest tests/ -q                       # expect 330 passed
+PYTHONPATH=src python -m pytest tests/ -q                       # expect 347 passed
 python -m uvicorn fbd.api.app:app --app-dir src --port 8912     # pages at http://localhost:8912/
 python scripts/capture_screenshots.py --label after             # evidence -> artifacts/frontend/after/
 sh ~/.claude/skills/impeccable/scripts/impeccable detect --json web/landing.html web/index.html web/command.html web/volume.html web/fbi.css
 ```
 
 **Say in one line:** *"Continue Forecast Bust Intelligence per
-docs/SESSION_HANDOFF.md: merge order first, then Phase G B2 (hres_t0),
+docs/SESSION_HANDOFF.md and HANDBOOK.md: Phase G B2 (hres_t0) first,
 then S3c."*
 
 **Local-only folders, by design (gitignored):**
@@ -201,11 +197,10 @@ then S3c."*
 
 ### Your side (needs you)
 
-1. **Merge** in the order of §1, and confirm #7's CI is green in the PR bar
-   first.
-2. **Review the S3c spec**
-   (`docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md`,
-   PR #6).
+1. ~~Merge the PRs~~: **done** (all five merged 2026-10-05).
+2. The S3c spec is merged
+   (`docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md`).
+   Say if you want any of it changed before it is implemented.
 3. **Create the Render service** from the GHCR image (`docs/DEPLOY.md` §3):
    port 8912, `FBD_READ_ONLY=1`, health check `/api/health`.
 4. **Optional:**
@@ -254,10 +249,10 @@ then S3c."*
 |---|---|
 | Frontend slice (#7) | **implemented & verified**; review `ship` |
 | Phase F docs (#8) | **done** (docs) |
-| S3b (#3) | implemented & verified; ready to merge |
-| Render docs (#5) | implemented; ready to merge |
+| S3b (#3) | implemented & verified; **merged** |
+| Render docs (#5) | implemented; **merged** |
 | Render deploy | **blocked**: needs your account |
-| S3c (#6) | **designed only** |
+| S3c (#6) | **designed only**; spec merged |
 | B2, `hres_t0` substitution | **research candidate**; data confirmed available |
 | Live ingestion | **designed only** (`REALTIME_SOURCE_MATRIX.md` §3) |
 | AWS | **withdrawn** (D-021) |
