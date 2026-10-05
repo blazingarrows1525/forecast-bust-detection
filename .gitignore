@@ -37,3 +37,11 @@ Untitled*.ipynb
 
 # Local Claude Code / desktop-app settings; not part of the project.
 .claude/
+
+# Frontend evidence: before/after captures and review copies are regenerated
+# by scripts/capture_screenshots.py (several MB per set), and the Impeccable
+# decision-page logs are per-session. The design system itself (DESIGN.md,
+# .impeccable/design.json, .impeccable/surfaces/) IS committed.
+artifacts/frontend/
+.impeccable/review/
+.impeccable/questions/

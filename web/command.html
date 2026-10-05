@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bust Risk Command Centre — India</title>
+<title>Columns · Forecast Bust Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/fbi.css" />
 <style>
   /* The same five viridis stops as index.html -- one risk encoding across the
      product. This page used to run dark-green -> green -> amber -> orange ->
@@ -14,117 +16,178 @@
 
      Refusal is not in the ramp. It is a stripe (ink on ground), never a hue:
      a refused day busts 23.4% of the time against 3.4% for a scored one, so
-     it must not read as a point on the ramp or as quieter than one. */
+     it must not read as a point on the ramp or as quieter than one.
+
+     The 3-D views stay in the dark ops shell: the scene is lit for it. */
   :root{
-    --bg:#0b0f14; --panel:#171e26; --panel2:#1e2732; --line:#2a3644;
-    --fg:#e6edf3; --muted:#8b98a5; --accent:#4a9eff;
     --c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725;
-    --ood-ink:#e8edf2; --ood-bg:#2b333d; --truth-bust:#e5534b; --truth-ok:#26343f;
-    --nodata:#39434f;
+    --bg:var(--ground); --panel:var(--ground-2); --panel2:var(--plate); --line:var(--rule);
+    --fg:var(--ink); --muted:var(--ink-3);
+    --ood-ink:var(--hatch-ink); --ood-bg:var(--hatch-bg);
+    --truth-bust:var(--outcome); --truth-ok:#4a545b;
+    --nodata:#39434a; --scene:#1a1f23; --scene-land:#323b41; --scene-edge:#8a949b;
   }
-  *{box-sizing:border-box}
-  body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-       background:var(--bg);color:var(--fg);overflow:hidden}
-  #app{display:grid;grid-template-columns:1fr 350px;grid-template-rows:auto 1fr;height:100vh}
-  header{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line);
-         padding:9px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  header h1{font-size:15px;margin:0;font-weight:600}
-  .sub{color:var(--muted);font-size:12px}
-  label{font-size:12px;color:var(--muted)}
-  select,input[type=range],button,a.btn{background:var(--panel2);color:var(--fg);
-    border:1px solid var(--line);border-radius:6px;padding:5px 9px;font:inherit;font-size:13px;
-    text-decoration:none;display:inline-block}
-  button,a.btn{cursor:pointer}
-  button.active{background:var(--accent);border-color:var(--accent);color:#08121f;font-weight:600}
-  input[type=range]{padding:0;width:210px}
-  #stage{position:relative}
-  canvas{display:block}
-  #hint{position:absolute;left:12px;bottom:10px;color:var(--muted);font-size:11px;
-        background:rgba(11,15,20,.72);padding:5px 9px;border-radius:6px;pointer-events:none}
-  #axis{position:absolute;left:12px;top:12px;color:var(--muted);font-size:11px;
-        background:rgba(11,15,20,.72);padding:7px 10px;border-radius:6px;pointer-events:none;line-height:1.7}
-  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px}
-  .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px}
-  .card h2{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
-  .big{font-size:28px;font-weight:700;line-height:1.1}
+  body{font-size:14px;line-height:1.5;overflow:hidden}
+  #app{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr);
+       height:100vh;height:100dvh}
+  #top{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line)}
+  header{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:8px 14px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .grp label{font-family:var(--font-sign);font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
+  .reading select{font-family:var(--font-sign);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+  .reading button{min-width:30px;padding:5px 8px}
+  #dateSlider{width:110px}
+  @media (max-width: 1380px){ #dateSlider{display:none} }
+  .seg{gap:0}
+  .seg button{border-radius:0;margin-left:-1px}
+  .seg button:first-child{border-radius:var(--r) 0 0 var(--r);margin-left:0}
+  .seg button:last-child{border-radius:0 var(--r) var(--r) 0}
+  .seg button.active{position:relative;z-index:1}
+  .tools button{color:var(--ink-2)}
+  header nav{margin-left:auto}
+  #status{padding:0 14px 7px;color:var(--ink-3);font-size:12px}
+  #banner{display:none;background:var(--warn-bg);border-top:1px solid var(--warn-rule);
+          color:var(--warn-ink);padding:7px 14px;font-size:12.5px;font-weight:500}
+
+  #stage{position:relative;min-height:0;min-width:0;background:var(--scene)}
+  #stage canvas{display:block;width:100%;height:100%}
+  .over{position:absolute;color:var(--ink-2);font-size:12px;background:rgba(21,25,28,.82);
+    border:1px solid var(--line);padding:6px 9px;border-radius:var(--r);pointer-events:none}
+  #hint{left:12px;bottom:10px}
+  #axis{left:12px;top:12px;line-height:1.6}
+  #axis b{font-family:var(--font-sign);color:var(--ink);font-weight:600}
+
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;min-height:0}
+  aside section{padding:14px 16px;border-bottom:1px solid var(--line)}
+  aside h2{margin:0 0 9px;font-family:var(--font-sign);font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
   .muted{color:var(--muted);font-size:12px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{text-align:left;padding:3px 5px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:600}
-  tr.sel{background:#243141}
-  .legend{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
-  .sw{width:14px;height:11px;border-radius:2px;display:inline-block}
+  .hint{color:var(--ink-2);font-size:13px;line-height:1.55}
+  .hint kbd{font-size:12px}
+  #selName{font-family:var(--font-sign);font-weight:600;font-size:18px;line-height:1.25}
+  .big{font-family:var(--font-sign);font-size:36px;font-weight:600;line-height:1;margin-top:8px;font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+  th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  td.r,th.r{text-align:right}
+  td.code{font-family:var(--font-sign);font-weight:600}
+  td.bust{color:var(--ink);font-weight:700}
+  tbody tr[tabindex]{cursor:pointer}
+  tbody tr[tabindex]:hover{background:var(--accent-wash)}
+  tr.sel{background:var(--accent-wash);box-shadow:inset 3px 0 0 var(--accent)}
+  tbody tr:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+  .legend{display:flex;gap:4px 6px;align-items:center;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+  .li{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;margin-right:8px}
+  .sw{width:14px;height:11px;border-radius:2px;display:inline-block;vertical-align:-1px;flex:none;
+      box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}
   .sw.ood{background:repeating-linear-gradient(45deg,var(--ood-ink) 0 2px,var(--ood-bg) 2px 4px)}
-  ul.reasons{margin:6px 0 0;padding-left:17px} ul.reasons li{margin-bottom:5px;font-size:12px}
-  #banner{grid-column:1/-1;display:none;background:#4a2c00;border-bottom:1px solid #7a4a00;
-          color:#ffd591;padding:7px 16px;font-size:12.5px;font-weight:500}
+  ul.reasons{margin:6px 0 0;padding-left:17px;color:var(--ink-2)} ul.reasons li{margin-bottom:5px;font-size:12.5px}
+
+  @media (max-width: 900px){
+    body{overflow:auto}
+    #app{display:block;height:auto}
+    #stage{height:60vh;min-height:320px}
+    aside{border-left:0;border-top:1px solid var(--line);overflow:visible}
+    header nav{margin-left:0;width:100%}
+    #axis{right:12px;padding:5px 8px}
+    #axis .long{display:none}
+    #hint{right:12px}
+  }
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <h1>Bust Risk Command Centre <span class="sub">· space × lead-day</span></h1>
-    <label>Init</label>
-    <input type="range" id="dateSlider" min="0" max="0" value="0" />
-    <select id="datePick"></select>
-    <label>Highlight</label>
-    <select id="leadPick"></select>
-    <button id="btnModel" class="active">Model</button>
-    <button id="btnBaseline">Baseline</button>
-    <button id="btnTruth">Truth</button>
-    <button id="btnReset">Reset view</button>
-    <a class="btn" href="/">2D map ↗</a>
-    <span class="sub" id="status"></span>
-  </header>
-  <div id="banner"></div>
+  <div id="top">
+    <header>
+      <a class="wordmark" href="/landing.html">
+        <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
+        Forecast Bust Intelligence
+      </a>
+      <div class="grp reading" role="group" aria-label="Which reading">
+        <label for="datePick">Issued</label>
+        <button id="datePrev" aria-label="Previous issue date" title="Previous issue date (up arrow)"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M6.5 1.5 3 5l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <select id="datePick"></select>
+        <button id="dateNext" aria-label="Next issue date" title="Next issue date (down arrow)"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 1.5 7 5 3.5 8.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <input type="range" id="dateSlider" min="0" max="0" value="0" aria-label="Issue date" />
+        <label for="leadPick">Highlight</label>
+        <select id="leadPick"></select>
+      </div>
+      <div class="grp seg" role="group" aria-label="What the columns show">
+        <button id="btnModel" class="active" title="Served probability, model + ensemble">Served</button>
+        <button id="btnBaseline" title="Ensemble-spread baseline">Baseline</button>
+        <button id="btnTruth" title="What happened">Observed</button>
+      </div>
+      <div class="grp tools">
+        <button id="btnReset" title="Reset the camera (r)">Reset view</button>
+      </div>
+      <nav aria-label="Views">
+        <ul class="views">
+          <li><a href="/landing.html">Case</a></li>
+          <li><a data-carry="/" href="/">Map</a></li>
+          <li><a data-carry="/command.html" href="/command.html" aria-current="page">Columns</a></li>
+          <li><a data-carry="/volume.html" href="/volume.html">Volume</a></li>
+        </ul>
+      </nav>
+    </header>
+    <div id="status" aria-live="polite">Loading the archive.</div>
+    <div id="banner"></div>
+  </div>
   <div id="stage">
-    <div id="axis"><b>Vertical axis = lead day</b><br>ground → Day 1 · top → Day 10<br>
-      colour = P(forecast busts)</div>
-    <div id="hint">drag to orbit · wheel to zoom · right-drag to pan · click a column</div>
+    <div id="axis" class="over"><b>Height is lead day</b>: D01 at the ground, D10 at the top<span class="long"><br>
+      colour is P(forecast busts); the staff on the west edge reads D01 to D10</span></div>
+    <div id="hint" class="over">drag to orbit · wheel to zoom · right-drag to pan · click a column · ← → lead · ↑ ↓ date</div>
   </div>
   <aside>
-    <div class="card">
-      <h2>Selected</h2>
-      <div id="selName" style="font-weight:600;font-size:15px">Click a risk column</div>
-      <div class="muted" id="selMeta"></div>
-      <div class="big" id="selProb" style="margin-top:6px">—</div>
-      <div class="muted" id="selProbSub"></div>
-      <div id="selReasons"></div>
-    </div>
-    <div class="card">
-      <h2>Lead profile</h2>
+    <section aria-labelledby="hSel">
+      <h2 id="hSel">Selected</h2>
+      <div id="selEmpty" class="hint">Click a column, or Tab to a row in the queue below and press
+        <kbd>Enter</kbd>. <kbd>←</kbd> <kbd>→</kbd> move the highlighted lead day.</div>
+      <div id="selBody" hidden>
+        <div id="selName">Click a risk column</div>
+        <div class="muted" id="selMeta"></div>
+        <div class="big" id="selProb"></div>
+        <div class="muted" id="selProbSub"></div>
+        <div id="selReasons"></div>
+      </div>
+    </section>
+    <section aria-labelledby="hProfile">
+      <h2 id="hProfile">Lead profile</h2>
       <div class="muted" style="margin-bottom:5px">All 10 lead days for the selected subdivision.</div>
-      <table id="profile"><thead><tr><th>Day</th><th>Model</th><th>Baseline</th><th>Bust?</th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="card">
-      <h2>Highest risk — Day 3–7</h2>
-      <table id="queue"><thead><tr><th>#</th><th>Region</th><th>Day</th><th>P</th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="card">
-      <h2>Legend</h2>
+      <table id="profile"><thead><tr><th>Lead</th><th class="r">Served</th><th class="r">Baseline</th><th class="r">Observed</th></tr></thead><tbody><tr><td colspan="4" class="muted">Select a column to see its ten lead days.</td></tr></tbody></table>
+    </section>
+    <section aria-labelledby="hQueue">
+      <h2 id="hQueue">Highest risk, Day 3–7</h2>
+      <table id="queue"><thead><tr><th>#</th><th>Region</th><th>Lead</th><th class="r">P(bust)</th></tr></thead><tbody></tbody></table>
+    </section>
+    <section aria-labelledby="hLegend">
+      <h2 id="hLegend">Legend</h2>
       <div class="legend">
-        <span class="sw" style="background:var(--c0)"></span><span>&lt;5%</span>
-        <span class="sw" style="background:var(--c1)"></span><span>5–10%</span>
-        <span class="sw" style="background:var(--c2)"></span><span>10–20%</span>
-        <span class="sw" style="background:var(--c3)"></span><span>20–35%</span>
-        <span class="sw" style="background:var(--c4)"></span><span>&gt;35%</span>
-        <span class="sw ood"></span><span>refused — not scored</span>
+        <span class="li"><span class="sw" style="background:var(--c0)"></span><span class="t">&lt;5%</span></span>
+        <span class="li"><span class="sw" style="background:var(--c1)"></span><span class="t">5–10%</span></span>
+        <span class="li"><span class="sw" style="background:var(--c2)"></span><span class="t">10–20%</span></span>
+        <span class="li"><span class="sw" style="background:var(--c3)"></span><span class="t">20–35%</span></span>
+        <span class="li"><span class="sw" style="background:var(--c4)"></span><span class="t">&gt;35%</span></span>
+        <span class="li"><span class="sw ood"></span><span class="t">refused, not scored</span></span>
       </div>
       <div class="muted" style="margin-top:7px">
         Striped columns are subdivision-days where the atmospheric state is unlike
         anything in training, so the model declined to score them. That is not a low
         reading: refused days bust 23.4% of the time against 3.4% for scored ones.
       </div>
-    </div>
+      <div class="muted" style="margin-top:7px">
+        Cells under 5% are drawn faint so the map shows through them; every other
+        band, and every refusal, is drawn at full presence.
+      </div>
+    </section>
   </aside>
 </div>
 
 <script src="/vendor/three.min.js"></script>
+<script src="/fbi.js"></script>
 <script>
 "use strict";
 // ---------------------------------------------------------------- constants
 const LEAD_H = 1.15;          // world units per lead day
-const COL_W  = 0.62;          // column footprint
+const COL_W  = 0.46;          // column footprint: thin enough to read the map between staffs
 const DEG    = 1.0;           // world units per degree of lon/lat
 const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 // Read from the CSS tokens so the page has one source of colour.
@@ -147,15 +210,18 @@ function refusalTexture(){
 const CASE_STUDY = "2022-06-14";
 
 let scene, camera, renderer, raycaster, pointer;
-let mapGroup, colGroup, bandGroup;
-let geo=null, cube=null, dates=[], lonMid=0, latMid=0;
-let cur = {init:null, lead:5, view:"model", sel:null};
+let mapGroup, colGroup, bandGroup, staffGroup;
+let geo=null, cube=null, dates=[], lonMid=0, latMid=0, lonMin=0, latMin=0;
+let cur = {init:null, lead:4, view:"model", sel:null};
 // theta = +pi/2 puts the camera on the SOUTH side looking north. It was -pi/2,
 // which viewed India from the north: correct handedness, but upside down, with
 // Kerala at the top and Assam on the left. proj() puts north at -z.
 let orbit = {theta: Math.PI/2, phi: 0.95, r: 46, target:new THREE.Vector3(0,4,0)};
 
-const pct = x => (x==null ? "—" : (100*x).toFixed(1)+"%");
+const pct = x => (x==null ? "n/a" : (100*x).toFixed(1)+"%");
+const code = L => "D" + String(L).padStart(2, "0");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function colourFor(p, status){
   if(status && status !== "OK") return null;   // refused: drawn as a stripe, see refusalTexture()
@@ -172,24 +238,27 @@ const proj = (lon,lat) => [ (lon-lonMid)*DEG, -(lat-latMid)*DEG ];  // -> x, z
 function initGL(){
   const stage = document.getElementById("stage");
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b0f14);
-  scene.fog = new THREE.Fog(0x0b0f14, 60, 130);
+  scene.background = new THREE.Color(getCSS("--scene"));
+  scene.fog = new THREE.Fog(getCSS("--scene"), 70, 140);
 
   camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
   renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   stage.appendChild(renderer.domElement);
+  renderer.domElement.setAttribute("aria-label",
+    "Columns of bust probability over India, one stacked cell per lead day. The queue and lead profile in the panel list the same values.");
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
-  const key = new THREE.DirectionalLight(0xffffff, 0.85);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.66));
+  const key = new THREE.DirectionalLight(0xffffff, 0.82);
   key.position.set(18, 34, 12); scene.add(key);
-  const rim = new THREE.DirectionalLight(0x4a9eff, 0.30);
+  const rim = new THREE.DirectionalLight(new THREE.Color(getCSS("--accent")), 0.28);
   rim.position.set(-20, 12, -18); scene.add(rim);
 
-  mapGroup  = new THREE.Group();
-  colGroup  = new THREE.Group();
-  bandGroup = new THREE.Group();
-  scene.add(mapGroup, colGroup, bandGroup);
+  mapGroup   = new THREE.Group();
+  colGroup   = new THREE.Group();
+  bandGroup  = new THREE.Group();
+  staffGroup = new THREE.Group();
+  scene.add(mapGroup, colGroup, bandGroup, staffGroup);
 
   raycaster = new THREE.Raycaster();
   pointer = new THREE.Vector2();
@@ -198,13 +267,20 @@ function initGL(){
   resize();
 }
 
+// On a phone the in-scene staff is too small to read; the overlay states the
+// axis in words there instead.
+const NARROW = window.matchMedia("(max-width: 900px)");
 function resize(){
   const s = document.getElementById("stage");
   const w = s.clientWidth, h = s.clientHeight;
   if(!w || !h) return;
   camera.aspect = w/h; camera.updateProjectionMatrix();
   renderer.setSize(w, h, false);
+  if(staffGroup) staffGroup.visible = !NARROW.matches;
 }
+// A portrait screen sees less of India at the same distance, so the default
+// distance grows as the stage narrows; the user's own zoom is never overridden.
+const fitR = () => 46 * Math.max(1, 1.05 / Math.max(camera.aspect || 1, 0.3));
 
 // Hand-written orbit controls: three.js r128 ships OrbitControls as a separate
 // example file, and vendoring a second script for ~40 lines of spherical maths
@@ -325,7 +401,7 @@ function buildMap(){
     mapGroup.add(new THREE.Mesh(
       mergeGeometries(fills),
       new THREE.MeshLambertMaterial({
-        color:0x243141, transparent:true, opacity:0.94, side:THREE.DoubleSide
+        color:new THREE.Color(getCSS("--scene-land")), transparent:true, opacity:0.96, side:THREE.DoubleSide
       })
     ));
   }
@@ -333,7 +409,7 @@ function buildMap(){
     const lg = new THREE.BufferGeometry();
     lg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(linePts),3));
     mapGroup.add(new THREE.LineSegments(
-      lg, new THREE.LineBasicMaterial({color:0x4a5a6d})
+      lg, new THREE.LineBasicMaterial({color:new THREE.Color(getCSS("--scene-edge"))})
     ));
   }
 }
@@ -345,11 +421,44 @@ function buildBand(band){
   const lo = (Math.min(...band)-1)*LEAD_H, hi = Math.max(...band)*LEAD_H;
   const geom = new THREE.BoxGeometry(72, hi-lo, 72);
   const mat = new THREE.MeshBasicMaterial({
-    color:0x4a9eff, transparent:true, opacity:0.045, depthWrite:false
+    color:new THREE.Color(getCSS("--accent")), transparent:true, opacity:0.04, depthWrite:false
   });
   const m = new THREE.Mesh(geom, mat);
   m.position.set(0, (lo+hi)/2, 0);
   bandGroup.add(m);
+}
+
+// The lead axis as a gauge staff standing off the west coast: one
+// E-graduation per lead day, stencilled D01 at the ground to D10 at the top,
+// the highlighted lead marked. A sprite, so it always faces the camera
+// (audit F10: the scene had no lead labels).
+function buildStaff(){
+  staffGroup.clear();
+  const c = document.createElement("canvas"); c.width = 216; c.height = 1024;
+  const g = c.getContext("2d"), cell = c.height / 10;
+  g.fillStyle = getCSS("--ink-3"); g.fillRect(118, 0, 64, c.height);
+  g.fillStyle = getCSS("--plate-2"); g.fillRect(121, 3, 58, c.height - 6);
+  for(let L=1; L<=10; L++){
+    const y0 = c.height - L*cell;
+    const on = L === cur.lead;
+    g.fillStyle = on ? getCSS("--accent") : getCSS("--ink-3");
+    const left = L % 2 === 1, x0 = left ? 126 : 150, w = 24, t = 9;
+    g.fillRect(left ? x0 : x0 + w - t, y0 + 8, t, cell*0.5);
+    g.fillRect(x0, y0 + 8, w, t);
+    g.fillRect(x0, y0 + 8 + cell*0.25 - t/2, w*0.8, t);
+    g.fillRect(x0, y0 + 8 + cell*0.5 - t, w, t);
+    g.font = `600 ${on ? 46 : 40}px Bahnschrift, "Arial Narrow", sans-serif`;
+    g.fillStyle = on ? getCSS("--accent") : getCSS("--ink");
+    g.textAlign = "right"; g.textBaseline = "middle";
+    g.fillText(code(L), 112, y0 + cell*0.55);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthWrite: false}));
+  const h = 10*LEAD_H, w = h * c.width / c.height;
+  s.scale.set(w, h, 1);
+  const [x, z] = proj(lonMin - 1.4, latMid);
+  s.position.set(x, h/2, z);
+  staffGroup.add(s);
 }
 
 function buildColumns(){
@@ -373,18 +482,22 @@ function buildColumns(){
       }
 
       const emphasise = (L === cur.lead);
+      // The lowest band is drawn faint so a tall quiet column does not hide the
+      // map it stands on. Every other band, and every refusal, is at full presence.
+      const quiet = cur.view !== "truth" && !isOOD && value != null && value < 0.05;
       const geom = new THREE.BoxGeometry(
-        COL_W*(emphasise?1.28:1), LEAD_H*0.86, COL_W*(emphasise?1.28:1)
+        COL_W*(emphasise?1.35:1), LEAD_H*0.84, COL_W*(emphasise?1.35:1)
       );
       // Refused: an achromatic stripe at full presence -- never a hue, never a
       // wireframe (which read as "less there" than a solid low-risk column).
       const mat = (isOOD && cur.view !== "truth")
         ? new THREE.MeshLambertMaterial({ map: refusalTexture(), transparent: true,
-                                          opacity: emphasise ? 1.0 : 0.9 })
+                                          opacity: emphasise ? 1.0 : 0.92 })
         : new THREE.MeshLambertMaterial({
             color: new THREE.Color(colour),
             transparent: true,
-            opacity: emphasise ? 1.0 : 0.82
+            opacity: emphasise ? 1.0 : (quiet ? 0.32 : 0.86),
+            depthWrite: !quiet
           });
       const box = new THREE.Mesh(geom, mat);
       box.position.set(x, (L-0.5)*LEAD_H, z);
@@ -403,43 +516,67 @@ function pick(e){
   const hits = raycaster.intersectObjects(colGroup.children, false);
   if(hits.length){
     const u = hits[0].object.userData;
-    cur.lead = u.lead;
-    document.getElementById("leadPick").value = u.lead;
+    setLead(u.lead, false);
     select(u.region_id, u.lead);
-    buildColumns();
   }
 }
 
+function setLead(L, reselect = true){
+  cur.lead = Math.max(1, Math.min(10, L));
+  document.getElementById("leadPick").value = cur.lead;
+  FBI.write({lead: cur.lead});
+  buildColumns(); buildStaff(); markQueue();
+  if(reselect && cur.sel) select(cur.sel, cur.lead);
+}
+
+function clearSelection(){
+  cur.sel = null;
+  document.getElementById("selBody").hidden = true;
+  document.getElementById("selEmpty").hidden = false;
+  document.querySelector("#profile tbody").innerHTML =
+    '<tr><td colspan="4" class="muted">Select a column to see its ten lead days.</td></tr>';
+  FBI.write({region: null});
+  markQueue();
+}
+
 async function select(rid, lead){
+  const r = cube && cube.regions.find(x=>x.region_id===rid); if(!r) return;
   cur.sel = rid;
-  const r = cube.regions.find(x=>x.region_id===rid); if(!r) return;
+  FBI.write({region: rid});
   const i = cube.lead_days.indexOf(lead);
   const status = r.status[i], p = r.p[i];
+  document.getElementById("selBody").hidden = false;
+  document.getElementById("selEmpty").hidden = true;
 
   document.getElementById("selName").textContent = r.region;
   document.getElementById("selMeta").textContent =
-    `Day ${lead} · valid ${r.valid_date[i] ?? "—"} · init ${cube.init_date}`;
+    `${code(lead)} · valid ${r.valid_date[i] ?? "n/a"} · issued ${cube.init_date}`;
   // Plain ink, not the risk colour: viridis's lowest stop is near-black
   // purple and would be unreadable as text on this panel.
   document.getElementById("selProb").textContent =
     status==="OK" ? pct(p) : "not scored";
   document.getElementById("selProb").style.color = "var(--fg)";
   document.getElementById("selProbSub").textContent =
-    status==="OK" ? `baseline says ${pct(r.baseline[i])}`
-                  : "refused — unknown, elevated risk: refused days bust 23.4% " +
-                    "of the time vs 3.4% for scored ones";
+    status==="OK" ? `served (model + ensemble) · baseline says ${pct(r.baseline[i])}`
+                  : "refused: unknown, elevated risk. Refused days bust 23.4% " +
+                    "of the time vs 3.4% for scored ones.";
 
   const tb = document.querySelector("#profile tbody"); tb.innerHTML="";
   cube.lead_days.forEach((L,j)=>{
     const tr=document.createElement("tr");
     if(L===lead) tr.className="sel";
-    const truth = r.actual[j]==null ? "—" : (r.actual[j] ? "BUST" : "no");
-    tr.innerHTML = `<td>${L}</td><td>${r.status[j]==="OK"?pct(r.p[j]):"—"}</td>`+
-                   `<td>${pct(r.baseline[j])}</td><td>${truth}</td>`;
-    tr.onclick=()=>{cur.lead=L;document.getElementById("leadPick").value=L;
-                    select(rid,L);buildColumns();};
+    tr.tabIndex = 0;
+    const truth = r.actual[j]==null ? "<td class='r'>n/a</td>"
+                : r.actual[j] ? "<td class='r bust'>bust</td>" : "<td class='r'>held</td>";
+    tr.innerHTML = `<td class="code">${code(L)}</td>` +
+                   `<td class="r">${r.status[j]==="OK"?pct(r.p[j]):'<span class="sw ood"></span> refused'}</td>`+
+                   `<td class="r">${pct(r.baseline[j])}</td>${truth}`;
+    const open = ()=>{ setLead(L, false); select(rid, L); };
+    tr.onclick = open;
+    tr.onkeydown = e => { if(e.key==="Enter" || e.key===" "){ e.preventDefault(); e.stopPropagation(); open(); } };
     tb.appendChild(tr);
   });
+  markQueue();
 
   // Reasons are fetched per click, which is why the cube payload stays lean.
   try{
@@ -448,7 +585,7 @@ async function select(rid, lead){
       const rowsAll = await res.json();
       const row = rowsAll.find(x=>x.lead_day===lead);
       let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
-      (row?.dominant_factors ?? []).forEach(f=>html+=`<li>${f}</li>`);
+      (row?.dominant_factors ?? []).forEach(f=>html+=`<li>${esc(f)}</li>`);
       html += "</ul>";
       if(row && row.forecast_rain_mm!=null){
         html += `<div class="muted" style="margin-top:6px">forecast ${row.forecast_rain_mm.toFixed(1)} mm/day`;
@@ -470,28 +607,39 @@ function fillQueue(){
   }));
   flat.sort((a,b)=>b.p-a.p);
   const tb=document.querySelector("#queue tbody"); tb.innerHTML="";
+  if(!flat.length){ tb.innerHTML = `<tr><td colspan="4" class="muted">Nothing scored in the Day 3–7 band on this date.</td></tr>`; return; }
   flat.slice(0,10).forEach((q,n)=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${n+1}</td><td>${q.region}</td><td>${q.lead}</td>`+
-                 `<td><span class="sw" style="background:${colourFor(q.p,"OK")}"></span> ${pct(q.p)}</td>`;
-    tr.style.cursor="pointer";
-    tr.onclick=()=>{cur.lead=q.lead;document.getElementById("leadPick").value=q.lead;
-                    select(q.rid,q.lead);buildColumns();};
+    tr.tabIndex = 0;
+    tr.dataset.rid = q.rid; tr.dataset.lead = q.lead;
+    tr.setAttribute("aria-label", `${q.region}, ${code(q.lead)}, ${pct(q.p)}`);
+    tr.innerHTML=`<td>${n+1}</td><td>${esc(q.region)}</td><td class="code">${code(q.lead)}</td>`+
+                 `<td class="r"><span class="sw" style="background:${colourFor(q.p,"OK")}"></span> ${pct(q.p)}</td>`;
+    const open = ()=>{ setLead(q.lead, false); select(q.rid, q.lead); };
+    tr.onclick = open;
+    tr.onkeydown = e => { if(e.key==="Enter" || e.key===" "){ e.preventDefault(); e.stopPropagation(); open(); } };
     tb.appendChild(tr);
   });
+  markQueue();
+}
+function markQueue(){
+  document.querySelectorAll("#queue tbody tr[data-rid]").forEach(tr =>
+    tr.classList.toggle("sel", tr.dataset.rid === cur.sel && +tr.dataset.lead === cur.lead));
 }
 
 // -------------------------------------------------------------------- boot
 async function loadCube(init){
+  cur.init = init;
+  FBI.write({date: init, lead: cur.lead});
   const r = await fetch(`/api/risk-cube?init_date=${init}&mode=replay`);
-  if(!r.ok){ document.getElementById("status").textContent = "no data for "+init; return; }
+  if(!r.ok){ document.getElementById("status").textContent = "No data for "+init+"."; return; }
   cube = await r.json();
   const b = document.getElementById("banner");
   if(cube.banner){ b.style.display="block"; b.textContent=cube.banner; } else b.style.display="none";
   document.getElementById("status").textContent =
     `${cube.n_regions} subdivisions × ${cube.lead_days.length} lead days = `+
-    `${cube.n_regions*cube.lead_days.length} cells` +
-    (init === CASE_STUDY ? "  ·  case study: Assam & Meghalaya floods, June 2022" : "");
+    `${cube.n_regions*cube.lead_days.length} cells · issued ${init}` +
+    (init === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : "");
   buildColumns(); fillQueue();
   if(cur.sel) select(cur.sel, cur.lead);
 }
@@ -503,8 +651,37 @@ function setView(v){
   buildColumns();
 }
 
+function stepDate(delta){
+  const sl = document.getElementById("dateSlider"), dp = document.getElementById("datePick");
+  const i = Math.max(0, Math.min(dates.length-1, (+dp.value) + delta));
+  sl.value = i; dp.value = i;
+  loadCube(dates[i]);
+}
+
+function bindKeys(){
+  window.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if(t && (t.tagName==="INPUT" || t.tagName==="SELECT" || t.tagName==="TEXTAREA")){
+      if(e.key === "Escape") t.blur();
+      return;
+    }
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    switch(e.key){
+      case "ArrowLeft":  setLead(cur.lead - 1); break;
+      case "ArrowRight": setLead(cur.lead + 1); break;
+      case "ArrowUp":    stepDate(-1); break;
+      case "ArrowDown":  stepDate(1); break;
+      case "r": document.getElementById("btnReset").click(); break;
+      case "Escape": clearSelection(); break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+}
+
 async function boot(){
   initGL();
+  orbit.r = fitR();
   geo = await (await fetch("/api/regions")).json();
 
   // Centre the projection on the actual data extent so India sits at the origin.
@@ -518,8 +695,12 @@ async function boot(){
     }));
   });
   lonMid=(lo[0]+hi[0])/2; latMid=(lo[1]+hi[1])/2;
+  lonMin=lo[0]; latMin=lo[1];
 
   buildMap();
+
+  const want = FBI.read();
+  if(want.lead) cur.lead = want.lead;
 
   const d = await (await fetch("/api/replay/dates")).json();
   dates = d.init_dates;
@@ -528,26 +709,32 @@ async function boot(){
   sl.max=dates.length-1;
   const lp=document.getElementById("leadPick");
   for(let L=1;L<=10;L++){const o=document.createElement("option");o.value=L;o.textContent="Day "+L;
-    if(L===5)o.selected=true;lp.appendChild(o);}
+    if(L===cur.lead)o.selected=true;lp.appendChild(o);}
 
-  // Open on the documented case study rather than an arbitrary date: a quiet
-  // day renders an almost uniform green field, which demonstrates nothing about
-  // the space x lead structure this view exists to show.  It is labelled as a
-  // case study in the header and the slider reaches every other date, so this
-  // is a starting point, not a filtered view.
-  let idx = dates.indexOf(CASE_STUDY);
+  // Open on the reading the URL names, else the documented case study rather
+  // than an arbitrary date: a quiet day renders an almost uniform field, which
+  // demonstrates nothing about the space x lead structure this view exists to
+  // show. It is labelled as a case study in the status line and the controls
+  // reach every other date, so this is a starting point, not a filtered view.
+  let idx = want.date ? dates.indexOf(want.date) : -1;
+  if(idx < 0) idx = dates.indexOf(CASE_STUDY);
   if(idx < 0) idx = Math.min(dates.length-1, Math.floor(dates.length*0.5));
   sl.value=idx; dp.value=idx; cur.init=dates[idx];
-  sl.oninput = e=>{dp.value=e.target.value; cur.init=dates[+e.target.value]; loadCube(cur.init);};
-  dp.onchange= e=>{sl.value=e.target.value; cur.init=dates[+e.target.value]; loadCube(cur.init);};
-  lp.onchange= e=>{cur.lead=+e.target.value; buildColumns(); if(cur.sel) select(cur.sel,cur.lead);};
+  sl.oninput = e=>{dp.value=e.target.value; loadCube(dates[+e.target.value]);};
+  dp.onchange= e=>{sl.value=e.target.value; loadCube(dates[+e.target.value]);};
+  lp.onchange= e=>setLead(+e.target.value);
+  document.getElementById("datePrev").onclick = () => stepDate(-1);
+  document.getElementById("dateNext").onclick = () => stepDate(1);
   document.getElementById("btnModel").onclick   = ()=>setView("model");
   document.getElementById("btnBaseline").onclick= ()=>setView("baseline");
   document.getElementById("btnTruth").onclick   = ()=>setView("truth");
   document.getElementById("btnReset").onclick   = ()=>{
-    orbit.theta=Math.PI/2; orbit.phi=0.95; orbit.r=46; orbit.target.set(0,4,0);
+    orbit.theta=Math.PI/2; orbit.phi=0.95; orbit.r=fitR(); orbit.target.set(0,4,0);
   };
+  bindKeys();
+  buildStaff();
 
+  if(want.region) cur.sel = want.region;
   await loadCube(cur.init);
   buildBand(cube ? cube.decision_band : [3,7]);
   animate();
@@ -560,7 +747,7 @@ function animate(){
 }
 
 boot().catch(e=>{
-  document.getElementById("status").textContent = "failed to start: "+e.message;
+  document.getElementById("status").textContent = "Failed to start: "+e.message;
   console.error(e);
 });
 </script>
