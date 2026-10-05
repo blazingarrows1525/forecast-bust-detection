@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Forecast Bust Detection — India</title>
+<title>Map · Forecast Bust Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="/vendor/leaflet.css" />
+<link rel="stylesheet" href="/fbi.css" />
 <style>
   /* Risk ramp is viridis, the same five stops volume.html uses, so the product
      has ONE risk encoding rather than one per page.
@@ -22,114 +24,273 @@
          does (FRONTEND_LOGIC.md sec 6).
 
      Refusal is deliberately NOT in this list. It is a pattern, not a hue --
-     see --ood-ink and the hatch in the map defs. */
+     see --ood-ink and the hatch in the map defs.
+
+     Everything else is the shared world in fbi.css; the names below are this
+     page's aliases for it, so the light theme is one attribute away. */
   :root{
-    --bg:#0f1419; --panel:#171e26; --panel2:#1e2732; --line:#2a3644;
-    --fg:#e6edf3; --muted:#8b98a5; --accent:#4a9eff;
     --c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725;
-    --ood-ink:#e8edf2; --ood-bg:#2b333d; --truth-bust:#e5534b; --truth-ok:#26343f;
+    --bg:var(--ground); --panel:var(--ground-2); --panel2:var(--plate); --line:var(--rule);
+    --fg:var(--ink); --muted:var(--ink-3);
+    --ood-ink:var(--hatch-ink); --ood-bg:var(--hatch-bg);
+    --truth-bust:var(--outcome); --truth-ok:var(--plate-2);
   }
-  :root[data-theme="light"]{
-    --bg:#ffffff; --panel:#f6f8fa; --panel2:#eceff2; --line:#d6dde4;
-    --fg:#1c2430; --muted:#5a6b7d; --accent:#0b6fa4;
-    --ood-ink:#2b333d; --ood-bg:#ffffff; --truth-ok:#e3e8ec;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-       background:var(--bg);color:var(--fg);overflow:hidden}
-  #app{display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr;height:100vh}
-  header{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line);
-         padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
-  header .sub{color:var(--muted);font-size:12px}
-  #banner{grid-column:1/-1;display:none;background:#4a2c00;border-bottom:1px solid #7a4a00;
-          color:#ffd591;padding:8px 16px;font-size:13px;font-weight:500}
-  #imageryNote{grid-column:1/-1;display:none;padding:5px 12px;font-size:11.5px;
-    background:var(--panel2);border-bottom:1px solid var(--line)}
-  #map{background:#0b0f14}
-  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px}
-  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  label{font-size:12px;color:var(--muted)}
-  select,input[type=range],button{background:var(--panel2);color:var(--fg);
-        border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit;font-size:13px}
-  button{cursor:pointer}
-  button.active{background:var(--accent);border-color:var(--accent);color:#08121f;font-weight:600}
-  a.btn3d{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px;
-          padding:5px 9px;font-size:13px;text-decoration:none;display:inline-block}
-  a.btn3d:hover{border-color:var(--accent);color:var(--accent)}
-  input[type=range]{padding:0;width:240px}
-  .card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
-        padding:12px;margin-bottom:12px}
-  .card h2{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;
-           color:var(--muted);font-weight:600}
-  .big{font-size:30px;font-weight:700;line-height:1.1}
-  .muted{color:var(--muted);font-size:12px}
-  ul.reasons{margin:6px 0 0;padding-left:18px}
-  ul.reasons li{margin-bottom:6px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{text-align:left;padding:4px 5px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:600}
-  tr.q:hover{background:#243141;cursor:pointer}
-  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+  body{font-size:14px;line-height:1.5;overflow:hidden}
+  #app{display:grid;grid-template-columns:minmax(0,1fr) 384px;grid-template-rows:auto minmax(0,1fr);
+       height:100vh;height:100dvh}
+  #top{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line)}
+  header{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:8px 14px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .grp label{font-family:var(--font-sign);font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.02em}
+  .reading select{font-family:var(--font-sign);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+  .reading button{min-width:30px;padding:5px 8px}
+  #dateSlider{width:110px}
+  @media (max-width: 1380px){ #dateSlider{display:none} }
+  .seg{gap:0}
+  .seg button{border-radius:0;margin-left:-1px}
+  .seg button:first-child{border-radius:var(--r) 0 0 var(--r);margin-left:0}
+  .seg button:last-child{border-radius:0 var(--r) var(--r) 0}
+  .seg button.active{position:relative;z-index:1}
+  .tools button{padding:5px 9px;color:var(--ink-2)}
+  .tools button.active{color:var(--ink)}
+  header nav{margin-left:auto}
+  #status{padding:0 14px 7px;color:var(--ink-3);font-size:12px}
+  #banner{display:none;background:var(--warn-bg);border-top:1px solid var(--warn-rule);
+          color:var(--warn-ink);padding:7px 14px;font-size:13px;font-weight:500}
+  #imageryNote{display:none;padding:5px 14px;font-size:12px;color:var(--ink-2);
+    background:var(--ground);border-top:1px solid var(--line)}
+
+  #mapWrap{position:relative;min-height:0;min-width:0}
+  #map{position:absolute;inset:0;background:var(--map-ground)}
+  .leaflet-container{background:var(--map-ground);font:inherit}
+  .leaflet-tooltip{background:var(--plate);color:var(--ink);border:1px solid var(--rule-2);
+    border-radius:var(--r);box-shadow:none;font-size:12.5px}
+  .leaflet-tooltip-top:before,.leaflet-tooltip-bottom:before,.leaflet-tooltip-left:before,
+  .leaflet-tooltip-right:before{display:none}
+  .leaflet-bar a,.leaflet-bar a:hover{background:var(--plate);color:var(--ink);border-color:var(--rule)}
+  .leaflet-container .leaflet-control-attribution{background:var(--panel);color:var(--ink-3)}
+  .leaflet-control-attribution a{color:var(--ink-2)}
+
+  /* The key sits on the map it explains (audit F11). */
+  #dock{position:absolute;left:12px;bottom:12px;z-index:500;max-width:min(410px,calc(100% - 24px));
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px}
+  #dock .k{font-family:var(--font-sign);font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+  .legend{display:flex;gap:4px 6px;align-items:center;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+  .legend span.t{font-variant-numeric:tabular-nums}
+  .li{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;margin-right:8px}
+  .sw{width:16px;height:12px;border-radius:2px;display:inline-block;flex:none;
+      box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}
   .sw.hatch{background-image:repeating-linear-gradient(45deg,
     var(--ood-ink) 0 3px, var(--ood-bg) 3px 7px)}
+  #dock p{margin:7px 0 0;font-size:12px;color:var(--ink-2);line-height:1.45}
+
+  aside{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;min-height:0}
+  aside section{padding:14px 16px;border-bottom:1px solid var(--line)}
+  aside h2{margin:0 0 9px;font-family:var(--font-sign);font-size:13px;font-weight:600;
+    color:var(--ink-2);letter-spacing:.02em}
+  .muted{color:var(--muted);font-size:12px}
+  .hint{color:var(--ink-2);font-size:13px;line-height:1.55}
+  .hint kbd{font-size:12px}
+
+  /* the reading */
+  #selName{font-family:var(--font-sign);font-weight:600;font-size:18px;line-height:1.25}
+  .big{font-family:var(--font-sign);font-size:40px;font-weight:600;line-height:1;margin-top:10px;
+       font-variant-numeric:tabular-nums}
+  .big.refused{font-size:26px}
+  #selStaff{margin:10px 0 2px}
+  #selStaff svg{display:block;width:100%;height:auto;overflow:visible}
+  ul.reasons{margin:6px 0 0;padding-left:18px;color:var(--ink-2)}
+  ul.reasons li{margin-bottom:5px}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+  th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  td.r,th.r{text-align:right}
+  td.code{font-family:var(--font-sign);font-weight:600}
+  #queue tbody tr{cursor:pointer}
+  #queue tbody tr:hover{background:var(--accent-wash)}
+  #queue tbody tr.sel{background:var(--accent-wash);box-shadow:inset 3px 0 0 var(--accent)}
+  #queue tbody tr:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+  .chip{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;
+    box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}
+  .reading-v{font-family:var(--font-sign);font-weight:600}
+
   textarea,#ovrUser{width:100%;background:var(--panel2);color:var(--fg);
-    border:1px solid var(--line);border-radius:5px;padding:6px 8px;font:inherit;resize:vertical}
-  #ovrWarn{border-radius:6px;padding:8px 10px;margin-bottom:9px;font-size:12px;display:none}
-  #ovrWarn.hot{display:block;border:1px solid var(--c4);background:rgba(253,231,37,.10)}
-  .ovr-row{border-bottom:1px solid var(--line);padding:5px 0;font-size:11.5px}
+    border:1px solid var(--rule-2);border-radius:var(--r);padding:6px 8px;font:inherit;resize:vertical}
+  #ovrWarn{border-radius:var(--r);padding:8px 10px;margin-bottom:9px;font-size:12.5px;display:none}
+  #ovrWarn.hot{display:block;border:1px solid var(--warn-rule);background:var(--warn-bg);color:var(--warn-ink)}
+  #ovrWarn.hot strong{color:inherit}
+  .ovr-row{border-bottom:1px solid var(--line);padding:6px 0;font-size:12px}
   .ovr-row:last-child{border-bottom:0}
-  #help{position:fixed;inset:0;background:rgba(6,10,14,.78);display:grid;
+
+  #help{position:fixed;inset:0;background:rgba(10,13,16,.72);display:grid;
     place-items:center;z-index:9999;padding:20px}
   #help[hidden]{display:none}
-  #help>div{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  #help>div{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
     padding:20px 24px;max-width:460px}
-  #help td{padding:3px 12px 3px 0;font-size:13px}
-  kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;
-    padding:1px 6px;font:12px ui-monospace,monospace}
-  .legend{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap}
-  .sw{width:14px;height:12px;border-radius:2px;display:inline-block}
-  .bar{height:7px;background:#2a3644;border-radius:4px;overflow:hidden;margin-top:3px}
+  #help h2{font-family:var(--font-sign);margin-top:0}
+  #help td{padding:3px 12px 3px 0;font-size:13px;border:0}
+
+  .bar{height:6px;background:var(--plate-2);border-radius:2px;overflow:hidden;margin-top:3px}
   .bar>span{display:block;height:100%;background:var(--accent)}
-  .regimeRow{display:flex;justify-content:space-between;font-size:12px;margin-top:5px}
-  .leaflet-container{background:#0b0f14}
-  .hint{color:var(--muted);font-size:12px;font-style:italic}
+  .regimeRow{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}
+
+  /* Narrow screens: the map on top at a usable height, the panel below it
+     (audit F1). The page scrolls instead of the panel covering the map. */
+  @media (max-width: 900px){
+    body{overflow:auto}
+    #app{display:block;height:auto}
+    #mapWrap{height:62vh;min-height:340px}
+    aside{border-left:0;border-top:1px solid var(--line);overflow:visible}
+    header nav{margin-left:0;width:100%}
+    #dateSlider{display:none}
+    #dock{left:8px;bottom:8px;padding:7px 9px}
+    #dock p{display:none}
+  }
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <h1>Forecast Bust Detection <span class="sub">· India · medium-range rainfall</span></h1>
-    <div class="controls">
-      <label>Init date</label>
-      <input type="range" id="dateSlider" min="0" max="0" value="0" />
-      <select id="datePick"></select>
-      <label>Lead</label>
-      <select id="leadPick"></select>
-      <button id="btnModel" class="active">Model</button>
-      <button id="btnBaseline">Spread baseline</button>
-      <button id="btnTruth">Show truth</button>
-      <button id="btnPlay" title="Scrub Day 10 to Day 1 (space)">▶ Lead scrub</button>
-      <button id="btnImagery" title="Date-matched satellite basemap (i)">Imagery</button>
-      <button id="btnTheme" title="Light / dark (t)">◐</button>
-      <button id="btnHelp" title="Keyboard shortcuts (?)">?</button>
-      <a class="btn3d" href="/command.html" title="Show all 10 lead days at once in 3D">3D command centre ↗</a>
-    </div>
-    <div class="sub" id="status"></div>
-  </header>
-  <div id="banner"></div>
-  <div id="imageryNote" class="muted"></div>
+  <div id="top">
+    <header>
+      <a class="wordmark" href="/landing.html">
+        <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
+        Forecast Bust Intelligence
+      </a>
+      <div class="grp reading" role="group" aria-label="Which reading">
+        <label for="datePick">Issued</label>
+        <button id="datePrev" aria-label="Previous issue date" title="Previous issue date (up arrow)"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M6.5 1.5 3 5l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <select id="datePick"></select>
+        <button id="dateNext" aria-label="Next issue date" title="Next issue date (down arrow)"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 1.5 7 5 3.5 8.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <input type="range" id="dateSlider" min="0" max="0" value="0" aria-label="Issue date" />
+        <label for="leadPick">Lead</label>
+        <select id="leadPick"></select>
+      </div>
+      <div class="grp seg" role="group" aria-label="What the map shows">
+        <button id="btnModel" class="active" title="Served probability, model + ensemble (m)">Served</button>
+        <button id="btnBaseline" title="Ensemble-spread baseline (b)">Spread baseline</button>
+        <button id="btnTruth" title="What happened (v)">Observed</button>
+      </div>
+      <div class="grp tools">
+        <button id="btnPlay" title="Scrub Day 10 to Day 1 (space)">Scrub</button>
+        <button id="btnImagery" title="Date-matched satellite basemap (i)">Imagery</button>
+        <button id="btnTheme" title="Light / dark (t)">Theme</button>
+        <button id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+      </div>
+      <nav aria-label="Views">
+        <ul class="views">
+          <li><a href="/landing.html">Case</a></li>
+          <li><a data-carry="/" href="/" aria-current="page">Map</a></li>
+          <li><a data-carry="/command.html" href="/command.html" title="All 10 lead days at once, in 3-D">Columns</a></li>
+          <li><a data-carry="/volume.html" href="/volume.html">Volume</a></li>
+        </ul>
+      </nav>
+    </header>
+    <div id="status" aria-live="polite">Loading the archive.</div>
+    <div id="banner"></div>
+    <div id="imageryNote"></div>
+  </div>
+
+  <div id="mapWrap">
+    <div id="map" role="region" aria-label="Map of India's meteorological subdivisions, coloured by bust probability"></div>
+    <div id="dock"></div>
+  </div>
+
+  <aside>
+    <section aria-labelledby="hSel">
+      <h2 id="hSel">Selected reading</h2>
+      <div id="selEmpty" class="hint">
+        Select a subdivision on the map or a row in the review queue.
+        <kbd>↑</kbd> <kbd>↓</kbd> step the issue date, <kbd>←</kbd> <kbd>→</kbd> the lead day,
+        <kbd>?</kbd> shows every shortcut.
+      </div>
+      <div id="selBody" hidden>
+        <div id="selName">Click a subdivision</div>
+        <div class="muted" id="selMeta"></div>
+        <div class="big" id="selProb"></div>
+        <div class="muted" id="selProbSub"></div>
+        <div id="selStaff"></div>
+        <div id="selInterval" class="muted"></div>
+        <div id="selReasons"></div>
+      </div>
+
+      <div id="ovrBar" style="display:none;margin-top:12px;gap:6px" class="grp">
+        <button id="btnDismiss">Dismiss flag</button>
+        <button id="btnEscalate">Escalate</button>
+      </div>
+
+      <form id="ovrForm" style="display:none;margin-top:10px">
+        <div id="ovrWarn"></div>
+        <label class="muted" for="ovrReason">Reason <span style="color:var(--accent)">*</span></label>
+        <textarea id="ovrReason" rows="3" required minlength="3" maxlength="500"
+          placeholder="Why are you overriding this? Recorded permanently."></textarea>
+        <label class="muted" for="ovrUser" style="margin-top:6px;display:block">Your name</label>
+        <input id="ovrUser" required minlength="1" maxlength="100" placeholder="duty forecaster" />
+        <div class="grp" style="margin-top:8px">
+          <button type="submit" id="ovrSubmit">Record</button>
+          <button type="button" id="ovrCancel">Cancel</button>
+        </div>
+        <div class="muted" style="margin-top:6px;font-size:12px">
+          Immutable, and stored with your name. The system does not change any
+          public warning either way. You are the authority; this is the record.
+        </div>
+      </form>
+      <div id="ovrResult" class="muted" style="margin-top:8px"></div>
+    </section>
+
+    <section aria-labelledby="hQueue">
+      <h2 id="hQueue">Review queue, Day 3–7</h2>
+      <div class="muted" style="margin-bottom:6px">
+        Ranked subdivision-days for the duty forecaster to check twice.
+      </div>
+      <table id="queue"><thead>
+        <tr><th>#</th><th>Region</th><th>Lead</th><th class="r">P(bust)</th></tr>
+      </thead><tbody></tbody></table>
+    </section>
+
+    <section id="regimeCard" style="display:none" aria-labelledby="hRegime">
+      <h2 id="hRegime">Regime (soft probabilities)</h2>
+      <div id="regimeBody"></div>
+    </section>
+
+    <section aria-labelledby="hLegend">
+      <h2 id="hLegend">Reading the map</h2>
+      <div class="muted" style="font-size:12.5px">
+        Colour = probability that this forecast busts, on a perceptually uniform
+        ramp that survives colour-vision deficiency.
+      </div>
+      <div class="muted" style="margin-top:6px;font-size:12.5px">
+        <strong>Hatched = refused.</strong> The state is unlike anything in training,
+        so the system declines to give a number. That is not a low reading:
+        refused region-days busted <strong>23.4%</strong> of the time in the
+        held-out year, against <strong>3.4%</strong> for scored ones.
+      </div>
+    </section>
+
+    <section aria-labelledby="hLog">
+      <h2 id="hLog">Override log</h2>
+      <div id="ovrLog" class="muted">Loading.</div>
+    </section>
+
+    <section aria-labelledby="hMetrics">
+      <h2 id="hMetrics">Held-out year performance</h2>
+      <div id="metrics" class="muted">Loading.</div>
+    </section>
+  </aside>
+</div>
+
 <div id="help" hidden>
   <div>
-    <h2 style="margin-top:0">Keyboard</h2>
+    <h2>Keyboard</h2>
     <table>
       <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>lead day</td></tr>
-      <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td><td>init date</td></tr>
+      <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td><td>issue date</td></tr>
       <tr><td><kbd>space</kbd></td><td>lead scrub, Day 10 &rarr; Day 1</td></tr>
-      <tr><td><kbd>m</kbd> / <kbd>b</kbd></td><td>model / spread baseline</td></tr>
-      <tr><td><kbd>v</kbd></td><td>show truth</td></tr>
+      <tr><td><kbd>m</kbd> / <kbd>b</kbd></td><td>served / spread baseline</td></tr>
+      <tr><td><kbd>v</kbd></td><td>observed outcome</td></tr>
       <tr><td><kbd>t</kbd></td><td>light / dark</td></tr>
-      <tr><td><kbd>/</kbd></td><td>jump to a subdivision</td></tr>
+      <tr><td><kbd>/</kbd></td><td>focus the issue date</td></tr>
+      <tr><td><kbd>Tab</kbd> <kbd>Enter</kbd></td><td>open a review-queue row</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>clear selection / close</td></tr>
     </table>
     <p class="muted" style="margin-bottom:0">A duty forecaster has about 45
@@ -137,90 +298,18 @@
       region is the wrong interaction.</p>
   </div>
 </div>
-  <div id="map"></div>
-  <aside>
-    <div class="card">
-      <h2>Selected region</h2>
-      <div id="selName" style="font-weight:600;font-size:15px">Click a subdivision</div>
-      <div class="muted" id="selMeta"></div>
-      <div class="big" id="selProb" style="margin-top:8px">—</div>
-      <div class="muted" id="selProbSub"></div>
-      <div id="selInterval" class="muted"></div>
-      <div id="selReasons"></div>
-
-      <div id="ovrBar" style="display:none;margin-top:12px;gap:6px" class="controls">
-        <button id="btnDismiss">Dismiss flag</button>
-        <button id="btnEscalate">Escalate</button>
-      </div>
-
-      <form id="ovrForm" style="display:none;margin-top:10px">
-        <div id="ovrWarn"></div>
-        <label class="muted" for="ovrReason">Reason <span style="color:var(--c4)">*</span></label>
-        <textarea id="ovrReason" rows="3" required minlength="3" maxlength="500"
-          placeholder="Why are you overriding this? Recorded permanently."></textarea>
-        <label class="muted" for="ovrUser" style="margin-top:6px;display:block">Your name</label>
-        <input id="ovrUser" required minlength="1" maxlength="100" placeholder="duty forecaster" />
-        <div class="controls" style="margin-top:8px">
-          <button type="submit" id="ovrSubmit">Record</button>
-          <button type="button" id="ovrCancel">Cancel</button>
-        </div>
-        <div class="muted" style="margin-top:6px;font-size:11px">
-          Immutable, and stored with your name. The system does not change any
-          public warning either way — you are the authority, this is the record.
-        </div>
-      </form>
-      <div id="ovrResult" class="muted" style="margin-top:8px"></div>
-    </div>
-    <div class="card" id="regimeCard" style="display:none">
-      <h2>Regime (soft probabilities)</h2>
-      <div id="regimeBody"></div>
-    </div>
-    <div class="card">
-      <h2>Review queue — Day 3–7</h2>
-      <div class="muted" style="margin-bottom:6px">
-        Ranked district-days for the duty forecaster to check twice.
-      </div>
-      <table id="queue"><thead>
-        <tr><th>#</th><th>Region</th><th>Day</th><th>P(bust)</th></tr>
-      </thead><tbody></tbody></table>
-    </div>
-    <div class="card">
-      <h2>Override log</h2>
-      <div id="ovrLog" class="muted">—</div>
-    </div>
-    <div class="card">
-      <h2>Legend</h2>
-      <div class="legend">
-        <span class="sw" style="background:var(--c0)"></span><span>&lt;5%</span>
-        <span class="sw" style="background:var(--c1)"></span><span>5–10%</span>
-        <span class="sw" style="background:var(--c2)"></span><span>10–20%</span>
-        <span class="sw" style="background:var(--c3)"></span><span>20–35%</span>
-        <span class="sw" style="background:var(--c4)"></span><span>&gt;35%</span>
-        <span class="sw hatch"></span><span><strong>refused</strong></span>
-      </div>
-      <div class="muted" style="margin-top:8px">
-        Colour = probability that this forecast busts, on a perceptually uniform
-        ramp that survives colour-vision deficiency.
-      </div>
-      <div class="muted" style="margin-top:6px">
-        <strong>Hatched = refused.</strong> The state is unlike anything in training,
-        so the system declines to give a number. That is not a low reading:
-        refused region-days busted <strong>23.4%</strong> of the time in the
-        held-out year, against <strong>3.4%</strong> for scored ones.
-      </div>
-    </div>
-    <div class="card">
-      <h2>Held-out year performance</h2>
-      <div id="metrics" class="muted">loading…</div>
-    </div>
-  </aside>
-</div>
 
 <script src="/vendor/leaflet.js"></script>
+<script src="/fbi.js"></script>
 <script>
 const API = "";
-let map, layer, geo=null, dates=[], cur={init:null, lead:5, view:"model", truth:false, selected:null};
+let map, layer, geo=null, dates=[], cur={init:null, lead:4, view:"model", truth:false, selected:null};
 let rows=[], byRegion={};
+
+// The documented case: Assam & Meghalaya floods, June 2022, issued on this date.
+// The first screen opens on it unless the URL names another reading (audit F4);
+// a quiet mid-season date renders a uniform map that demonstrates nothing.
+const CASE_STUDY = "2022-06-14";
 
 // Refusal is returned as an SVG pattern reference rather than a colour. A
 // refused region-day busts 23.4% of the time against 3.4% for scored ones, so
@@ -230,7 +319,7 @@ const OOD_FILL = "url(#oodHatch)";
 
 function colour(p, status){
   if(status && status!=="OK") return OOD_FILL;
-  if(p==null) return "#3a4450";
+  if(p==null) return getCSS("--plate-2");
   if(p<0.05) return getCSS("--c0");
   if(p<0.10) return getCSS("--c1");
   if(p<0.20) return getCSS("--c2");
@@ -254,26 +343,43 @@ function installHatch(){
   svg.insertBefore(defs, svg.firstChild);
 }
 const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const pct = x => x==null ? "—" : (100*x).toFixed(1)+"%";
+const pct = x => x==null ? "n/a" : (100*x).toFixed(1)+"%";
+const code = L => "D" + String(L).padStart(2, "0");
+// Override reasons and names are typed by people; nothing typed reaches the
+// page as markup.
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 async function boot(){
-  map = L.map("map", {zoomControl:true, attributionControl:true}).setView([22.5,80], 5);
+  applyStoredTheme();
+  map = L.map("map", {zoomControl:true, attributionControl:true, zoomSnap:0.25}).setView([22.5,80], 5);
   geo = await (await fetch(API+"/api/regions")).json();
+  // Fit India to whatever the screen is, rather than a zoom chosen for one
+  // monitor: on a phone a fixed zoom left the north-east off the edge.
+  map.fitBounds(L.geoJSON(geo).getBounds(), {padding:[10,10]});
   const d = await (await fetch(API+"/api/replay/dates")).json();
   dates = d.init_dates;
   const dp=document.getElementById("datePick"), sl=document.getElementById("dateSlider");
   dates.forEach((x,i)=>{const o=document.createElement("option");o.value=i;o.textContent=x;dp.appendChild(o);});
   sl.max = dates.length-1;
+
+  // The URL names a reading when one view hands it to another (audit F12).
+  const want = FBI.read();
+  if(want.lead) cur.lead = want.lead;
+  if(want.region) cur.selected = want.region;
   const lp=document.getElementById("leadPick");
   for(let L=1;L<=10;L++){const o=document.createElement("option");o.value=L;o.textContent="Day "+L;
-    if(L===5)o.selected=true;lp.appendChild(o);}
+    if(L===cur.lead)o.selected=true;lp.appendChild(o);}
 
-  // Default to a date with a notable event if present, else the middle.
-  let idx = Math.min(dates.length-1, Math.floor(dates.length/2));
+  let idx = want.date ? dates.indexOf(want.date) : -1;
+  if(idx < 0) idx = dates.indexOf(CASE_STUDY);
+  if(idx < 0) idx = dates.length-1;
   sl.value=idx; dp.value=idx;
   sl.oninput = e => {dp.value=e.target.value; load(dates[+e.target.value]);};
   dp.onchange = e => {sl.value=e.target.value; load(dates[+e.target.value]);};
-  lp.onchange = e => {cur.lead=+e.target.value; render();};
+  lp.onchange = e => {stopScrub(); setLead(+e.target.value);};
+  document.getElementById("datePrev").onclick = () => stepDate(-1);
+  document.getElementById("dateNext").onclick = () => stepDate(1);
   document.getElementById("btnModel").onclick = ()=>setView("model");
   document.getElementById("btnBaseline").onclick = ()=>setView("baseline");
   document.getElementById("btnTruth").onclick = ()=>{cur.truth=!cur.truth;
@@ -290,7 +396,6 @@ async function boot(){
     document.getElementById("ovrForm").style.display = "none"; };
   loadOverrides();
 
-  applyStoredTheme();
   bindKeys();
 
   loadMetrics();
@@ -350,7 +455,7 @@ function addImagery(){
   // case, not an exceptional one.
   imageryLayer.on("tileerror", () => {
     if(++imageryErrors < 4) return;
-    imageryNote("Satellite imagery unreachable — switched off. " +
+    imageryNote("Satellite imagery unreachable, so it is switched off. " +
                 "Everything else works offline.");
     setImagery(false);
   });
@@ -358,7 +463,7 @@ function addImagery(){
   // Naming the swath gaps matters: a dark diagonal band is where the
   // satellite did not pass that day, not clear sky and not missing risk.
   // Unexplained black on a risk map invites the worst reading.
-  imageryNote(`Satellite: what was seen on ${date} — the day this lead ` +
+  imageryNote(`Satellite: what was seen on ${date}, the day this lead ` +
               `forecasts, not current conditions. Dark diagonal bands are ` +
               `gaps between orbital passes, not clear sky.`);
 }
@@ -404,7 +509,7 @@ function openOverride(action){
     warn.className = "hot";
     warn.innerHTML =
       "<strong>This region was refused, not scored.</strong> That is not a low " +
-      "reading — refused region-days busted <strong>23.4%</strong> of the time " +
+      "reading: refused region-days busted <strong>23.4%</strong> of the time " +
       "in the held-out year, against 3.4% for scored ones. You are dismissing a " +
       "row whose risk is unknown and historically elevated.";
   } else {
@@ -459,10 +564,10 @@ async function loadOverrides(){
     el.innerHTML = d.overrides.map(o => `
       <div class="ovr-row">
         <strong>${o.action === "dismiss" ? "dismissed" : "escalated"}</strong>
-        ${o.region_id} · Day ${o.lead_day} · ${o.init_date}<br>
-        <span style="color:var(--muted)">${o.user} — ${o.reason}</span>
+        ${esc(o.region_id)} · ${code(o.lead_day)} · ${esc(o.init_date)}<br>
+        <span style="color:var(--ink-2)">${esc(o.user)}: ${esc(o.reason)}</span>
       </div>`).join("");
-  }catch(e){ el.textContent = "override log unavailable"; }
+  }catch(e){ el.textContent = "Override log unavailable."; }
 }
 
 // ------------------------------------------------------------------ theme
@@ -478,6 +583,7 @@ function toggleTheme(){
   // The hatch bakes theme colours into an SVG pattern, so it is rebuilt.
   const d = document.querySelector("#map svg defs"); if(d) d.remove();
   render();
+  if(cur.selected) select(cur.selected);
 }
 
 // ------------------------------------------------------------- lead scrub
@@ -488,7 +594,7 @@ let scrubTimer = null;
 function toggleScrub(){
   if(scrubTimer){ stopScrub(); return; }
   document.getElementById("btnPlay").classList.add("active");
-  document.getElementById("btnPlay").textContent = "■ Stop";
+  document.getElementById("btnPlay").textContent = "Stop";
   let L = 10;
   const step = () => {
     setLead(L);
@@ -501,12 +607,14 @@ function toggleScrub(){
 function stopScrub(){
   clearTimeout(scrubTimer); scrubTimer = null;
   const b = document.getElementById("btnPlay");
-  b.classList.remove("active"); b.textContent = "▶ Lead scrub";
+  b.classList.remove("active"); b.textContent = "Scrub";
 }
 function setLead(L){
   cur.lead = Math.max(1, Math.min(10, L));
   document.getElementById("leadPick").value = cur.lead;
+  FBI.write({lead: cur.lead});
   render();
+  if(cur.selected) select(cur.selected);
   if(IMAGERY.enabled) addImagery();   // the valid date moved with the lead
 }
 function stepDate(delta){
@@ -547,8 +655,7 @@ function bindKeys(){
         if(document.getElementById("ovrForm").style.display === "block"){
           document.getElementById("ovrForm").style.display = "none"; break;
         }
-        cur.selected = null; showOverrideBar(null);
-        document.getElementById("selName").textContent = "Click a subdivision";
+        clearSelection();
         break;
       default: return;
     }
@@ -565,16 +672,21 @@ function setView(v){
 
 async function load(init){
   cur.init=init;
+  FBI.write({date: init, lead: cur.lead});
   const r = await fetch(`${API}/api/bulletin?init_date=${init}&mode=replay`);
-  if(!r.ok){document.getElementById("status").textContent="no data for "+init;return;}
+  if(!r.ok){document.getElementById("status").textContent="No data for "+init+".";return;}
   const b = await r.json();
   rows = b.predictions;
   const banner=document.getElementById("banner");
   if(b.banner){banner.style.display="block";banner.textContent=b.banner;}
   else banner.style.display="none";
+  const vd = validDateForLead();
   document.getElementById("status").textContent =
-    `${b.n_regions} subdivisions · data ${b.data_quality} · input age ${b.input_age_hours??"?"} h`;
+    `${b.n_regions} subdivisions · issued ${init}` + (vd ? ` · ${code(cur.lead)} valid ${vd}` : "") +
+    ` · data ${b.data_quality} · input age ${b.input_age_hours??"?"} h` +
+    (init === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : "");
   render(); loadQueue();
+  if(cur.selected) select(cur.selected);
   if(IMAGERY.enabled) addImagery();
 }
 
@@ -582,62 +694,137 @@ function render(){
   byRegion={};
   rows.filter(r=>r.lead_day===cur.lead).forEach(r=>byRegion[r.region_id]=r);
   if(layer) layer.remove();
+  const edge = getCSS("--map-edge"), live = getCSS("--accent");
+  let selLayer = null;
   layer = L.geoJSON(geo, {
     style: f => {
       const r = byRegion[f.properties.subdivision_id];
+      const isSel = f.properties.subdivision_id === cur.selected;
+      const line = isSel ? {color: live, weight: 3, opacity: 1} : {color: edge, weight: .8, opacity: .75};
       let p = r ? (cur.view==="model" ? r.bust_probability : baselineOf(r)) : null;
       let st = r ? r.status : null;
       if(cur.truth && r && r.actual_bust!=null){
         return {fillColor: r.actual_bust? getCSS("--truth-bust"):getCSS("--truth-ok"),
-                fillOpacity: IMAGERY.enabled ? .62 : .85,
-                color:"#0b0f14", weight:1};
+                fillOpacity: IMAGERY.enabled ? .62 : .88, ...line};
       }
       return {fillColor: colour(p, cur.view==="model"?st:null),
-              fillOpacity: IMAGERY.enabled ? .62 : .85,
-              color:"#0b0f14", weight:1};
+              fillOpacity: IMAGERY.enabled ? .62 : .88, ...line};
     },
     onEachFeature: (f, lyr) => {
       lyr.on("click", ()=>select(f.properties.subdivision_id));
       const r = byRegion[f.properties.subdivision_id];
-      lyr.bindTooltip(`${f.properties.name}<br>${r?pct(r.bust_probability):"—"}`,{sticky:true});
+      const reading = !r ? "no data"
+        : r.status !== "OK" && cur.view === "model" ? "refused: not scored"
+        : pct(cur.view === "model" ? r.bust_probability : baselineOf(r));
+      lyr.bindTooltip(`${esc(f.properties.name)}<br>${code(cur.lead)} · ${reading}`,{sticky:true});
+      if(f.properties.subdivision_id === cur.selected) selLayer = lyr;
     }
   }).addTo(map);
+  if(selLayer) selLayer.bringToFront();
   installHatch();
+  renderDock();
+  markQueue();
+}
+
+// The key on the map follows what the map is showing.
+function renderDock(){
+  const el = document.getElementById("dock");
+  if(cur.truth){
+    el.innerHTML = `<div class="k">Observed outcome, ${code(cur.lead)}</div>
+      <div class="legend"><span class="li"><span class="sw" style="background:var(--truth-bust)"></span><span class="t">busted</span></span>
+      <span class="li"><span class="sw" style="background:var(--truth-ok)"></span><span class="t">held</span></span></div>`;
+    return;
+  }
+  const what = cur.view === "model" ? "P(forecast busts), served" : "P(forecast busts), spread baseline";
+  el.innerHTML = `<div class="k">${what} · ${code(cur.lead)}</div>
+    <div class="legend">
+      <span class="li"><span class="sw" style="background:var(--c0)"></span><span class="t">&lt;5%</span></span>
+      <span class="li"><span class="sw" style="background:var(--c1)"></span><span class="t">5–10%</span></span>
+      <span class="li"><span class="sw" style="background:var(--c2)"></span><span class="t">10–20%</span></span>
+      <span class="li"><span class="sw" style="background:var(--c3)"></span><span class="t">20–35%</span></span>
+      <span class="li"><span class="sw" style="background:var(--c4)"></span><span class="t">&gt;35%</span></span>
+      ${cur.view === "model" ? '<span class="li"><span class="sw hatch"></span><span class="t"><strong>refused</strong></span></span>' : ""}
+    </div>
+    ${cur.view === "model" ? "<p>Hatched is refused, not low: refused region-days busted 23.4% of the time in the held-out year, against 3.4% for scored ones.</p>" : ""}`;
 }
 
 // The API stores the calibrated spread baseline alongside each row.
 function baselineOf(r){ return r.baseline_probability ?? null; }
 
+// A small staff for the selected reading: the served level on the same scale
+// as the review level and the baseline notch. Read like the landing's gauges.
+function staffSVG(r){
+  const W = 340, H = 46, L = 2, R = 2, top = 8, h = 14;
+  const p = r.bust_probability, b = baselineOf(r);
+  const max = Math.max(0.5, Math.ceil(Math.max(p ?? 0, b ?? 0) * 10) / 10);
+  const x = v => L + (W - L - R) * v / max;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Reading on a scale of 0 to ${Math.round(max*100)} percent">`;
+  s += `<rect x="${L}" y="${top}" width="${W-L-R}" height="${h}" rx="2" style="fill:var(--plate);stroke:var(--rule-2)"/>`;
+  if(r.status === "OK" && p != null){
+    s += `<rect x="${L}" y="${top}" width="${Math.max(1.5, x(p)-L)}" height="${h}" rx="2" style="fill:${colour(p,"OK")}"/>`;
+    s += `<line x1="${x(p)}" x2="${x(p)}" y1="${top-4}" y2="${top+h+4}" stroke-width="2.5" style="stroke:var(--ink)"/>`;
+  } else {
+    s += `<rect x="${L}" y="${top}" width="${W-L-R}" height="${h}" rx="2" style="fill:url(#selHatch)"/>`;
+    s += `<defs><pattern id="selHatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" style="fill:var(--hatch-bg)"/><line x1="0" y1="0" x2="0" y2="6" stroke-width="2.4" style="stroke:var(--hatch-ink)"/></pattern></defs>`;
+  }
+  for(let k=1; k<Math.round(max*10); k++){
+    s += `<line x1="${x(k/10)}" x2="${x(k/10)}" y1="${top+h}" y2="${top+h+4}" style="stroke:var(--ink-3)"/>`;
+  }
+  const rv = x(0.0909);
+  s += `<line x1="${rv}" x2="${rv}" y1="${top-3}" y2="${top+h+3}" stroke-width="1.5" stroke-dasharray="2 2" style="stroke:var(--ink-2)"/>`;
+  if(b != null) s += `<path d="M${x(b)} ${top+h+1} l-5 8 h10 z" style="fill:var(--base)"/>`;
+  s += `<text x="${L}" y="${H-1}" font-size="10.5" style="fill:var(--ink-3)">0%</text>`;
+  s += `<text x="${rv+4}" y="${H-1}" font-size="10.5" style="fill:var(--ink-3)">review level</text>`;
+  s += `<text x="${W-R}" y="${H-1}" font-size="10.5" text-anchor="end" style="fill:var(--ink-3)">${Math.round(max*100)}%</text>`;
+  return s + "</svg>";
+}
+
+function clearSelection(){
+  cur.selected = null; showOverrideBar(null);
+  document.getElementById("selBody").hidden = true;
+  document.getElementById("selEmpty").hidden = false;
+  document.getElementById("regimeCard").style.display = "none";
+  FBI.write({region: null});
+  render();
+}
+
 async function select(rid){
   const r = byRegion[rid];
+  const changed = cur.selected !== (r ? rid : null);
   cur.selected = r ? rid : null;
-  showOverrideBar(r);
-  if(!r) return;
+  if(changed) { showOverrideBar(r); render(); }
+  else document.getElementById("ovrBar").style.display = r ? "flex" : "none";
+  FBI.write({region: cur.selected});
+  document.getElementById("selBody").hidden = !r;
+  document.getElementById("selEmpty").hidden = !!r;
+  if(!r){ document.getElementById("regimeCard").style.display = "none"; return; }
   document.getElementById("selName").textContent = r.region;
   document.getElementById("selMeta").textContent =
-    `Day ${r.lead_day} · valid ${r.valid_date} · init ${r.init_date}`;
+    `${code(r.lead_day)} · valid ${r.valid_date} · issued ${r.init_date}`;
   const p = r.bust_probability;
-  document.getElementById("selProb").textContent =
-    r.status==="OK" ? pct(p) : "confidence unavailable";
-  document.getElementById("selProb").style.color =
-    r.status==="OK" ? colour(p,"OK") : getCSS("--fg");
+  const big = document.getElementById("selProb");
+  big.textContent = r.status==="OK" ? pct(p) : "Refused";
+  big.classList.toggle("refused", r.status!=="OK");
   // From store v0.2.0 the served number is the model + ENS combination (D-030),
   // and its two ingredients are shown beside it.
   const combined = r.model_probability!=null;
   document.getElementById("selProbSub").textContent =
     r.status==="OK" ? (combined ? "probability this forecast busts (model + ensemble)"
                                 : "probability this forecast busts")
-                    : "conditions outside training experience";
+                    : "conditions outside training experience: unknown, elevated risk, not a low reading";
+  document.getElementById("selStaff").innerHTML = staffSVG(r);
   document.getElementById("selInterval").textContent = [
     r.prediction_interval ?
       `80% interval ${pct(r.prediction_interval[0])}–${pct(r.prediction_interval[1])} · confidence in estimate ${pct(r.confidence_in_estimate)}`
       : "",
+    baselineOf(r)!=null ? `spread baseline ${pct(baselineOf(r))}` : "",
     combined && r.ens_spread_mm!=null ?
       `model alone ${pct(r.model_probability)} · ensemble spread ${r.ens_spread_mm.toFixed(1)} mm/day`
       : "",
   ].filter(Boolean).join(" · ");
   let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
-  (r.dominant_factors||[]).forEach(f=>html+=`<li>${f}</li>`);
+  (r.dominant_factors||[]).forEach(f=>html+=`<li>${esc(f)}</li>`);
   html += "</ul>";
   if(r.forecast_rain_mm!=null){
     html += `<div class="muted" style="margin-top:8px">forecast ${r.forecast_rain_mm.toFixed(1)} mm/day`;
@@ -655,35 +842,51 @@ async function select(rid){
     keys.forEach(k=>{const v=r.regime[k]??0;
       h+=`<div class="regimeRow"><span>${k.replace(/_/g," ")}</span><span>${pct(v)}</span></div>
           <div class="bar"><span style="width:${(100*v).toFixed(0)}%"></span></div>`;});
-    h+=`<div class="muted" style="margin-top:8px">regime uncertainty (entropy): ${(r.regime.entropy??0).toFixed(2)} — higher means the regime itself is ambiguous, which raises bust risk.</div>`;
+    h+=`<div class="muted" style="margin-top:8px">regime uncertainty (entropy): ${(r.regime.entropy??0).toFixed(2)}. Higher means the regime itself is ambiguous, which raises bust risk.</div>`;
     document.getElementById("regimeBody").innerHTML=h;
   } else rc.style.display="none";
+  markQueue();
 }
 
+// Queue rows are a register: a ramp chip for the band and the value in ink,
+// never dark text on a dark fill (audit F3). Every row is reachable by Tab and
+// opens with Enter or Space (audit F16).
 async function loadQueue(){
   const r = await fetch(`${API}/api/review-queue?init_date=${cur.init}&top=12`);
   const tb = document.querySelector("#queue tbody"); tb.innerHTML="";
-  if(!r.ok) return;
-  (await r.json()).forEach(q=>{
-    const tr=document.createElement("tr"); tr.className="q";
-    tr.innerHTML=`<td>${q.rank}</td><td>${q.region}</td><td>${q.lead_day}</td>
-      <td><span class="pill" style="background:${colour(q.bust_probability,"OK")};color:#08121f">${pct(q.bust_probability)}</span></td>`;
-    tr.onclick=()=>{cur.lead=q.lead_day;document.getElementById("leadPick").value=q.lead_day;
-                    render();select(q.region_id);};
+  if(!r.ok){ tb.innerHTML = `<tr><td colspan="4" class="muted">Queue unavailable for ${cur.init}.</td></tr>`; return; }
+  const q = await r.json();
+  if(!q.length){ tb.innerHTML = `<tr><td colspan="4" class="muted">Nothing in the Day 3–7 band needs a second look on this date.</td></tr>`; return; }
+  q.forEach(q=>{
+    const tr=document.createElement("tr");
+    tr.tabIndex = 0;
+    tr.dataset.rid = q.region_id; tr.dataset.lead = q.lead_day;
+    tr.setAttribute("aria-label", `${q.region}, ${code(q.lead_day)}, ${pct(q.bust_probability)}`);
+    tr.innerHTML=`<td>${q.rank}</td><td>${esc(q.region)}</td><td class="code">${code(q.lead_day)}</td>
+      <td class="r"><span class="chip" style="background:${colour(q.bust_probability,"OK")}"></span><span class="reading-v">${pct(q.bust_probability)}</span></td>`;
+    const open = ()=>{stopScrub(); cur.lead=q.lead_day; document.getElementById("leadPick").value=q.lead_day;
+                      FBI.write({lead: cur.lead}); render(); select(q.region_id);};
+    tr.onclick = open;
+    tr.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); open(); } };
     tb.appendChild(tr);
   });
+  markQueue();
+}
+function markQueue(){
+  document.querySelectorAll("#queue tbody tr[data-rid]").forEach(tr =>
+    tr.classList.toggle("sel", tr.dataset.rid === cur.selected && +tr.dataset.lead === cur.lead));
 }
 
 async function loadMetrics(){
   try{
     const m = await (await fetch(API+"/api/metrics")).json();
     const band = m.decision_band || [];
-    let h="<table><thead><tr><th>Predictor</th><th>AUROC</th><th>Brier</th></tr></thead><tbody>";
+    let h="<table><thead><tr><th>Predictor</th><th class='r'>AUROC</th><th class='r'>Brier</th></tr></thead><tbody>";
     band.slice().sort((a,b)=>b.auroc-a.auroc).forEach(r=>{
-      h+=`<tr><td>${r.model}</td><td>${r.auroc.toFixed(3)}</td><td>${r.brier.toFixed(4)}</td></tr>`;});
+      h+=`<tr><td>${esc(r.model)}</td><td class="r">${r.auroc.toFixed(3)}</td><td class="r">${r.brier.toFixed(4)}</td></tr>`;});
     h+="</tbody></table><div class='muted' style='margin-top:6px'>Held-out year, Day 3–7 decision band. Not a cherry-picked day.</div>";
     document.getElementById("metrics").innerHTML=h;
-  }catch(e){ document.getElementById("metrics").textContent="metrics unavailable"; }
+  }catch(e){ document.getElementById("metrics").textContent="Metrics unavailable."; }
 }
 
 boot();

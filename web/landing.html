@@ -1,245 +1,315 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-world="chart">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Forecast Bust Detection</title>
+<title>Forecast Bust Intelligence</title>
+<meta name="description" content="Reads rainfall forecasts already issued over India and flags the ones likely to bust, by subdivision and lead day." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/fbi.css" />
 <!--
-  The narrative entry point.
+  The narrative entry point, drawn as a river gauge: one enamel staff per
+  forecast, the reading taken where the served risk meets the scale.
 
   Everything on this page is drawn from the API at load time. Nothing is
   hardcoded, because the archive is the source of truth and a page that
   remembers numbers drifts from it silently. The prose states the finding; the
-  chart is enhancement, so the page still reads with JS disabled or the API
+  figure is enhancement, so the page still reads with JS disabled or the API
   down.
 
   Vendored, zero external origins -- enforced for every page in web/ by CI.
 -->
 <style>
-  :root {
-    --bg: #080c12; --panel: #0f1620; --line: #1d2836;
-    --ink: #e6edf5; --dim: #93a4b8; --faint: #64758a;
-    --model: #58a6ff; --base: #e3a857; --refuse: #dfe5ec; --bust: #e5534b;
-    --max: 1120px;
-  }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg: #ffffff; --panel: #f6f8fa; --line: #d8dee4;
-      --ink: #1c2430; --dim: #5a6b7d; --faint: #8093a5;
-      --model: #0b6fa4; --base: #a1661c; --refuse: #3d4754; --bust: #b4292b;
-    }
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 16px; }
-  section { padding: 76px 0; border-bottom: 1px solid var(--line); }
-  section:last-of-type { border-bottom: 0; }
-  h1 { font-size: clamp(30px, 5.2vw, 52px); line-height: 1.1; margin: 0 0 18px;
-       letter-spacing: -.02em; font-weight: 680; }
-  h2 { font-size: clamp(21px, 3vw, 28px); margin: 0 0 12px; letter-spacing: -.01em; }
-  p  { margin: 0 0 14px; max-width: 66ch; color: var(--dim); }
-  p.lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--ink); }
+  :root { --max: 1240px; }
+  body { font-size: 16px; line-height: 1.62; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+  @media (max-width: 640px) { .wrap { padding: 0 16px; } }
+
+  header.top { border-bottom: 1px solid var(--rule); }
+  header.top .wrap { display: flex; justify-content: space-between; align-items: center;
+    gap: 6px 18px; flex-wrap: wrap; min-height: 56px; padding-top: 6px; padding-bottom: 6px; }
+
+  h1, h2, h3 { font-family: var(--font-sign); font-weight: 600; color: var(--ink); }
+  h1 { font-size: clamp(38px, 3.7vw, 54px); line-height: 1.04; letter-spacing: -.012em;
+       margin: 0 0 20px; text-wrap: balance; }
+  h2 { font-size: clamp(26px, 2.6vw, 36px); line-height: 1.12; letter-spacing: -.008em;
+       margin: 0 0 16px; text-wrap: balance; }
+  h3 { font-size: 18px; line-height: 1.3; margin: 0 0 4px; }
+  p { margin: 0 0 14px; max-width: 64ch; color: var(--ink-2); }
   strong { color: var(--ink); font-weight: 620; }
-  .eyebrow { font-size: 12px; letter-spacing: .13em; text-transform: uppercase;
-             color: var(--faint); margin-bottom: 14px; }
 
-  .fig { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-         padding: 18px; margin: 26px 0 8px; }
-  .fig figcaption { color: var(--faint); font-size: 13px; margin-top: 12px; max-width: 72ch; }
-  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  /* ---- first viewport: the case on its staffs ----------------------------- */
+  #hero { min-height: calc(100dvh - 57px); display: grid; align-items: center; padding: 28px 0 40px; }
+  #hero .wrap { display: grid; gap: 28px 44px; align-items: center; width: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr); }
+  .lede { font-size: clamp(17px, 1.45vw, 19px); line-height: 1.55; max-width: 34ch; margin: 0 0 30px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .actions .btn { min-height: 46px; padding: 10px 20px; font-size: 15.5px; }
+  #divFig { margin: 0; }
+  #chart { height: min(74vh, 620px); min-height: 400px; }
+  #chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  #chart a { cursor: pointer; }
+  #chart a:focus-visible { outline: none; }
+  #chart a:focus-visible .plate { stroke: var(--focus); stroke-width: 2.5; }
+  #chart a:hover .plate { stroke: var(--ink-2); }
+  .halo { paint-order: stroke; stroke: var(--ground); stroke-width: 4px; stroke-linejoin: round; }
+  .figkey { margin: 10px 0 0; font-size: 13px; color: var(--ink-3); max-width: none; }
+  @media (max-width: 959px) {
+    #hero { min-height: 0; padding-top: 32px; }
+    #hero .wrap { grid-template-columns: 1fr; }
+    #chart { height: 430px; min-height: 0; }
+  }
+  @media (max-width: 480px) { #chart { height: 400px; } }
 
-  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 22px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
-  .card h3 { margin: 0 0 6px; font-size: 15px; }
-  .card p { margin: 0; font-size: 14px; }
-  .num { font-size: clamp(26px, 4vw, 34px); font-weight: 680; letter-spacing: -.02em;
-         display: block; margin-bottom: 2px; }
+  /* ---- the long read ----------------------------------------------------- */
+  section.read { padding: 84px 0; border-top: 1px solid var(--rule); }
+  @media (max-width: 640px) { section.read { padding: 60px 0; } }
 
-  .split { display: grid; gap: 26px; grid-template-columns: 1fr; }
-  @media (min-width: 860px) { .split { grid-template-columns: 1.05fr .95fr; align-items: center; } }
+  .case { display: grid; gap: 28px 56px; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); align-items: start; }
+  @media (max-width: 959px) { .case { grid-template-columns: 1fr; } }
+  .case .claim { font-size: 18px; color: var(--ink); max-width: 46ch; }
+  .note { font-size: 14.5px; color: var(--ink-3); }
 
-  table { border-collapse: collapse; width: 100%; font-size: 14px;
-          font-variant-numeric: tabular-nums; }
-  th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  caption { text-align: left; color: var(--ink-3); font-size: 13px; padding-bottom: 8px; }
+  th, td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--rule); }
   th:first-child, td:first-child { text-align: left; }
-  th { color: var(--faint); font-weight: 560; font-size: 12.5px;
-       text-transform: uppercase; letter-spacing: .05em; }
-  tr.hi td { background: rgba(88,166,255,.09); }
-  .pill { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11.5px;
-          border: 1px solid var(--line); color: var(--faint); }
-  .pill.refuse { background: var(--refuse); color: var(--bg); border-color: var(--refuse); font-weight: 640; }
-  .pill.bust { color: var(--bust); border-color: var(--bust); }
+  thead th { color: var(--ink-3); font-weight: 560; font-size: 12.5px; border-bottom-color: var(--rule-2); }
+  td.code { font-family: var(--font-sign); font-weight: 600; color: var(--ink); }
+  td.refused { color: var(--ink); }
+  td.refused .hatch { display: inline-block; width: 14px; height: 10px; vertical-align: -1px;
+    margin-right: 6px; border-radius: 1px; }
+  td.bust { color: var(--ink); font-weight: 700; }
+  tr.live td { background: var(--accent-wash); }
 
-  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none;
-         border: 1px solid var(--line); color: var(--ink); background: var(--panel);
-         font-size: 15px; margin: 4px 8px 4px 0; }
-  .btn:hover { border-color: var(--model); }
-  .btn.primary { background: var(--model); color: #04121f; border-color: var(--model); font-weight: 600; }
-  @media (prefers-color-scheme: light) { .btn.primary { color: #fff; } }
+  /* the definition: three conditions joined by "and", read top to bottom */
+  .conditions { list-style: none; margin: 34px 0 26px; padding: 0; max-width: 820px; }
+  .conditions li { padding: 22px 0 20px; border-top: 1px solid var(--rule); }
+  .conditions li:last-child { border-bottom: 1px solid var(--rule); }
+  .conditions p { margin: 0; }
+  .conditions li + li { position: relative; }
+  .conditions li + li::before { content: "and"; position: absolute; top: -11px; left: 0;
+    padding: 0 8px 0 0; background: var(--ground); color: var(--ink-3); font-size: 13px; }
 
-  footer { padding: 34px 0 56px; color: var(--faint); font-size: 13px; }
-  a { color: var(--model); }
+  .refusal { display: grid; gap: 30px 56px; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; }
+  @media (max-width: 859px) { .refusal { grid-template-columns: 1fr; } }
+  #refuseChart { max-width: 440px; }
+  #refuseChart svg { display: block; width: 100%; height: auto; overflow: visible; }
 
-  /* Animation is enhancement. Without JS, or with reduced motion, everything
-     is simply already in its final state. */
+  /* the register: measured values read off like gauge readings, not tiles */
+  .register { margin: 32px 0 6px; max-width: 900px; }
+  .reg { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 4px 28px;
+    padding: 18px 0; border-top: 1px solid var(--rule); align-items: baseline; }
+  .reg:last-child { border-bottom: 1px solid var(--rule); }
+  .reg .v { font-family: var(--font-sign); font-weight: 600; font-size: clamp(30px, 3.2vw, 42px);
+    line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .reg h3 { margin: 0 0 2px; }
+  .reg p { margin: 0; font-size: 15px; }
+  @media (max-width: 560px) { .reg { grid-template-columns: 1fr; } }
+  #ensClaim { margin-top: 34px; padding-top: 18px; border-top: 2px solid var(--accent);
+    color: var(--ink); max-width: 70ch; font-size: 17px; }
+
+  /* the route through the working views */
+  .route { list-style: none; margin: 30px 0 0; padding: 0; max-width: 900px; counter-reset: stop; }
+  .route li { border-top: 1px solid var(--rule); }
+  .route li:last-child { border-bottom: 1px solid var(--rule); }
+  .route a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 20px; align-items: center;
+    padding: 20px 6px; color: inherit; text-decoration: none; }
+  .route a:hover { background: var(--accent-wash); }
+  .route h3 { margin: 0; }
+  .route p { margin: 2px 0 0; font-size: 15px; }
+  .route .go { font-family: var(--font-sign); color: var(--accent); font-weight: 600; white-space: nowrap; }
+  @media (max-width: 560px) { .route .go { display: none; } }
+
+  footer { padding: 40px 0 64px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 13.5px; }
+  footer p { color: var(--ink-3); max-width: 80ch; }
+
+  /* Motion is enhancement. Without JS, or with reduced motion, everything is
+     simply already in its final state. */
   .draw { stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
-          transition: stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1); }
+          transition: stroke-dashoffset 1.4s cubic-bezier(.3,.6,.2,1) .35s; }
   .in .draw { stroke-dashoffset: 0; }
-  .fade { opacity: 0; transform: translateY(8px); transition: opacity .6s ease, transform .6s ease; }
-  .in .fade { opacity: 1; transform: none; }
+  .rise { transform: scaleY(0); transform-box: fill-box; transform-origin: 50% 100%;
+          transition: transform 1s cubic-bezier(.2,.7,.2,1); }
+  .in .rise { transform: none; }
+  .fade { opacity: 0; transition: opacity .5s ease .9s; }
+  .in .fade { opacity: 1; }
   @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
     .draw { stroke-dashoffset: 0; transition: none; }
-    .fade { opacity: 1; transform: none; transition: none; }
+    .rise { transform: none; transition: none; }
+    .fade { opacity: 1; transition: none; }
   }
 </style>
 </head>
 <body>
 
+<header class="top">
+  <div class="wrap">
+    <a class="wordmark" href="/landing.html">
+      <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
+      Forecast Bust Intelligence
+    </a>
+    <nav aria-label="Working views">
+      <ul class="views">
+        <li><a class="caseLink" data-view="/" href="/?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">Map</a></li>
+        <li><a class="caseLink" data-view="/command.html" href="/command.html?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">Columns</a></li>
+        <li><a class="caseLink" data-view="/volume.html" href="/volume.html?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">Volume</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
 <section id="hero">
   <div class="wrap">
-    <div class="eyebrow">Forecast bust detection</div>
-    <h1>A rainfall forecast is about to fail.<br />Which one?</h1>
-    <p class="lead">
-      This does not forecast the weather. It watches forecasts that have already
-      been issued and predicts which of them are about to be badly wrong — by
-      subdivision, by lead day, with the reasons attached.
-    </p>
+    <div>
+      <h1>A forecast can look fine while it fails.</h1>
+      <p class="lede">
+        It does not forecast rain. It reads issued forecasts and flags the
+        ones likely to bust, days ahead.
+      </p>
+      <div class="actions">
+        <a class="btn primary caseLink" data-view="/" id="ctaCase"
+           href="/?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">Open the Assam case</a>
+        <a class="btn" href="/">Explore the map</a>
+      </div>
+    </div>
 
-    <figure class="fig" id="divFig">
-      <div id="chart" role="img"
-           aria-label="Model bust probability rising while ensemble spread falls, for Assam and Meghalaya, valid 17 June 2022"></div>
-      <figcaption id="divCap">Loading from the archive…</figcaption>
+    <figure id="divFig">
+      <div id="chart" role="group"
+           aria-label="Ten gauge staffs, one per forecast issued for Assam and Meghalaya valid 17 June 2022, longest lead first. Each staff reads the served bust probability; refused forecasts are hatched plates with no reading. The same readings are in the table under The case."></div>
+      <figcaption class="figkey" id="divKey">Loading the case from the archive…</figcaption>
     </figure>
-
-    <p>
-      <strong>Assam &amp; Meghalaya, 17 June 2022.</strong> Observed rainfall was
-      <strong id="obsMm">—</strong> across the whole subdivision. Most of the
-      forecasts for that day busted.
-    </p>
-    <p id="claim">—</p>
-    <p id="refuseClaim">—</p>
-    <p style="font-size:14.5px">
-      The widely-quoted version of this case shows four leads, D7 to D4, where
-      the divergence is cleanest. All ten are plotted above, including the two
-      where the model's probability falls back while the day still busts. An
-      excerpt that stops at the most flattering window is not the same claim.
-    </p>
-    <p>
-      <a class="btn primary" href="/">Open the dashboard</a>
-      <a class="btn" href="/volume.html">Risk volume (3-D)</a>
-      <a class="btn" href="#bust">What counts as a bust?</a>
-    </p>
   </div>
 </section>
 
-<section id="bust">
-  <div class="wrap">
-    <div class="eyebrow">Definition</div>
-    <h2>Three conditions, all of which must hold</h2>
-    <p>
-      "The forecast was wrong" is not a usable label — every forecast is wrong by
-      some margin. A bust is a failure that would have changed what a forecaster
-      did, so all three of these have to be true at once.
-    </p>
-    <div class="cards">
-      <div class="card"><h3>1 &nbsp;Magnitude</h3>
-        <p>The error is at least 10&nbsp;mm/day, or the subdivision's own
-           95th-percentile training error for that month — whichever is larger.</p></div>
-      <div class="card"><h3>2 &nbsp;Category flip</h3>
-        <p>Forecast and observation land in different IMD intensity bands. The
-           forecast said one thing; the day was another.</p></div>
-      <div class="card"><h3>3 &nbsp;Operational significance</h3>
-        <p>At least one side reaches 15.6&nbsp;mm/day. A dry-day error nobody
-           would have acted on is not a bust.</p></div>
+<section class="read" id="case">
+  <div class="wrap case">
+    <div>
+      <h2>Ten forecasts for one flooded day</h2>
+      <p class="claim">
+        <strong>Assam &amp; Meghalaya, 17 June 2022.</strong> Observed rainfall was
+        <strong id="obsMm">not yet loaded</strong> across the whole subdivision.
+        Most of the forecasts for that day busted.
+      </p>
+      <p id="claim" class="claim">The reading of each forecast loads from the archive.</p>
+      <p id="refuseClaim"></p>
+      <p class="note">
+        The widely quoted version of this case shows four leads, D07 to D04,
+        where the divergence is cleanest. All ten are drawn above, including the
+        two where the reading falls back while the day still busts. An excerpt
+        that stops at the most flattering window is not the same claim.
+      </p>
+      <p class="note" id="divCap"></p>
     </div>
-    <p style="margin-top:18px">
+    <div>
+      <table id="caseTable">
+        <caption>The same ten readings, longest lead first.</caption>
+        <thead><tr><th scope="col">Lead</th><th scope="col">Issued</th><th scope="col">Served</th>
+          <th scope="col">Baseline</th><th scope="col">Observed</th></tr></thead>
+        <tbody><tr><td colspan="5">Needs the API: run the server to read the case.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="read" id="bust">
+  <div class="wrap">
+    <h2>A bust is three failures at once</h2>
+    <p>
+      "The forecast was wrong" is not a usable label: every forecast is wrong by
+      some margin. A bust is a failure that would have changed what a forecaster
+      did, so all three of these have to be true together.
+    </p>
+    <ul class="conditions">
+      <li><div><h3>Magnitude</h3>
+        <p>The error is at least 10&nbsp;mm/day, or the subdivision's own
+           95th-percentile training error for that month, whichever is larger.</p></div></li>
+      <li><div><h3>Category flip</h3>
+        <p>Forecast and observation land in different IMD intensity bands. The
+           forecast said one thing; the day was another.</p></div></li>
+      <li><div><h3>Operational significance</h3>
+        <p>At least one side reaches 15.6&nbsp;mm/day. A dry-day error nobody
+           would have acted on is not a bust.</p></div></li>
+    </ul>
+    <p>
       That conjunction is why the base rate is about <strong>4%</strong> rather
       than "most days". It is a rare-event problem by construction.
     </p>
   </div>
 </section>
 
-<section id="refusal">
-  <div class="wrap">
-    <div class="split">
-      <div>
-        <div class="eyebrow">Refusal</div>
-        <h2>Declining to score is a finding, not a gap</h2>
-        <p>
-          When the atmospheric state is unlike anything in training, the system
-          returns <code>OUT_OF_DISTRIBUTION</code> and no probability. The
-          obvious worry is that this is an excuse. It is not.
-        </p>
-        <p>
-          On the held-out 2022 test year, the days the model declined to score
-          busted <strong><span id="refuseRatio">—</span> more often</strong> than the days it accepted. A
-          refusal is elevated, unknown risk — never a quiet result, and never
-          shown as one.
-        </p>
-        <p>
-          This is why there are three escalation tiers and not two. Folding
-          refusals into "not flagged" would hide the highest-risk days in the
-          product.
-        </p>
-      </div>
-      <figure class="fig" style="margin:0">
-        <div id="refuseChart" role="img"
-             aria-label="Bust rate of refused days against scored days"></div>
-        <figcaption>2022 test year, all lead days. Source:
-          <code>bulletins.sqlite</code>, the same store the dashboard serves.</figcaption>
-      </figure>
+<section class="read" id="refusal">
+  <div class="wrap refusal">
+    <div>
+      <h2>Unknown is not safe</h2>
+      <p>
+        When the atmospheric state is unlike anything in training, the system
+        returns <code>OUT_OF_DISTRIBUTION</code> and no probability. The obvious
+        worry is that this is an excuse. It is not.
+      </p>
+      <p>
+        On the held-out test year, the days the model declined to score busted
+        <strong><span id="refuseRatio">(loading)</span> more often</strong> than the
+        days it accepted. A refusal is elevated, unknown risk: never a quiet
+        result, and never drawn as one.
+      </p>
+      <p>
+        That is why there are three review tiers and not two. Folding refusals
+        into "not flagged" would hide the highest-risk days in the product.
+      </p>
     </div>
+    <figure style="margin:0">
+      <div id="refuseChart" role="img" aria-label="Bust rate of refused days against scored days"></div>
+      <figcaption class="figkey">Held-out test year, all lead days. Source:
+        <code>bulletins.sqlite</code>, the same store the map serves.</figcaption>
+    </figure>
   </div>
 </section>
 
-<section id="numbers">
+<section class="read" id="numbers">
   <div class="wrap">
-    <div class="eyebrow">Held-out year, 2022</div>
-    <h2>What it is measured at, with intervals</h2>
+    <h2>Measured on a year it never saw</h2>
     <p>
       Every figure below is a cluster bootstrap over <strong>init dates</strong>,
       not rows. The test set is 39,950 rows but only 122 init dates, and rows
-      sharing a date share one synoptic situation — resampling rows would treat
-      correlated observations as independent and produce intervals roughly twice
+      sharing a date share one synoptic situation. Resampling rows would treat
+      correlated observations as independent and give intervals roughly twice
       too narrow.
     </p>
-    <div class="cards" id="statCards"></div>
-    <p style="margin-top:20px" id="ensClaim">
-      The margin over a real 50-member operational ensemble — loading…
-    </p>
+    <div class="register" id="statCards"></div>
+    <p id="ensClaim">The margin over a real 50-member operational ensemble loads from the archive.</p>
   </div>
 </section>
 
-<section id="try">
+<section class="read" id="views">
   <div class="wrap">
-    <div class="eyebrow">Run it</div>
-    <h2>Three ways in</h2>
-    <div class="cards">
-      <div class="card"><h3>Operational dashboard</h3>
-        <p>Map, review queue, per-region reasons, model against baseline.</p>
-        <p style="margin-top:10px"><a class="btn" href="/">Open</a></p></div>
-      <div class="card"><h3>Risk volume</h3>
-        <p>Longitude × latitude × lead day, raymarched. Nearest-sampled, so the
-           render never implies more resolution than the model has.</p>
-        <p style="margin-top:10px"><a class="btn" href="/volume.html">Open</a></p></div>
-      <div class="card"><h3>Command centre</h3>
-        <p>The column view: risk extruded over the map, lead day by lead day.</p>
-        <p style="margin-top:10px"><a class="btn" href="/command.html">Open</a></p></div>
-    </div>
+    <h2>Open the same case in the working views</h2>
+    <p>Each view opens on the reading above and keeps the date, lead day and
+      subdivision as you move between them.</p>
+    <ul class="route">
+      <li><a class="caseLink" data-view="/" href="/?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">
+        <div><h3>Map and review queue</h3>
+          <p>Every subdivision for one issue date and lead day, the ranked queue, the reasons, and the override record.</p></div>
+        <span class="go" aria-hidden="true">Open</span></a></li>
+      <li><a class="caseLink" data-view="/command.html" href="/command.html?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">
+        <div><h3>Columns</h3>
+          <p>All ten lead days at once, stacked over the map: Day 1 at the ground, Day 10 at the top.</p></div>
+        <span class="go" aria-hidden="true">Open</span></a></li>
+      <li><a class="caseLink" data-view="/volume.html" href="/volume.html?date=2022-06-14&amp;lead=4&amp;region=ASSAM_MEGHALAYA">
+        <div><h3>Risk volume</h3>
+          <p>Longitude by latitude by lead day, raymarched and nearest-sampled, so the render never implies more resolution than the model has.</p></div>
+        <span class="go" aria-hidden="true">Open</span></a></li>
+    </ul>
   </div>
 </section>
+</main>
 
 <footer>
   <div class="wrap">
-    Serves a 2016–2022 reanalysis archive; <code>mode=live</code> reports STALE by
-    design. Decision support only — the duty forecaster is the authority, and
-    this system never issues or suppresses a warning.
+    <p>Serves a 2016–2022 reanalysis archive; <code>mode=live</code> reports STALE by
+      design. Decision support only. The duty forecaster is the authority, and
+      this system never issues or suppresses a warning.</p>
   </div>
 </footer>
 
@@ -247,6 +317,9 @@
 "use strict";
 
 const REGION = "ASSAM_MEGHALAYA", VALID = "2022-06-17";
+// The cost-optimal review level from quality/escalation.py: C_fa / (C_fa + C_miss)
+// at a 10:1 cost ratio. Painted on every staff, as a gauge paints its levels.
+const REVIEW_THRESHOLD = 0.0909;
 const $ = (s) => document.querySelector(s);
 
 async function getJSON(u) {
@@ -256,115 +329,206 @@ async function getJSON(u) {
 }
 
 const fmtPct = (v) => (v * 100).toFixed(1) + "%";
+const code = (lead) => "D" + String(lead).padStart(2, "0");
+const caseQuery = (r) => `?date=${r.init_date}&lead=${r.lead_day}&region=${REGION}`;
 
-// ------------------------------------------------------- convergence chart
-function drawConvergence(rows) {
-  const W = 880, H = 380, L = 56, R = 18, T = 26, B = 78;
+// ------------------------------------------------------------ gauge staffs
+// One enamel staff per forecast, longest lead on the left. The served bust
+// probability is the water level on its staff; the ensemble-spread baseline
+// is a notch on the same scale. Left to right is time approaching the event.
+function drawGauge(rows, W, H) {
+  const narrow = W < 560;
+  const L = narrow ? 38 : 46, R = 6, B = 78;
+  const served = rows.some((r) => typeof r.model_probability === "number") ? "model + ensemble" : "this model";
+
+  // The key, wrapped to as many rows as the width needs; the staffs start
+  // below it with room for the "refused" plate labels.
+  const keys = [
+    [`<line x1="0" x2="18" y1="0" y2="0" stroke-width="3" style="stroke:var(--accent)"/>`, served],
+    [`<line x1="0" x2="18" y1="0" y2="0" stroke-width="2.2" stroke-dasharray="5 4" style="stroke:var(--base)"/>`,
+      narrow ? "baseline" : "ensemble-spread baseline"],
+    [`<rect x="2" y="-6" width="14" height="12" style="fill:url(#hatch);stroke:var(--ink-3)"/>`, "refused"],
+    [`<rect x="1" y="-2.5" width="16" height="5" style="fill:var(--ink)"/>`, "review level"],
+  ];
+  let kx = 0, ky = 38;
+  const keyMarks = keys.map(([mark, label]) => {
+    const w = 32 + label.length * 6.6;
+    if (kx > 0 && kx + w > W) { kx = 0; ky += 20; }
+    const g = `<g transform="translate(${kx} ${ky})">${mark}<text x="24" y="4" font-size="12" style="fill:var(--ink-2)">${label}</text></g>`;
+    kx += w;
+    return g;
+  });
+  const T = ky + 34;
   const iw = W - L - R, ih = H - T - B;
+  const n = rows.length, slot = iw / n;
+  const sw = Math.max(13, Math.min(40, slot * 0.46));
 
-  const leads = rows.map((r) => r.lead_day);
   const vals = rows.flatMap((r) =>
     [r.bust_probability, r.baseline_probability].filter((v) => typeof v === "number"));
   const yMax = Math.max(0.5, Math.ceil(Math.max(...vals) * 10) / 10);
-
-  // Left to right is time approaching the event, so lead day descends.
-  const x = (lead) => L + iw * (leads[0] - lead) / (leads[0] - leads[leads.length - 1]);
+  const bands = Math.round(yMax * 10);
+  const cxOf = (i) => L + slot * (i + 0.5);
   const y = (p) => T + ih * (1 - p / yMax);
+  const hb = ih / bands;
 
   // A refused row has no probability, so the model line BREAKS there rather
   // than bridging the gap. Drawing through it would assert a value the model
   // explicitly declined to give.
   const segments = [];
   let run = [];
-  for (const r of rows) {
+  rows.forEach((r, i) => {
     if (typeof r.bust_probability === "number") {
-      run.push([x(r.lead_day), y(r.bust_probability)]);
+      run.push([cxOf(i), y(r.bust_probability)]);
     } else {
       if (run.length > 1) segments.push(run);
       run = [];
     }
-  }
+  });
   if (run.length > 1) segments.push(run);
 
+  const scored = rows.filter((r) => typeof r.bust_probability === "number");
+  const live = scored.length ? scored.reduce((a, r) =>
+    (r.bust_probability - r.baseline_probability) > (a.bust_probability - a.baseline_probability) ? r : a) : null;
+
   const path = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-  const basePts = rows.map((r) => [x(r.lead_day), y(r.baseline_probability)]);
+  const basePts = rows.map((r, i) => [cxOf(i), y(r.baseline_probability)]);
 
-  const parts = [];
-  parts.push(`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`);
+  const P = [];
+  P.push(`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`);
+  P.push(`<defs><pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <rect width="7" height="7" style="fill:var(--hatch-bg)"/>
+    <line x1="0" y1="0" x2="0" y2="7" style="stroke:var(--hatch-ink)" stroke-width="2.6"/></pattern></defs>`);
 
-  // horizontal guides
-  for (let i = 0; i <= 4; i++) {
-    const v = (yMax * i) / 4, yy = y(v);
-    parts.push(`<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`);
-    parts.push(`<text x="${L - 9}" y="${yy + 4}" text-anchor="end" font-size="12" fill="var(--faint)">${(v * 100).toFixed(0)}%</text>`);
+  // the plate's label strip and key
+  P.push(`<text x="0" y="16" class="sign" font-size="${narrow ? 12.5 : 14}" font-weight="600" letter-spacing=".06em" style="fill:var(--ink)">ASSAM &amp; MEGHALAYA  ·  VALID ${VALID}</text>`);
+  P.push(...keyMarks);
+
+  // chart-paper graticule and the scale, one line per ten percent
+  for (let k = 0; k <= bands; k++) {
+    const yy = y(k / 10);
+    P.push(`<line x1="${L - 4}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke-width="1" style="stroke:var(--rule)"/>`);
+    P.push(`<text x="${L - 9}" y="${yy + 4}" text-anchor="end" font-size="11.5" class="sign" style="fill:var(--ink-3)">${k * 10}%</text>`);
   }
 
-  // refused leads: a hatched band, because "not scored" must occupy space
-  // rather than read as a gap where nothing was happening.
-  parts.push(`<defs><pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-    <line x1="0" y1="0" x2="0" y2="6" stroke="var(--refuse)" stroke-width="2.4" opacity=".55"/></pattern></defs>`);
-  for (const r of rows) {
-    if (typeof r.bust_probability === "number") continue;
-    const cx = x(r.lead_day), half = iw / (rows.length - 1) / 2.6;
-    parts.push(`<rect x="${cx - half}" y="${T}" width="${half * 2}" height="${ih}" fill="url(#hatch)"/>`);
-    parts.push(`<text x="${cx}" y="${T - 8}" text-anchor="middle" font-size="11" fill="var(--faint)">refused</text>`);
-  }
+  const yr = y(REVIEW_THRESHOLD);
+  // The review level is painted on every staff, as a gauge paints its levels.
+  const reviewBand = (x0) =>
+    `<rect x="${x0 - 1}" y="${yr - 3.5}" width="${sw + 2}" height="7" style="fill:var(--plate)"/>` +
+    `<rect x="${x0 - 1}" y="${yr - 1.75}" width="${sw + 2}" height="3.5" style="fill:var(--ink)"/>`;
 
-  // lines
-  const baseLen = 2200, modelLen = 2200;
-  parts.push(`<path class="draw" style="--len:${baseLen}" d="${path(basePts)}" fill="none"
-      stroke="var(--base)" stroke-width="2.4" stroke-dasharray="6 5" stroke-linecap="round"/>`);
+  rows.forEach((r, i) => {
+    const cx = cxOf(i), x0 = cx - sw / 2, link = "/" + caseQuery(r);
+    const ok = typeof r.bust_probability === "number";
+    const label = ok
+      ? `${code(r.lead_day)}, issued ${r.init_date}: ${fmtPct(r.bust_probability)} served, baseline ${fmtPct(r.baseline_probability)}`
+      : `${code(r.lead_day)}, issued ${r.init_date}: refused, no reading`;
+    P.push(`<a href="${link}" aria-label="${label}. Open on the map."><title>${label}</title>`);
+    if (!ok) {
+      // Refused: a ghost plate, present at full height, with no reading on it.
+      P.push(`<rect class="plate" x="${x0}" y="${T}" width="${sw}" height="${ih}" rx="2" style="fill:url(#hatch);stroke:var(--ink-3)" stroke-width="1"/>`);
+      P.push(`<text x="${cx}" y="${T - 10}" text-anchor="middle" font-size="11.5" class="sign" font-weight="600" style="fill:var(--ink)">refused</text>`);
+    } else {
+      // An enamel plate: white ground, full-strength graduations.
+      P.push(`<rect class="plate" x="${x0}" y="${T}" width="${sw}" height="${ih}" rx="2" style="fill:var(--plate);stroke:var(--rule-2)" stroke-width="1"/>`);
+      // E-graduations: one E per ten percent, alternating sides, as on a staff,
+      // with the plate's own numeral beside each where the plate is wide enough.
+      const ew = sw * 0.46, t = Math.max(1.4, hb / 10);
+      const fs = Math.min(13, hb * 0.3);
+      const labelTop = y(r.bust_probability) - 26, labelBottom = y(r.bust_probability) + 4;
+      for (let k = 0; k < bands; k++) {
+        const top = y((k + 1) / 10), left = k % 2 === 0;
+        const xs = left ? x0 + 2 : x0 + sw - 2 - ew, spineX = left ? x0 + 2 : x0 + sw - 2 - t;
+        P.push(`<g style="fill:var(--accent)">` +
+          `<rect x="${spineX}" y="${top}" width="${t}" height="${hb / 2}"/>` +
+          `<rect x="${xs}" y="${top}" width="${ew}" height="${t}"/>` +
+          `<rect x="${xs}" y="${top + hb / 4 - t / 2}" width="${ew * 0.82}" height="${t}"/>` +
+          `<rect x="${xs}" y="${top + hb / 2 - t}" width="${ew}" height="${t}"/></g>`);
+        if (sw >= 26 && (top + fs < labelTop || top > labelBottom)) {
+          P.push(`<text x="${left ? x0 + sw - 3 : x0 + 3}" y="${top + fs * 0.95}" text-anchor="${left ? "end" : "start"}" font-size="${fs.toFixed(1)}" font-weight="600" class="sign" style="fill:var(--accent)">${k + 1}</text>`);
+        }
+      }
+      // The water: a separate surface, rising to the served reading. The
+      // graduations show faintly through it, as a submerged staff does.
+      const yy = y(r.bust_probability);
+      P.push(`<rect class="rise" style="transition-delay:${(0.08 * i).toFixed(2)}s;fill:var(--water)" opacity=".8" x="${x0}" y="${yy}" width="${sw}" height="${T + ih - yy}"/>`);
+    }
+    P.push(reviewBand(x0));
+    P.push(`</a>`);
+  });
+
+  // the baseline, then the served line in segments
+  const len = Math.ceil(iw * 2);
+  // The baseline fades in rather than drawing: the draw animation owns
+  // stroke-dasharray, and the baseline's dashes are what mark it as the baseline.
+  P.push(`<path class="fade" style="stroke:var(--base)" d="${path(basePts)}" fill="none"
+      stroke-width="2.2" stroke-dasharray="6 5" stroke-linecap="round"/>`);
   for (const seg of segments) {
-    parts.push(`<path class="draw" style="--len:${modelLen}" d="${path(seg)}" fill="none"
-        stroke="var(--model)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`);
+    P.push(`<path class="draw" style="--len:${len};stroke:var(--accent)" d="${path(seg)}" fill="none"
+        stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`);
   }
 
-  // points + outcome ticks
-  for (const r of rows) {
-    const cx = x(r.lead_day);
+  // readings (the meniscus), baseline notches, codes and outcomes
+  rows.forEach((r, i) => {
+    const cx = cxOf(i), x0 = cx - sw / 2;
+    const yb = y(r.baseline_probability);
+    P.push(`<path class="fade" d="M${x0 + sw + 1} ${yb} l7 -4.5 v9 z" style="fill:var(--base)"/>`);
     if (typeof r.bust_probability === "number") {
-      parts.push(`<circle class="fade" cx="${cx}" cy="${y(r.bust_probability)}" r="4.5" fill="var(--model)"/>`);
+      const yy = y(r.bust_probability), isLive = live && r.lead_day === live.lead_day;
+      P.push(`<line class="fade" x1="${x0 - 5}" x2="${x0 + sw + 5}" y1="${yy}" y2="${yy}" stroke-width="${isLive ? 4 : 2.6}" stroke-linecap="square" style="stroke:var(--ink)"/>`);
+      const fz = isLive ? 15 : 12, txt = `${Math.round(r.bust_probability * 100)}%`, tw = txt.length * fz * 0.58;
+      P.push(`<rect class="fade" x="${cx - tw / 2 - 3}" y="${yy - 9 - fz}" width="${tw + 6}" height="${fz + 4}" rx="2" style="fill:var(--plate)"/>`);
+      P.push(`<text class="fade sign halo" x="${cx}" y="${yy - 9}" text-anchor="middle" font-size="${isLive ? 15 : 12}" font-weight="${isLive ? 700 : 600}" style="fill:${isLive ? "var(--accent)" : "var(--ink)"}">${Math.round(r.bust_probability * 100)}%</text>`);
     }
-    parts.push(`<circle class="fade" cx="${cx}" cy="${y(r.baseline_probability)}" r="3" fill="var(--base)"/>`);
-    parts.push(`<text x="${cx}" y="${H - B + 20}" text-anchor="middle" font-size="12" fill="var(--faint)">D${r.lead_day}</text>`);
-    if (r.actual_bust === 1) {
-      parts.push(`<text class="fade" x="${cx}" y="${H - B + 42}" text-anchor="middle" font-size="11.5"
-        fill="var(--bust)" font-weight="600">busted</text>`);
-    }
-  }
-
-  parts.push(`<text x="${L}" y="${H - 8}" font-size="12.5" fill="var(--faint)">
-     ← further from the event &nbsp;·&nbsp; lead day &nbsp;·&nbsp; closer to the event →</text>`);
-  // From store v0.2.0 the served number is the model + ENS combination (D-030);
-  // the rows say which, so the label follows the data.
-  const served = rows.some((r) => typeof r.model_probability === "number") ? "model + ensemble" : "this model";
-  parts.push(`<text x="${W - R}" y="${T + 14}" text-anchor="end" font-size="13" fill="var(--model)" font-weight="600">${served}</text>`);
-  parts.push(`<text x="${W - R}" y="${T + 32}" text-anchor="end" font-size="13" fill="var(--base)">ensemble-spread baseline</text>`);
-  parts.push(`</svg>`);
-  return parts.join("");
+    P.push(`<text x="${cx}" y="${T + ih + 19}" text-anchor="middle" font-size="${narrow ? 11.5 : 13}" font-weight="600" class="sign" style="fill:var(--ink)">${code(r.lead_day)}</text>`);
+    const bust = r.actual_bust === 1;
+    P.push(`<text x="${cx}" y="${T + ih + 37}" text-anchor="middle" font-size="${narrow ? 10.5 : 11.5}" font-weight="${bust ? 700 : 400}" style="fill:${bust ? "var(--ink)" : "var(--ink-3)"}">${bust ? "bust" : r.actual_bust === 0 ? "held" : "n/a"}</text>`);
+  });
+  P.push(`<text x="${L - 9}" y="${T + ih + 19}" text-anchor="end" font-size="10.5" style="fill:var(--ink-3)">lead</text>`);
+  P.push(`<text x="${L - 9}" y="${T + ih + 37}" text-anchor="end" font-size="10.5" style="fill:var(--ink-3)">${narrow ? "obs." : "observed"}</text>`);
+  // Time runs toward the event, left to right: a ruled arrow, not a glyph.
+  const ya = H - 6;
+  P.push(`<path d="M${L} ${ya} H${W - R} M${W - R - 6} ${ya - 4} L${W - R} ${ya} L${W - R - 6} ${ya + 4}" fill="none" stroke-width="1.2" style="stroke:var(--ink-3)"/>`);
+  P.push(`<text x="${L}" y="${ya - 6}" font-size="11.5" style="fill:var(--ink-3)">further from the event</text>`);
+  P.push(`<text x="${W - R - 10}" y="${ya - 6}" text-anchor="end" font-size="11.5" style="fill:var(--ink-3)">closer to the event</text>`);
+  P.push(`</svg>`);
+  return P.join("");
 }
 
 // ------------------------------------------------------------ refusal bars
 function drawRefusal(scored, refused) {
-  const W = 420, H = 260, B = 52, T = 22, L = 44;
-  const ih = H - T - B, yMax = Math.max(scored, refused) * 1.25;
+  const W = 420, H = 270, B = 56, T = 30, L = 30;
+  const ih = H - T - B, yMax = Math.max(scored, refused) * 1.2;
   const y = (v) => T + ih * (1 - v / yMax);
   const bar = (cx, v, fill, label, sub) => `
-    <rect class="draw" style="--len:0" x="${cx - 46}" y="${y(v)}" width="92" height="${H - B - y(v)}"
-      fill="${fill}" rx="3"/>
-    <text x="${cx}" y="${y(v) - 9}" text-anchor="middle" font-size="19" font-weight="680" fill="var(--ink)">${(v * 100).toFixed(1)}%</text>
-    <text x="${cx}" y="${H - B + 20}" text-anchor="middle" font-size="13" fill="var(--ink)">${label}</text>
-    <text x="${cx}" y="${H - B + 37}" text-anchor="middle" font-size="11.5" fill="var(--faint)">${sub}</text>`;
+    <rect x="${cx - 48}" y="${y(v)}" width="96" height="${H - B - y(v)}" rx="2" style="${fill}" stroke-width="1"/>
+    <text x="${cx}" y="${y(v) - 10}" text-anchor="middle" font-size="24" font-weight="600" class="sign" style="fill:var(--ink)">${(v * 100).toFixed(1)}%</text>
+    <text x="${cx}" y="${H - B + 22}" text-anchor="middle" font-size="14" font-weight="600" style="fill:var(--ink)">${label}</text>
+    <text x="${cx}" y="${H - B + 40}" text-anchor="middle" font-size="12" style="fill:var(--ink-3)">${sub}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-    <line x1="${L - 10}" x2="${W - 10}" y1="${H - B}" y2="${H - B}" stroke="var(--line)"/>
-    ${bar(W * 0.3, scored, "var(--model)", "scored", "status OK")}
-    ${bar(W * 0.72, refused, "var(--bust)", "refused", "out of distribution")}
+    <defs><pattern id="hatchR" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" style="fill:var(--hatch-bg)"/>
+      <line x1="0" y1="0" x2="0" y2="8" style="stroke:var(--hatch-ink)" stroke-width="3"/></pattern></defs>
+    <line x1="${L - 10}" x2="${W - 10}" y1="${H - B}" y2="${H - B}" style="stroke:var(--rule-2)"/>
+    ${bar(W * 0.3, scored, "fill:var(--plate);stroke:var(--ink)", "scored", "status OK")}
+    ${bar(W * 0.72, refused, "fill:url(#hatchR);stroke:var(--ink)", "refused", "out of distribution")}
   </svg>`;
 }
 
 function statCard(label, value, note) {
-  return `<div class="card"><span class="num">${value}</span>
-    <h3 style="margin:0 0 4px">${label}</h3><p>${note}</p></div>`;
+  return `<div class="reg"><span class="v">${value}</span>
+    <div><h3>${label}</h3><p>${note}</p></div></div>`;
+}
+
+function caseTableHTML(rows, live) {
+  return rows.map((r) => {
+    const ok = typeof r.bust_probability === "number";
+    const out = r.actual_bust === 1 ? `<td class="bust">bust</td>` : `<td>${r.actual_bust === 0 ? "held" : "n/a"}</td>`;
+    return `<tr${live && r.lead_day === live.lead_day ? ' class="live"' : ""}>` +
+      `<td class="code">${code(r.lead_day)}</td><td>${r.init_date}</td>` +
+      (ok ? `<td>${fmtPct(r.bust_probability)}</td>`
+          : `<td class="refused"><span class="hatch" aria-hidden="true"></span>refused</td>`) +
+      `<td>${fmtPct(r.baseline_probability)}</td>${out}</tr>`;
+  }).join("");
 }
 
 // ------------------------------------------------------------------- boot
@@ -372,14 +536,24 @@ function observe() {
   const io = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
   }, { threshold: 0.15 });
-  document.querySelectorAll("section, .fig").forEach((el) => io.observe(el));
+  document.querySelectorAll("section, figure").forEach((el) => io.observe(el));
 }
+
+let caseRows = null;
+function renderGauge() {
+  if (!caseRows) return;
+  const box = $("#chart");
+  $("#chart").innerHTML = drawGauge(caseRows, Math.round(box.clientWidth), Math.round(box.clientHeight));
+}
+let resizeTimer = null;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderGauge, 120); });
 
 async function boot() {
   observe();
   try {
     const rows = await getJSON(`/api/convergence?region_id=${REGION}&valid_date=${VALID}`);
-    $("#chart").innerHTML = drawConvergence(rows);
+    caseRows = rows;
+    renderGauge();
     const obs = rows.find((r) => typeof r.observed_rain_mm === "number");
     if (obs) $("#obsMm").textContent = obs.observed_rain_mm.toFixed(1) + " mm/day";
     const nRef = rows.filter((r) => r.status === "OUT_OF_DISTRIBUTION").length;
@@ -396,9 +570,9 @@ async function boot() {
     const who = rows.some((r) => typeof r.model_probability === "number")
       ? "the model + ensemble" : "this model";
     $("#claim").innerHTML =
-      `As the day approached, the <span style="color:var(--base)">ensemble spread fell</span> — ` +
-      `members converging, which reads as growing confidence — while ` +
-      `<span style="color:var(--model)">${who} stayed higher</span>` +
+      `As the day approached, the <span style="color:var(--base)">ensemble spread fell</span>, ` +
+      `members converging in a way that reads as growing confidence, while ` +
+      `<span style="color:var(--accent)">${who} stayed higher</span>` +
       (allAbove
         ? ` at <strong>every one of the ${scoredRows.length} leads it scored</strong>.`
         : ` at <strong>${above.length} of the ${scoredRows.length} leads it scored</strong>.`) +
@@ -413,23 +587,35 @@ async function boot() {
         `score at all</strong>, because the atmospheric state was unlike anything in ` +
         `its training data. <strong>${refusedBust}</strong> of those ${nRef} busted.`;
     $("#divCap").innerHTML =
-      `Every forecast issued for Assam &amp; Meghalaya valid ${VALID}, longest lead first. ` +
-      `${rows.length} forecasts, ${nBust} of which busted; ${nRef} were refused and are shown ` +
-      `hatched — the model line breaks there rather than bridging a value the model declined to give. ` +
-      `Live from <code>/api/convergence</code>.`;
-    // Re-arm the draw animation now that the paths exist.
+      `Every forecast issued for Assam &amp; Meghalaya valid ${VALID}, longest lead first: ` +
+      `${rows.length} forecasts, ${nBust} of which busted. ${nRef} were refused and stand as ` +
+      `hatched plates; the served line breaks there rather than bridging a value the model ` +
+      `declined to give. Live from <code>/api/convergence</code>.`;
+    $("#divKey").textContent =
+      `Each staff is one forecast. Its level is the served probability that the forecast busts; ` +
+      `the notch is the ensemble-spread baseline. Select a staff to open it on the map.`;
+    $("#caseTable tbody").innerHTML = caseTableHTML(rows, widest);
+
+    // Every way into the working views opens on the reading with the widest gap.
+    document.querySelectorAll(".caseLink").forEach((a) => {
+      a.setAttribute("href", a.dataset.view + caseQuery(widest));
+    });
+    // Re-arm the draw animation now that the paths exist. The timer is the
+    // floor: a throttled or background tab may not run frames, and the
+    // readings must never stay hidden behind an animation that did not run.
     requestAnimationFrame(() => $("#divFig").classList.add("in"));
+    setTimeout(() => $("#divFig").classList.add("in"), 400);
   } catch (e) {
-    $("#divCap").textContent =
-      "Could not reach the API — run scripts/fetch_release_artifacts.py, then start the server. " +
+    $("#divKey").textContent =
+      "Could not reach the API. Run scripts/fetch_release_artifacts.py, then start the server. " +
       "The text below still describes the case.";
   }
 
   // Every headline number here comes from /api/metrics: results.json, the
   // interval tables, the S1 settlement and the store's refusal rates. A
-  // missing piece renders "—", never a number remembered from an old run.
+  // missing piece renders as unavailable, never a number remembered from an old run.
   let m = null;
-  try { m = await getJSON("/api/metrics"); } catch (e) { /* rendered as — */ }
+  try { m = await getJSON("/api/metrics"); } catch (e) { /* rendered as unavailable */ }
   renderRefusal(m && m.refusal);
   $("#statCards").innerHTML = statCardsHTML(m);
   $("#ensClaim").innerHTML = ensClaimHTML(m);
@@ -440,7 +626,7 @@ const signed = (x, n) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(n);
 const pctOf = (x) => (100 * x).toFixed(1) + "%";
 
 function renderRefusal(r) {
-  if (!r) { $("#refuseRatio").textContent = "—"; return; }
+  if (!r) { $("#refuseRatio").textContent = "an unknown factor"; return; }
   $("#refuseRatio").textContent = r.ratio.toFixed(1) + "×";
   $("#refuseChart").innerHTML = drawRefusal(r.scored.bust_rate, r.refused.bust_rate);
 }
@@ -452,13 +638,13 @@ function statCardsHTML(m) {
   const iv = (o, n) => `[${o.lo.toFixed(n)}, ${o.hi.toFixed(n)}]`;
   const na = "Unavailable in this build.";
   return (
-    statCard("AUROC", mod ? mod.auroc.point.toFixed(3) : "—",
-      mod ? `${iv(mod.auroc, 3)} — against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na) +
-    statCard("Brier skill", mod ? mod.bss.point.toFixed(3) : "—",
+    statCard("AUROC", mod ? mod.auroc.point.toFixed(3) : "n/a",
+      mod ? `${iv(mod.auroc, 3)}, against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na) +
+    statCard("Brier skill", mod ? mod.bss.point.toFixed(3) : "n/a",
       mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.` : na) +
-    statCard("Calibration error", mod ? mod.ece.point.toFixed(4) : "—",
-      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail — see the reliability diagram.` : na) +
-    statCard("Refused vs scored", r ? r.ratio.toFixed(1) + "×" : "—",
+    statCard("Calibration error", mod ? mod.ece.point.toFixed(4) : "n/a",
+      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail; see the reliability diagram.` : na) +
+    statCard("Refused vs scored", r ? r.ratio.toFixed(1) + "×" : "n/a",
       r ? `Refused days bust ${pctOf(r.refused.bust_rate)} of the time against ${pctOf(r.scored.bust_rate)} for scored days (${r.year}).` : "Needs the bulletin store.")
   );
 }
@@ -474,22 +660,22 @@ function ensClaimHTML(m) {
   const fmt = (o, n) => `<strong>${signed(o.point, 3)} AUROC [${signed(o.lo, 3)}, ${signed(o.hi, 3)}]</strong> on ${n} init dates` +
     (year ? ` of ${year}` : "");
   const words = {
-    model_better: "— an interval above zero. Over that held-out season, the model outranks a real ensemble.",
-    ens_better: "— an interval below zero. Over that held-out season, a real ensemble outranks the model.",
-    indistinguishable: "— an interval that contains zero. Beating the cheap proxy is established; beating a real ensemble <strong>is not</strong>.",
+    model_better: "an interval above zero. Over that held-out season, the model outranks a real ensemble.",
+    ens_better: "an interval below zero. Over that held-out season, a real ensemble outranks the model.",
+    indistinguishable: "an interval that contains zero. Beating the cheap proxy is established; beating a real ensemble <strong>is not</strong>.",
   };
   const backtest = backtestHTML(m && m.backtest);
   const together = combinationHTML(m);
   if (s) {
-    return lead + fmt(s, s.n_init_dates) + " " + words[s.verdict] +
+    return lead + fmt(s, s.n_init_dates) + ", " + words[s.verdict] +
       " The test was registered before this data was fetched." + backtest + together;
   }
   const raw = t && t.margins && t.margins["raw ENS spread"];
   if (raw) {
     const v = raw.lo > 0 ? "model_better" : raw.hi < 0 ? "ens_better" : "indistinguishable";
-    return lead + fmt(raw, t.n_init_dates) + " " + words[v] + backtest + together;
+    return lead + fmt(raw, t.n_init_dates) + ", " + words[v] + backtest + together;
   }
-  return lead + "unavailable in this build (—).";
+  return lead + "unavailable in this build.";
 }
 
 // D-029/D-030: the model + ENS combination, stated only when the store actually

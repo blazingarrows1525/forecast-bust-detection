@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Risk Volume — raymarched</title>
+<title>Volume · Forecast Bust Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/fbi.css" />
 <!--
   Volumetric view of the bust-risk field.
 
@@ -66,53 +68,57 @@
   DataTexture3D, RawShaderMaterial and GLSL3 -- no upgrade needed.
 -->
 <style>
+  /* The shared world (fbi.css) supplies ink, accent and the slate shell;
+     these are this page's names for it. */
   :root {
-    --bg: #070b10; --panel: #0e141c; --line: #1e2937;
-    --ink: #dfe7f0; --muted: #8496a8; --accent: #4a9eff;
-    --refuse: #d9dee4;
+    --bg: var(--ground); --panel: var(--ground-2); --line: var(--rule);
+    --muted: var(--ink-3);
+    --refuse: var(--hatch-ink);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
-    font: 13px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    font: 13px/1.5 var(--font-text); }
   #stage { position: fixed; inset: 0; }
   canvas { display: block; }
 
-  .panel { position: fixed; background: rgba(14,20,28,.92); border: 1px solid var(--line);
-    border-radius: 8px; padding: 12px 14px; backdrop-filter: blur(8px); }
+  .panel { position: fixed; background: rgba(27,32,36,.94); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 12px 14px; backdrop-filter: blur(8px); }
   #hud { top: 14px; left: 14px; max-width: 330px; }
-  #hud h1 { margin: 0 0 2px; font-size: 15px; font-weight: 650; letter-spacing: .2px; }
-  #hud .sub { color: var(--muted); font-size: 11.5px; margin-bottom: 10px; }
+  #hud h1 { margin: 10px 0 2px; font-family: var(--font-sign); font-size: 17px; font-weight: 600; }
+  #hud .views { margin: 6px 0 0 -9px; }
+  #hud .views a { padding: 4px 9px; font-size: 12.5px; }
+  #hud .sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
   .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-  .row label { color: var(--muted); min-width: 74px; font-size: 11.5px; }
-  select, input[type=range] { background: #131b25; color: var(--ink);
-    border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; font: inherit; }
+  .row label { color: var(--muted); min-width: 74px; font-size: 12px; }
+  select, input[type=range] { background: var(--plate); color: var(--ink);
+    border: 1px solid var(--line); border-radius: var(--r); padding: 4px 6px; font: inherit; }
   input[type=range] { padding: 0; flex: 1; accent-color: var(--accent); }
-  button { background: #16202c; color: var(--ink); border: 1px solid var(--line);
-    border-radius: 5px; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button { background: var(--plate); color: var(--ink); border: 1px solid var(--rule-2);
+    border-radius: var(--r); padding: 5px 10px; font: inherit; cursor: pointer; }
   button:hover { border-color: var(--accent); }
-  button.on { background: #17324f; border-color: var(--accent); }
+  button.on { background: var(--accent-wash); border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
 
   #legend { bottom: 14px; left: 14px; width: 250px; }
   #ramp { height: 12px; border-radius: 3px; border: 1px solid var(--line);
     background: linear-gradient(90deg,#440154,#414487,#2a788e,#22a884,#7ad151,#fde725); }
   .scale { display: flex; justify-content: space-between; color: var(--muted);
-    font-size: 10.5px; margin-top: 3px; }
-  .key { display: flex; align-items: center; gap: 8px; margin-top: 9px; font-size: 11.5px; }
+    font-size: 12px; margin-top: 3px; }
+  .key { display: flex; align-items: center; gap: 8px; margin-top: 9px; font-size: 12px; }
   .sw { width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--line); flex: none; }
   .sw.refuse { background-image: repeating-linear-gradient(45deg,
-      var(--refuse) 0 2px, #2a323c 2px 4px); }
-  .sw.none { background: #10161e; }
+      var(--refuse) 0 2px, var(--hatch-bg) 2px 4px); }
+  .sw.none { background: var(--ground); }
 
   #readout { top: 14px; right: 14px; width: 260px; display: none; }
-  #readout .big { font-size: 26px; font-weight: 650; letter-spacing: -.5px; }
+  #readout .big { font-family: var(--font-sign); font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
   #readout .name { font-weight: 600; margin-bottom: 2px; }
-  #readout ul { margin: 8px 0 0; padding-left: 16px; color: var(--muted); font-size: 11.5px; }
+  #readout ul { margin: 8px 0 0; padding-left: 16px; color: var(--muted); font-size: 12px; }
   #readout li { margin-bottom: 3px; }
-  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10.5px;
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 12px;
     border: 1px solid var(--line); color: var(--muted); }
-  .tag.refuse { color: #0b0f14; background: var(--refuse); border-color: var(--refuse); font-weight: 600; }
+  .tag.refuse { color: var(--ground); background: var(--refuse); border-color: var(--refuse); font-weight: 600; }
 
-  #perf { bottom: 14px; right: 14px; color: var(--muted); font-size: 11px;
+  #perf { bottom: 14px; right: 14px; color: var(--muted); font-size: 12px;
     font-variant-numeric: tabular-nums; }
   #msg { position: fixed; inset: 0; display: none; place-items: center; text-align: center;
     padding: 24px; background: var(--bg); }
@@ -121,15 +127,15 @@
 
   button:focus-visible, select:focus-visible, input:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px; }
-  #btnFly { background: #17324f; border-color: var(--accent); font-weight: 600; }
-  #btnFly.playing { background: var(--accent); color: #06101c; }
+  #btnFly { background: var(--accent-wash); border-color: var(--accent); font-weight: 600; }
+  #btnFly.playing { background: var(--accent); color: var(--accent-ink); }
   .val { margin: 3px 0 0 82px; color: var(--ink);
-    font-size: 11.5px; font-variant-numeric: tabular-nums; }
-  .keys { color: var(--muted); font-size: 10.5px; margin-top: 10px; line-height: 1.7; }
-  kbd { font: 10px/1 ui-monospace, Consolas, monospace; padding: 2px 4px;
+    font-size: 12px; font-variant-numeric: tabular-nums; }
+  .keys { color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.7; }
+  kbd { font: 11px/1 ui-monospace, Consolas, monospace; padding: 2px 4px;
     border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px;
-    color: var(--ink); background: #131b25; }
-  #outlineNote { display: none; color: var(--muted); font-size: 10.5px;
+    color: var(--ink); background: var(--plate); }
+  #outlineNote { display: none; color: var(--muted); font-size: 12px;
     margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
 
   /* The fly-through narrates in words, not just motion, so it is usable with
@@ -139,7 +145,7 @@
     text-align: center; font-size: 14px; line-height: 1.45;
     opacity: 0; transition: opacity .35s ease; pointer-events: none; }
   #caption.on { opacity: 1; }
-  #caption .k { display: block; color: var(--muted); font-size: 10.5px;
+  #caption .k { display: block; color: var(--muted); font-size: 12px;
     letter-spacing: .6px; text-transform: uppercase; margin-bottom: 3px; }
   @media (max-width: 900px) {
     #caption { max-width: calc(100vw - 28px); bottom: 170px; }
@@ -153,9 +159,21 @@
 <div id="stage"></div>
 
 <div id="hud" class="panel">
+  <a class="wordmark" href="/landing.html">
+    <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
+    Forecast Bust Intelligence
+  </a>
+  <nav aria-label="Views">
+    <ul class="views">
+      <li><a href="/landing.html">Case</a></li>
+      <li><a data-carry="/" href="/">Map</a></li>
+      <li><a data-carry="/command.html" href="/command.html">Columns</a></li>
+      <li><a data-carry="/volume.html" href="/volume.html" aria-current="page">Volume</a></li>
+    </ul>
+  </nav>
   <h1>Risk volume</h1>
   <div class="sub">longitude × latitude × lead day, raymarched.
-    Nearest-sampled on every axis — the render shows the model's own resolution.</div>
+    Nearest-sampled on every axis: the render shows the model's own resolution.</div>
   <div class="row">
     <label for="datePick">Init date</label>
     <select id="datePick"></select>
@@ -180,9 +198,9 @@
     <button id="btnRefuse" class="on">Refusals</button>
   </div>
   <div class="row">
-    <button id="btnFly" aria-pressed="false">▶ Fly-through</button>
+    <button id="btnFly" aria-pressed="false">Fly-through</button>
   </div>
-  <div class="row" style="color:var(--muted);font-size:11px">
+  <div class="row" style="color:var(--muted);font-size:12px">
     <span id="status">loading…</span>
   </div>
   <div class="keys">
@@ -194,28 +212,29 @@
 <div id="caption" class="panel" role="status" aria-live="polite"></div>
 
 <div id="readout" class="panel">
-  <div class="name" id="rName">—</div>
-  <div class="sub" id="rMeta" style="color:var(--muted);font-size:11.5px"></div>
-  <div class="big" id="rProb">—</div>
+  <div class="name" id="rName"></div>
+  <div class="sub" id="rMeta" style="color:var(--muted);font-size:12px"></div>
+  <div class="big" id="rProb"></div>
   <div id="rTier"></div>
   <ul id="rFactors"></ul>
 </div>
 
 <div id="legend" class="panel">
-  <div style="color:var(--muted);font-size:11px;margin-bottom:5px">Bust probability</div>
+  <div style="color:var(--muted);font-size:12px;margin-bottom:5px">Bust probability</div>
   <div id="ramp"></div>
-  <div class="scale"><span>0</span><span id="rampMid">—</span><span id="rampMax">—</span></div>
+  <div class="scale"><span>0</span><span id="rampMid">…</span><span id="rampMax">…</span></div>
   <div class="key"><span class="sw refuse"></span>
-    <span><strong>Refused</strong> — not scored. Unknown, elevated risk (23.4% bust vs 3.4%).</span></div>
+    <span><strong>Refused</strong>, not scored. Unknown, elevated risk (23.4% bust vs 3.4%).</span></div>
   <div class="key"><span class="sw none"></span><span>No data</span></div>
   <div id="outlineNote">Outline smoothed for orientation. Edges inside the
-    volume are the model's own 0.25° cells — never more than one cell apart.</div>
+    volume are the model's own 0.25° cells, never more than one cell apart.</div>
 </div>
 
 <div id="perf" class="panel"></div>
 <div id="msg"><div id="msgText"></div></div>
 
 <script src="vendor/three.min.js"></script>
+<script src="/fbi.js"></script>
 <script>
 "use strict";
 
@@ -643,7 +662,7 @@ function init() {
   stage.appendChild(renderer.domElement);
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x070b10);
+  scene.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--ground").trim() || "#15191c");
   camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
 
   // 1x1 target: the camera is re-aimed at a single pixel for the pick, so
@@ -1077,11 +1096,16 @@ async function boot() {
     sel.appendChild(o);
   }
   // Default to the documented demo case when it is in the archive.
-  sel.value = dates.includes("2022-06-14") ? "2022-06-14" : dates[dates.length - 1];
+  // The URL's reading when another view handed one over, else the demo case.
+  const want = FBI.read();
+  sel.value = want.date && dates.includes(want.date) ? want.date
+    : dates.includes("2022-06-14") ? "2022-06-14" : dates[dates.length - 1];
+  FBI.write({ date: sel.value });
   sel.addEventListener("change", () => {
     // Captions describe one date; none may survive onto another.
     stopFlight("interrupted");
     view.hover = -1; view.focusGoal = 0;
+    FBI.write({ date: sel.value });
     loadDate(sel.value).catch(showErr);
   });
 
@@ -1142,14 +1166,14 @@ function showReadout(hit) {
 
   $("rName").textContent = region.region;
   $("rMeta").textContent =
-    `Day ${cube.lead_days[i]} · valid ${region.valid_date[i] || "—"}`;
+    `Day ${cube.lead_days[i]} · valid ${region.valid_date[i] || "n/a"}`;
 
   if (status === "OUT_OF_DISTRIBUTION") {
     // Never a number here, and never anything that reads as reassurance.
     $("rProb").textContent = "not scored";
     $("rTier").innerHTML =
       '<span class="tag refuse">REFUSED</span> ' +
-      '<span style="color:var(--muted)">unknown risk — refused days bust ' +
+      '<span style="color:var(--muted)">unknown risk: refused days bust ' +
       '23.4% of the time vs 3.4% for scored ones</span>';
   } else if (typeof p === "number") {
     $("rProb").textContent = (p * 100).toFixed(1) + "%";
@@ -1160,7 +1184,7 @@ function showReadout(hit) {
           'review threshold</span>'
         : "");
   } else {
-    $("rProb").textContent = "—";
+    $("rProb").textContent = "n/a";
     $("rTier").innerHTML = '<span class="tag">no data</span>';
   }
 
@@ -1224,15 +1248,15 @@ const mm1 = (x) => x.toFixed(1) + " mm";
 // What the hold says. Refused -> never a number (FRONTEND_LOGIC.md 2.1).
 function holdText(region, i) {
   const lead = cube.lead_days[i];
-  const where = `${region.region} · Day ${lead} · valid ${region.valid_date[i] || "—"}`;
+  const where = `${region.region} · Day ${lead} · valid ${region.valid_date[i] || "n/a"}`;
   if (region.status[i] === "OUT_OF_DISTRIBUTION") {
-    return `${where} — not scored. Refused days bust 23.4% of the time ` +
+    return `${where}: not scored. Refused days bust 23.4% of the time ` +
            `against 3.4% for scored ones: unknown, elevated risk.`;
   }
   const p = region.p[i];
-  if (typeof p !== "number") return `${where} — no score for this day.`;
+  if (typeof p !== "number") return `${where}: no score for this day.`;
   const tier = p >= REVIEW_THRESHOLD ? "flagged for review" : "below the review threshold";
-  return `${where} — ${pct1(p)} chance this forecast busts, ${tier}.`;
+  return `${where}: ${pct1(p)} chance this forecast busts, ${tier}.`;
 }
 
 // What the finish says. Only when the replay row carries truth.
@@ -1244,7 +1268,7 @@ function outcomeText(region, i) {
     return "The archive has no observation for this day, so there is no outcome to show.";
   }
   const verdict = a === 1 ? "this forecast busted." : "this forecast held.";
-  return `Observed ${mm1(obs)} against a forecast of ${mm1(fc)} — ${verdict}`;
+  return `Observed ${mm1(obs)} against a forecast of ${mm1(fc)}: ${verdict}`;
 }
 
 async function buildFlight() {
@@ -1315,7 +1339,7 @@ async function startFlight() {
   flight.segs = segs; flight.i = -1; flight.active = true;
   $("btnFly").classList.add("playing");
   $("btnFly").setAttribute("aria-pressed", "true");
-  $("btnFly").textContent = "■ Stop";
+  $("btnFly").textContent = "Stop";
   $("readout").style.display = "none";
   nextSegment(performance.now());
 }
@@ -1356,7 +1380,7 @@ function stopFlight(reason) {
   view.focusGoal = 0; view.hover = -1;
   $("btnFly").classList.remove("playing");
   $("btnFly").setAttribute("aria-pressed", "false");
-  $("btnFly").textContent = "▶ Fly-through";
+  $("btnFly").textContent = "Fly-through";
   // A finished flight leaves its outcome up for a moment; an interrupted one
   // clears at once, so no caption outlives the view it described.
   if (reason === "finished" || finalSeg) {

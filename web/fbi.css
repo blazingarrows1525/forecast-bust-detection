@@ -1,0 +1,112 @@
+/* Forecast Bust Intelligence: the shared world.
+
+   Three materials, one per job (DESIGN.md, docs/DESIGN_DECISIONS.md):
+     chart paper   the explanatory ground (landing), cool off-white, blue-black ink
+     wet concrete  the ops shell (map, columns, volume), slate
+     gauge enamel  the reading: plates with E-graduations in gauge indigo,
+                   the one accent
+
+   Risk colour is NOT here. The five viridis stops live in each page's own
+   :root{ block, first in the file, because tests/test_web_pages.py reads them
+   from there and checks them under colour-vision deficiency. Refusal is never
+   a colour token either: it is the hatch (--hatch-ink on --hatch-bg).
+
+   System fonts only. Bahnschrift is Windows' DIN signage face, the lettering
+   on a gauge staff; the fallbacks are its nearest cousins elsewhere. No
+   webfont, because a webfont is an external origin with extra steps. */
+
+:root{
+  --font-sign: Bahnschrift, "DIN Alternate", "DIN 2014", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 3px;
+}
+
+/* Ops shell, dark: the default for the working views. */
+:root, :root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#15191c; --ground-2:#1b2024; --plate:#20262b; --plate-2:#283036;
+  --ink:#e6e9e4; --ink-2:#adb5b9; --ink-3:#8f989e;
+  --rule:#2f363c; --rule-2:#414a51;
+  --accent:#8fa6e8; --accent-ink:#0e1530; --accent-wash:rgba(143,166,232,.15);
+  --base:#d9a24a; --outcome:#e0a274;
+  --hatch-ink:#e6e9e4; --hatch-bg:#2a3136;
+  --map-ground:#1d2328; --map-edge:#7d878e;
+  --focus:#c3d0f5;
+  --warn-bg:#3a2c12; --warn-rule:#7a5a22; --warn-ink:#f1d9a6;
+  --water:#33415f;
+}
+
+/* Chart paper: the landing by default, and the working views' light theme. */
+:root[data-theme="light"], :root[data-world="chart"]{
+  color-scheme: light;
+  --ground:#f2f4f0; --ground-2:#e8ebe5; --plate:#fbfcf9; --plate-2:#eceee8;
+  --ink:#172133; --ink-2:#465163; --ink-3:#5b6574;
+  --rule:#c9cec5; --rule-2:#a9afa6;
+  --accent:#27407a; --accent-ink:#ffffff; --accent-wash:rgba(39,64,122,.09);
+  --base:#8d5a12; --outcome:#7a4126;
+  --hatch-ink:#172133; --hatch-bg:#fbfcf9;
+  --map-ground:#e3e7e1; --map-edge:#4c5666;
+  --focus:#27407a;
+  --warn-bg:#f6ecd6; --warn-rule:#c9a35a; --warn-ink:#4a3410;
+  --water:#c5d0e4;
+}
+/* The landing stays on chart paper whatever the OS scheme: the onset chart IS
+   its world (direction contract, OWN-WORLD). The dark theme belongs to the
+   working views, which carry their own toggle. */
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-text);
+  -webkit-font-smoothing:antialiased;scrollbar-color:var(--rule-2) transparent}
+::selection{background:var(--accent);color:var(--accent-ink)}
+a{color:var(--accent)}
+code{font-family:var(--font-mono);font-size:.92em}
+
+/* Stencilled signage: codes, readings, numerals. */
+.sign{font-family:var(--font-sign);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+
+/* ---- the bar every page shares ------------------------------------------ */
+.topbar{display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.wordmark{display:inline-flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none;
+  font-family:var(--font-sign);font-weight:600;font-size:15px;letter-spacing:.01em;white-space:nowrap}
+.wordmark svg{flex:none;display:block}
+.views{display:flex;gap:2px;margin:0;padding:0;list-style:none;flex-wrap:wrap}
+.views a{display:block;padding:6px 9px;border-radius:var(--r);color:var(--ink-2);text-decoration:none;
+  font-size:13px;white-space:nowrap;border-bottom:2px solid transparent}
+.views a:hover{color:var(--ink);background:var(--accent-wash)}
+.views a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent);border-radius:var(--r) var(--r) 0 0}
+
+/* ---- controls -------------------------------------------------------------- */
+.btn,button,select,input[type=range]{font:inherit}
+.btn,button{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:30px;padding:5px 10px;border-radius:var(--r);border:1px solid var(--rule-2);
+  background:var(--plate);color:var(--ink);font-size:13px;cursor:pointer;text-decoration:none;
+  white-space:nowrap;transition:background-color .15s ease,border-color .15s ease}
+.btn:hover,button:hover{border-color:var(--ink-3)}
+.btn:active,button:active{transform:translateY(1px)}
+button.active,button[aria-pressed="true"]{background:var(--accent-wash);border-color:var(--accent);
+  color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+button:disabled{opacity:.55;cursor:default}
+select{min-height:30px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--rule-2);
+  background:var(--plate);color:var(--ink);font-size:13px}
+input[type=range]{accent-color:var(--accent)}
+
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button:focus-visible,.btn:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+kbd{font:11px/1 var(--font-mono);padding:2px 5px;border:1px solid var(--rule-2);
+  border-bottom-width:2px;border-radius:var(--r);background:var(--plate);color:var(--ink)}
+
+/* Refusal: a hatch, never a hue. */
+.hatch{background-image:repeating-linear-gradient(45deg,var(--hatch-ink) 0 2px,var(--hatch-bg) 2px 5px)}
+
+/* Text a screen reader needs and a sighted reader already has in the figure. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:0s!important;animation-duration:0s!important}
+}
