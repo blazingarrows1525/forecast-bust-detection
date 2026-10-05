@@ -715,5 +715,14 @@ except Exception as exc:  # noqa: BLE001 - the optional layer must never
     log_event(_LOG, "genai_mount_failed", error=str(exc))
 
 
+# An unknown API path answers as an API: a JSON 404. Registered after every
+# real route (GenAI included) and before the static mount, so only page
+# addresses fall through to web/404.html.
+@app.api_route("/api/{rest:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+               include_in_schema=False)
+def _api_not_found(rest: str):
+    raise HTTPException(status_code=404, detail="Not Found")
+
+
 if WEB_DIR.exists():
     app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="web")

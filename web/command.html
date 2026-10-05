@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Columns · Forecast Bust Intelligence</title>
+<meta name="description" content="Bust probability for every subdivision and all ten lead days at once, stacked over the map of India." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="/fbi.css" />
 <style>
@@ -50,7 +51,9 @@
           color:var(--warn-ink);padding:7px 14px;font-size:12.5px;font-weight:500}
 
   #stage{position:relative;min-height:0;min-width:0;background:var(--scene)}
-  #stage canvas{display:block;width:100%;height:100%}
+  #stage canvas{display:block;width:100%;height:100%;touch-action:none}
+  #tip{position:absolute;z-index:var(--z-float);pointer-events:none;color:var(--ink);font-size:12.5px;
+    background:var(--plate);border:1px solid var(--rule-2);border-radius:var(--r);padding:5px 8px;white-space:nowrap}
   .over{position:absolute;color:var(--ink-2);font-size:12px;background:rgba(21,25,28,.82);
     border:1px solid var(--line);padding:6px 9px;border-radius:var(--r);pointer-events:none}
   #hint{left:12px;bottom:10px}
@@ -95,6 +98,7 @@
 </style>
 </head>
 <body>
+<a class="skip" href="#stage">Skip to the columns</a>
 <div id="app">
   <div id="top">
     <header>
@@ -131,11 +135,13 @@
     <div id="status" aria-live="polite">Loading the archive.</div>
     <div id="banner"></div>
   </div>
-  <div id="stage">
+  <main id="stage" tabindex="-1">
+    <h1 class="sr-only">Bust risk columns: every lead day over India</h1>
     <div id="axis" class="over"><b>Height is lead day</b>: D01 at the ground, D10 at the top<span class="long"><br>
       colour is P(forecast busts); the staff on the west edge reads D01 to D10</span></div>
-    <div id="hint" class="over">drag to orbit · wheel to zoom · right-drag to pan · click a column · ← → lead · ↑ ↓ date</div>
-  </div>
+    <div id="hint" class="over">drag to orbit · wheel or pinch to zoom · right-drag to pan · click a column · ← → lead · ↑ ↓ date</div>
+    <div id="tip" hidden></div>
+  </main>
   <aside>
     <section aria-labelledby="hSel">
       <h2 id="hSel">Selected</h2>
@@ -210,7 +216,12 @@ function refusalTexture(){
 const CASE_STUDY = "2022-06-14";
 
 let scene, camera, renderer, raycaster, pointer;
-let mapGroup, colGroup, bandGroup, staffGroup;
+let mapGroup, colGroup, bandGroup, staffGroup, selGroup;
+// Render on demand: a frame is drawn only when the camera or the scene changed.
+let needsRender = true, lastView = "";
+const invalidate = () => { needsRender = true; };
+let focusGoal = null;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
 let geo=null, cube=null, dates=[], lonMid=0, latMid=0, lonMin=0, latMin=0;
 let cur = {init:null, lead:4, view:"model", sel:null};
 // theta = +pi/2 puts the camera on the SOUTH side looking north. It was -pi/2,
@@ -258,7 +269,8 @@ function initGL(){
   colGroup   = new THREE.Group();
   bandGroup  = new THREE.Group();
   staffGroup = new THREE.Group();
-  scene.add(mapGroup, colGroup, bandGroup, staffGroup);
+  selGroup   = new THREE.Group();
+  scene.add(mapGroup, colGroup, bandGroup, staffGroup, selGroup);
 
   raycaster = new THREE.Raycaster();
   pointer = new THREE.Vector2();
@@ -277,6 +289,7 @@ function resize(){
   camera.aspect = w/h; camera.updateProjectionMatrix();
   renderer.setSize(w, h, false);
   if(staffGroup) staffGroup.visible = !NARROW.matches;
+  invalidate();
 }
 // A portrait screen sees less of India at the same distance, so the default
 // distance grows as the stage narrows; the user's own zoom is never overridden.
@@ -285,22 +298,46 @@ const fitR = () => 46 * Math.max(1, 1.05 / Math.max(camera.aspect || 1, 0.3));
 // Hand-written orbit controls: three.js r128 ships OrbitControls as a separate
 // example file, and vendoring a second script for ~40 lines of spherical maths
 // is not worth another offline asset to keep in sync.
+//
+// One pointer orbits (right button or shift pans), two pointers pinch to zoom,
+// and a tap or click picks. Touch works because the canvas sets
+// touch-action: none, and a gesture the browser cancels clears its own state.
 function bindControls(dom){
-  let dragging=false, button=0, lx=0, ly=0, moved=0;
+  const pts = new Map();
+  let button = 0, moved = 0, pinch = 0, wasPinch = false;
+  const end = e => {
+    const tap = pts.size === 1 && !wasPinch && moved < 5 && button === 0 && e.type === "pointerup";
+    pts.delete(e.pointerId);
+    try{ dom.releasePointerCapture(e.pointerId); }catch(_){}
+    if(tap) pick(e);                          // a drag must not count as a click
+    if(pts.size < 2) pinch = 0;
+    if(!pts.size) wasPinch = false;
+  };
   dom.addEventListener("contextmenu", e=>e.preventDefault());
   dom.addEventListener("pointerdown", e=>{
-    dragging=true; button=e.button; lx=e.clientX; ly=e.clientY; moved=0;
-    dom.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    try{ dom.setPointerCapture(e.pointerId); }catch(_){}
+    if(pts.size === 1){ button = e.shiftKey ? 2 : e.button; moved = 0; }
+    if(pts.size === 2){ wasPinch = true; pinch = spread(); }
+    hideTip();
   });
-  dom.addEventListener("pointerup", e=>{
-    dragging=false;
-    try{ dom.releasePointerCapture(e.pointerId); }catch(_){}
-    if(moved < 5 && button === 0) pick(e);   // a drag must not count as a click
-  });
+  const spread = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x-b.x, a.y-b.y) || 1; };
+  dom.addEventListener("pointerup", end);
+  dom.addEventListener("pointercancel", end);
+  dom.addEventListener("lostpointercapture", e => { if(pts.has(e.pointerId)) end(e); });
+  dom.addEventListener("pointerleave", e => { if(!pts.size) hideTip(); });
   dom.addEventListener("pointermove", e=>{
-    if(!dragging) return;
-    const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+    const last = pts.get(e.pointerId);
+    if(!last){ if(e.pointerType === "mouse") queueHover(e); return; }
+    const dx=e.clientX-last.x, dy=e.clientY-last.y;
+    last.x = e.clientX; last.y = e.clientY;
     moved += Math.abs(dx)+Math.abs(dy);
+    if(pts.size === 2){
+      const d = spread();
+      orbit.r = Math.max(14, Math.min(120, orbit.r * pinch / d));
+      pinch = d;
+      return;
+    }
     if(button === 2){
       // pan across the ground plane, in the camera's own screen basis
       const right = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
@@ -308,6 +345,7 @@ function bindControls(dom){
       const fwd = right.clone().cross(up).normalize();
       orbit.target.addScaledVector(right, -dx*orbit.r*0.0012);
       orbit.target.addScaledVector(fwd,    dy*orbit.r*0.0012);
+      focusGoal = null;
     } else {
       orbit.theta -= dx*0.006;
       orbit.phi    = Math.max(0.12, Math.min(1.52, orbit.phi - dy*0.005));
@@ -317,6 +355,35 @@ function bindControls(dom){
     e.preventDefault();
     orbit.r = Math.max(14, Math.min(120, orbit.r * (1 + Math.sign(e.deltaY)*0.09)));
   }, {passive:false});
+}
+
+// ------------------------------------------------------------- hover readout
+// What is under the cursor, in words: the region, the lead and the value the
+// column is showing, or that it was refused. Raycast at most once per frame.
+let hoverAt = null;
+function queueHover(e){ hoverAt = e; invalidate(); }
+function hideTip(){ const t = document.getElementById("tip"); if(t) t.hidden = true; }
+function updateHover(){
+  if(!hoverAt || !cube) return;
+  const e = hoverAt; hoverAt = null;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX-rect.left)/rect.width)*2 - 1;
+  pointer.y = -((e.clientY-rect.top)/rect.height)*2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(colGroup.children, false)[0];
+  const tip = document.getElementById("tip");
+  if(!hit){ tip.hidden = true; renderer.domElement.style.cursor = ""; return; }
+  const u = hit.object.userData, r = cube.regions.find(x=>x.region_id===u.region_id);
+  const i = u.idx;
+  let reading;
+  if(cur.view === "truth") reading = r.actual[i]==null ? "no observation" : (r.actual[i] ? "busted" : "held");
+  else if(cur.view === "baseline") reading = "baseline " + pct(r.baseline[i]);
+  else reading = r.status[i] === "OK" ? pct(r.p[i]) : "refused, not scored";
+  tip.textContent = `${u.region} · ${code(u.lead)} · ${reading}`;
+  tip.style.left = (e.clientX - rect.left + 14) + "px";
+  tip.style.top = (e.clientY - rect.top + 14) + "px";
+  tip.hidden = false;
+  renderer.domElement.style.cursor = "pointer";
 }
 
 function applyCamera(){
@@ -433,6 +500,7 @@ function buildBand(band){
 // the highlighted lead marked. A sprite, so it always faces the camera
 // (audit F10: the scene had no lead labels).
 function buildStaff(){
+  staffGroup.children.forEach(o => { o.material.map.dispose(); o.material.dispose(); });
   staffGroup.clear();
   const c = document.createElement("canvas"); c.width = 216; c.height = 1024;
   const g = c.getContext("2d"), cell = c.height / 10;
@@ -459,10 +527,25 @@ function buildStaff(){
   const [x, z] = proj(lonMin - 1.4, latMid);
   s.position.set(x, h/2, z);
   staffGroup.add(s);
+  invalidate();
+}
+
+// Built once and shared by all 340 cells, so a lead or view change allocates
+// nothing on the GPU (each rebuild used to leak 340 geometries and materials).
+let GEO = null;
+const MATS = new Map();
+function material(key, make){
+  if(!MATS.has(key)) MATS.set(key, make());
+  return MATS.get(key);
 }
 
 function buildColumns(){
+  if(!GEO) GEO = {
+    normal: new THREE.BoxGeometry(COL_W, LEAD_H*0.84, COL_W),
+    emph:   new THREE.BoxGeometry(COL_W*1.35, LEAD_H*0.84, COL_W*1.35),
+  };
   colGroup.clear();
+  invalidate();
   if(!cube) return;
   const leads = cube.lead_days;
   cube.regions.forEach(r=>{
@@ -485,20 +568,20 @@ function buildColumns(){
       // The lowest band is drawn faint so a tall quiet column does not hide the
       // map it stands on. Every other band, and every refusal, is at full presence.
       const quiet = cur.view !== "truth" && !isOOD && value != null && value < 0.05;
-      const geom = new THREE.BoxGeometry(
-        COL_W*(emphasise?1.35:1), LEAD_H*0.84, COL_W*(emphasise?1.35:1)
-      );
+      const geom = emphasise ? GEO.emph : GEO.normal;
       // Refused: an achromatic stripe at full presence -- never a hue, never a
       // wireframe (which read as "less there" than a solid low-risk column).
+      const opacity = (isOOD && cur.view !== "truth") ? (emphasise ? 1.0 : 0.92)
+                    : (emphasise ? 1.0 : (quiet ? 0.32 : 0.86));
       const mat = (isOOD && cur.view !== "truth")
-        ? new THREE.MeshLambertMaterial({ map: refusalTexture(), transparent: true,
-                                          opacity: emphasise ? 1.0 : 0.92 })
-        : new THREE.MeshLambertMaterial({
+        ? material(`ood|${opacity}`, () => new THREE.MeshLambertMaterial({ map: refusalTexture(), transparent: true,
+                                          opacity }))
+        : material(`${colour}|${opacity}|${quiet}`, () => new THREE.MeshLambertMaterial({
             color: new THREE.Color(colour),
             transparent: true,
-            opacity: emphasise ? 1.0 : (quiet ? 0.32 : 0.86),
+            opacity,
             depthWrite: !quiet
-          });
+          }));
       const box = new THREE.Mesh(geom, mat);
       box.position.set(x, (L-0.5)*LEAD_H, z);
       box.userData = {region_id:r.region_id, region:r.region, lead:L, idx:i, kind:"col"};
@@ -536,12 +619,41 @@ function clearSelection(){
   document.querySelector("#profile tbody").innerHTML =
     '<tr><td colspan="4" class="muted">Select a column to see its ten lead days.</td></tr>';
   FBI.write({region: null});
+  markSelection(null);
   markQueue();
+}
+
+// The selected column, outlined from the ground to Day 10, so the panel and
+// the scene visibly agree about which column is being read.
+function markSelection(r){
+  selGroup.children.forEach(o => { o.geometry.dispose(); o.material.dispose(); });
+  selGroup.clear();
+  invalidate();
+  if(!r || !isFinite(r.lon) || !isFinite(r.lat)) return;
+  const [x, z] = proj(r.lon, r.lat), h = 10*LEAD_H;
+  const box = new THREE.BoxGeometry(COL_W*2.1, h + 0.3, COL_W*2.1);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box),
+    new THREE.LineBasicMaterial({color: new THREE.Color(getCSS("--accent"))}));
+  box.dispose();
+  edges.position.set(x, h/2, z);
+  selGroup.add(edges);
+}
+
+// Picking from the panel brings that column to the centre of the view.
+// Clicking a column does not move the camera under the cursor.
+function focusRegion(rid){
+  const r = cube && cube.regions.find(x=>x.region_id===rid);
+  if(!r || !isFinite(r.lon) || !isFinite(r.lat)) return;
+  const [x, z] = proj(r.lon, r.lat);
+  focusGoal = new THREE.Vector3(x, 4, z);
+  if(REDUCED.matches){ orbit.target.copy(focusGoal); focusGoal = null; }
+  invalidate();
 }
 
 async function select(rid, lead){
   const r = cube && cube.regions.find(x=>x.region_id===rid); if(!r) return;
   cur.sel = rid;
+  markSelection(r);
   FBI.write({region: rid});
   const i = cube.lead_days.indexOf(lead);
   const status = r.status[i], p = r.p[i];
@@ -571,7 +683,7 @@ async function select(rid, lead){
     tr.innerHTML = `<td class="code">${code(L)}</td>` +
                    `<td class="r">${r.status[j]==="OK"?pct(r.p[j]):'<span class="sw ood"></span> refused'}</td>`+
                    `<td class="r">${pct(r.baseline[j])}</td>${truth}`;
-    const open = ()=>{ setLead(L, false); select(rid, L); };
+    const open = ()=>{ setLead(L, false); select(rid, L); focusRegion(rid); };
     tr.onclick = open;
     tr.onkeydown = e => { if(e.key==="Enter" || e.key===" "){ e.preventDefault(); e.stopPropagation(); open(); } };
     tb.appendChild(tr);
@@ -615,7 +727,7 @@ function fillQueue(){
     tr.setAttribute("aria-label", `${q.region}, ${code(q.lead)}, ${pct(q.p)}`);
     tr.innerHTML=`<td>${n+1}</td><td>${esc(q.region)}</td><td class="code">${code(q.lead)}</td>`+
                  `<td class="r"><span class="sw" style="background:${colourFor(q.p,"OK")}"></span> ${pct(q.p)}</td>`;
-    const open = ()=>{ setLead(q.lead, false); select(q.rid, q.lead); };
+    const open = ()=>{ setLead(q.lead, false); select(q.rid, q.lead); focusRegion(q.rid); };
     tr.onclick = open;
     tr.onkeydown = e => { if(e.key==="Enter" || e.key===" "){ e.preventDefault(); e.stopPropagation(); open(); } };
     tb.appendChild(tr);
@@ -729,20 +841,32 @@ async function boot(){
   document.getElementById("btnBaseline").onclick= ()=>setView("baseline");
   document.getElementById("btnTruth").onclick   = ()=>setView("truth");
   document.getElementById("btnReset").onclick   = ()=>{
-    orbit.theta=Math.PI/2; orbit.phi=0.95; orbit.r=fitR(); orbit.target.set(0,4,0);
+    orbit.theta=Math.PI/2; orbit.phi=0.95; orbit.r=fitR(); orbit.target.set(0,4,0); focusGoal = null;
   };
   bindKeys();
   buildStaff();
 
   if(want.region) cur.sel = want.region;
   await loadCube(cur.init);
+  // A deep link that names a region opens on that column.
+  if(cur.sel) focusRegion(cur.sel);
   buildBand(cube ? cube.decision_band : [3,7]);
   animate();
 }
 
 function animate(){
   requestAnimationFrame(animate);
+  if(focusGoal){
+    orbit.target.lerp(focusGoal, 0.14);
+    if(orbit.target.distanceTo(focusGoal) < 0.02){ orbit.target.copy(focusGoal); focusGoal = null; }
+  }
+  const t = orbit.target;
+  const view = `${orbit.theta}|${orbit.phi}|${orbit.r}|${t.x}|${t.y}|${t.z}`;
+  if(view !== lastView){ lastView = view; needsRender = true; }
+  if(!needsRender) return;
+  needsRender = false;
   applyCamera();
+  updateHover();
   renderer.render(scene, camera);
 }
 

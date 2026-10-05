@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Map · Forecast Bust Intelligence</title>
+<meta name="description" content="Every subdivision's probability that an issued rainfall forecast busts, the ranked review queue, and the reasons, for one issue date and lead day." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="/vendor/leaflet.css" />
 <link rel="stylesheet" href="/fbi.css" />
@@ -72,7 +73,7 @@
   .leaflet-control-attribution a{color:var(--ink-2)}
 
   /* The key sits on the map it explains (audit F11). */
-  #dock{position:absolute;left:12px;bottom:12px;z-index:500;max-width:min(410px,calc(100% - 24px));
+  #dock{position:absolute;left:12px;bottom:12px;z-index:var(--z-map-ui);max-width:min(410px,calc(100% - 24px));
     background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px}
   #dock .k{font-family:var(--font-sign);font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
   .legend{display:flex;gap:4px 6px;align-items:center;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
@@ -91,6 +92,9 @@
   .muted{color:var(--muted);font-size:12px}
   .hint{color:var(--ink-2);font-size:13px;line-height:1.55}
   .hint kbd{font-size:12px}
+  .jump{display:flex;flex-direction:column;gap:4px;margin:0 0 12px}
+  .jump label{font-size:12px;color:var(--ink-2)}
+  .jump select{width:100%}
 
   /* the reading */
   #selName{font-family:var(--font-sign);font-weight:600;font-size:18px;line-height:1.25}
@@ -123,8 +127,8 @@
   .ovr-row{border-bottom:1px solid var(--line);padding:6px 0;font-size:12px}
   .ovr-row:last-child{border-bottom:0}
 
-  #help{position:fixed;inset:0;background:rgba(10,13,16,.72);display:grid;
-    place-items:center;z-index:9999;padding:20px}
+  #help{position:fixed;inset:0;background:color-mix(in srgb, var(--ground) 80%, transparent);display:grid;
+    place-items:center;z-index:var(--z-overlay);padding:20px}
   #help[hidden]{display:none}
   #help>div{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
     padding:20px 24px;max-width:460px}
@@ -150,6 +154,7 @@
 </style>
 </head>
 <body>
+<a class="skip" href="#mapWrap">Skip to the map</a>
 <div id="app">
   <div id="top">
     <header>
@@ -191,14 +196,19 @@
     <div id="imageryNote"></div>
   </div>
 
-  <div id="mapWrap">
+  <main id="mapWrap" tabindex="-1">
+    <h1 class="sr-only">Forecast bust risk by subdivision</h1>
     <div id="map" role="region" aria-label="Map of India's meteorological subdivisions, coloured by bust probability"></div>
     <div id="dock"></div>
-  </div>
+  </main>
 
   <aside>
     <section aria-labelledby="hSel">
       <h2 id="hSel">Selected reading</h2>
+      <div class="jump">
+        <label for="regionPick">Jump to subdivision <kbd>/</kbd></label>
+        <select id="regionPick"><option value="">Choose a subdivision</option></select>
+      </div>
       <div id="selEmpty" class="hint">
         Select a subdivision on the map or a row in the review queue.
         <kbd>↑</kbd> <kbd>↓</kbd> step the issue date, <kbd>←</kbd> <kbd>→</kbd> the lead day,
@@ -289,7 +299,7 @@
       <tr><td><kbd>m</kbd> / <kbd>b</kbd></td><td>served / spread baseline</td></tr>
       <tr><td><kbd>v</kbd></td><td>observed outcome</td></tr>
       <tr><td><kbd>t</kbd></td><td>light / dark</td></tr>
-      <tr><td><kbd>/</kbd></td><td>focus the issue date</td></tr>
+      <tr><td><kbd>/</kbd></td><td>jump to a subdivision</td></tr>
       <tr><td><kbd>Tab</kbd> <kbd>Enter</kbd></td><td>open a review-queue row</td></tr>
       <tr><td><kbd>Esc</kbd></td><td>clear selection / close</td></tr>
     </table>
@@ -349,6 +359,30 @@ const code = L => "D" + String(L).padStart(2, "0");
 // page as markup.
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+let regionBounds = {};
+
+// A pick from the queue or the jump list can name a region that is off the
+// map, which on a phone is most of them. Bring it into view, at the zoom
+// the forecaster chose.
+function ensureVisible(rid){
+  const b = regionBounds[rid];
+  if(!b || map.getBounds().contains(b)) return;
+  map.panTo(b.getCenter(), {animate: !REDUCED.matches});
+}
+
+// Every modelled subdivision, by name: the keyboard path to regions the
+// top-12 queue does not list.
+function fillRegionPick(){
+  const sel = document.getElementById("regionPick");
+  if(sel.options.length > 1 || !rows.length) return;
+  const seen = new Map();
+  rows.forEach(r => seen.set(r.region_id, r.region));
+  [...seen].sort((a, b) => a[1].localeCompare(b[1])).forEach(([id, name]) => {
+    const o = document.createElement("option"); o.value = id; o.textContent = name; sel.appendChild(o);
+  });
+  sel.value = cur.selected || "";
+}
 
 async function boot(){
   applyStoredTheme();
@@ -357,6 +391,14 @@ async function boot(){
   // Fit India to whatever the screen is, rather than a zoom chosen for one
   // monitor: on a phone a fixed zoom left the north-east off the edge.
   map.fitBounds(L.geoJSON(geo).getBounds(), {padding:[10,10]});
+  map.attributionControl.setPrefix("Leaflet");
+  geo.features.forEach(f => {
+    regionBounds[f.properties.subdivision_id] = L.geoJSON(f).getBounds();
+  });
+  document.getElementById("regionPick").onchange = e => {
+    if(!e.target.value){ clearSelection(); return; }
+    select(e.target.value); ensureVisible(e.target.value);
+  };
   const d = await (await fetch(API+"/api/replay/dates")).json();
   dates = d.init_dates;
   const dp=document.getElementById("datePick"), sl=document.getElementById("dateSlider");
@@ -649,7 +691,7 @@ function bindKeys(){
       case "t": toggleTheme(); break;
       case "i": setImagery(!IMAGERY.enabled); break;
       case "?": toggleHelp(true); break;
-      case "/": document.getElementById("datePick").focus(); break;
+      case "/": document.getElementById("regionPick").focus(); break;
       case "Escape":
         if(!document.getElementById("help").hidden){ toggleHelp(false); break; }
         if(document.getElementById("ovrForm").style.display === "block"){
@@ -685,7 +727,7 @@ async function load(init){
     `${b.n_regions} subdivisions · issued ${init}` + (vd ? ` · ${code(cur.lead)} valid ${vd}` : "") +
     ` · data ${b.data_quality} · input age ${b.input_age_hours??"?"} h` +
     (init === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : "");
-  render(); loadQueue();
+  render(); loadQueue(); fillRegionPick();
   if(cur.selected) select(cur.selected);
   if(IMAGERY.enabled) addImagery();
 }
@@ -785,6 +827,7 @@ function clearSelection(){
   document.getElementById("selBody").hidden = true;
   document.getElementById("selEmpty").hidden = false;
   document.getElementById("regimeCard").style.display = "none";
+  document.getElementById("regionPick").value = "";
   FBI.write({region: null});
   render();
 }
@@ -796,6 +839,7 @@ async function select(rid){
   if(changed) { showOverrideBar(r); render(); }
   else document.getElementById("ovrBar").style.display = r ? "flex" : "none";
   FBI.write({region: cur.selected});
+  document.getElementById("regionPick").value = cur.selected || "";
   document.getElementById("selBody").hidden = !r;
   document.getElementById("selEmpty").hidden = !!r;
   if(!r){ document.getElementById("regimeCard").style.display = "none"; return; }
@@ -865,7 +909,7 @@ async function loadQueue(){
     tr.innerHTML=`<td>${q.rank}</td><td>${esc(q.region)}</td><td class="code">${code(q.lead_day)}</td>
       <td class="r"><span class="chip" style="background:${colour(q.bust_probability,"OK")}"></span><span class="reading-v">${pct(q.bust_probability)}</span></td>`;
     const open = ()=>{stopScrub(); cur.lead=q.lead_day; document.getElementById("leadPick").value=q.lead_day;
-                      FBI.write({lead: cur.lead}); render(); select(q.region_id);};
+                      FBI.write({lead: cur.lead}); render(); select(q.region_id); ensureVisible(q.region_id);};
     tr.onclick = open;
     tr.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); open(); } };
     tb.appendChild(tr);

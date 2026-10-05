@@ -107,6 +107,28 @@ kbd{font:11px/1 var(--font-mono);padding:2px 5px;border:1px solid var(--rule-2);
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
+/* Layers, lowest to highest. One scale so nothing needs a 9999. */
+:root{--z-map-ui:500;--z-float:800;--z-overlay:900;--z-skip:1000}
+
+/* Keyboard users land on the work, not on twenty header controls. */
+.skip{position:absolute;left:12px;top:-60px;z-index:var(--z-skip);padding:8px 12px;
+  border-radius:var(--r);background:var(--accent);color:var(--accent-ink);font-weight:600;
+  text-decoration:none}
+.skip:focus{top:10px}
+
+textarea,input{caret-color:var(--accent)}
+
+/* Fingers, not cursors: 44 px targets on touch screens. */
+@media (pointer: coarse){
+  .btn,button,select{min-height:44px}
+  .views a{padding:12px 10px}
+}
+
+/* Reduced motion removes movement, not feedback: state changes stay instant
+   and visible. Pages scope their own moving parts (landing figure, volume
+   caption); this covers the shared controls. */
 @media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:0s!important;animation-duration:0s!important}
+  html{scroll-behavior:auto}
+  .btn,button,.views a{transition:none}
+  .btn:active,button:active{transform:none}
 }
