@@ -28,6 +28,9 @@ CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 CSS = """
 @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
 * { box-sizing: border-box; }
+/* Figures are rendered at their native size otherwise, and wide ones are cut
+   off at the right margin. */
+img { max-width: 100%; height: auto; break-inside: avoid; }
 body {
   font: 10.5pt/1.55 "Segoe UI", -apple-system, system-ui, sans-serif;
   color: #1a1f26; max-width: 100%; margin: 0; padding: 0;
@@ -112,8 +115,12 @@ def build_html(md_path: Path, title: str | None) -> str:
         extensions=["tables", "fenced_code", "toc", "sane_lists", "md_in_html"],
     )
     doc_title = title or md_path.stem.replace("_", " ").title()
+    # The HTML is written to a temp folder, so relative images would not
+    # resolve; anchor them to the document's own folder.
+    base = md_path.resolve().parent.as_uri() + "/"
     return (
         "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        f"<base href='{base}'>"
         f"<title>{doc_title}</title><style>{CSS}</style></head>"
         f"<body>{body}</body></html>"
     )

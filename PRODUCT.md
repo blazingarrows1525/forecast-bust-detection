@@ -65,7 +65,7 @@ data was scored.
 - Name on product surfaces: **Forecast Bust Intelligence**, spelled out. The
   "FBI" acronym stays in documentation only (confirmed 2026-10-05).
 - Voice: precise, calm, evidence-based, not alarmist. No AI-marketing claims.
-- No SIH or competition branding anywhere on the product.
+- No competition branding anywhere on the product.
 - Do not reuse IMD's official warning colours; the product does not warn.
 
 ## Evidence on Hand

@@ -109,7 +109,7 @@ The redesign keeps, verbatim where a test reads it:
 - keyboard handlers and `id="help"`
 - the override reason rules and dismiss-a-refusal warning
 - imagery opt-in, attribution and degradation
-- system fonts only (no `@font-face`) and no `SIH`
+- system fonts only (no `@font-face`) and no competition branding
 
 ## Next
 
