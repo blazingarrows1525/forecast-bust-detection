@@ -336,8 +336,8 @@ Or run the published image, which CI builds and smoke-tests on every push to
 docker run -p 8912:8912 ghcr.io/blazingarrows1525/forecast-bust-detection:latest
 ```
 
-For a free public URL (a Hugging Face Space running that image, read-only),
-see [`docs/DEPLOY.md`](docs/DEPLOY.md).
+For a free public URL (Render's free tier running that image, read-only), see
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ### Run the demo
 

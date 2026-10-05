@@ -1,8 +1,8 @@
 """A public, read-only deployment refuses override writes cleanly.
 
-Hugging Face Spaces run the image as UID 1000, which cannot write the image's
-data directory, and a public demo should not take anonymous writes to the
-forecaster audit log anyway. deploy/huggingface/Dockerfile sets FBD_READ_ONLY=1.
+A public demo should not take anonymous writes to the forecaster audit log, and
+on a free host they would vanish on the next restart anyway. The public
+instance sets FBD_READ_ONLY=1 (docs/DEPLOY.md).
 """
 from __future__ import annotations
 

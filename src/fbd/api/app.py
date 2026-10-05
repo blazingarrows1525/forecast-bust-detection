@@ -508,9 +508,8 @@ def metrics() -> dict:
 @app.post("/api/override")
 def override(req: OverrideRequest) -> dict:
     """Forecaster override, logged immutably with user and reason."""
-    # A public demo takes no anonymous writes to the audit log (and a Hugging
-    # Face Space runs as a user that cannot write the store). Read at request
-    # time so a deployment sets it with one environment variable.
+    # A public demo takes no anonymous writes to the audit log. Read at request
+    # time so a deployment sets it with one environment variable (DEPLOY.md).
     if os.environ.get("FBD_READ_ONLY", "").strip() == "1":
         raise HTTPException(403, "This is a read-only public demo: overrides are not "
                                  "recorded here. Run it locally to use the audit log.")

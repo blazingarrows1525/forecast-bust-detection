@@ -56,80 +56,52 @@ optimisation cannot silently regress.
 
 ---
 
-## 3. Free public URL — pick one
+## 3. Free public URL — Render
 
-Ranked by fit for this project.
+The published image runs as-is on Render's free tier: no card, no build, no
+data download. The whole API uses about 100 MB of memory (measured across the
+dashboard, 3-D and metrics endpoints), well inside the free instance's 512 MB.
 
-### 3a. Hugging Face Spaces — recommended
+1. Sign up at <https://render.com>. Signing in with GitHub works, and the free
+   tier needs no payment method.
+2. **New → Web Service → Existing Image**. Image URL:
+   `ghcr.io/blazingarrows1525/forecast-bust-detection:latest` (public, so no
+   credential). Click **Connect**.
+3. Name `forecast-bust-detection`, region **Singapore** (nearest to India),
+   instance type **Free**.
+4. Environment variables:
+   * `PORT` = `8912`: the port the image serves on, so Render routes to it.
+   * `FBD_READ_ONLY` = `1`: a public demo takes no anonymous writes to the
+     forecaster audit log; `POST /api/override` answers 403 with a reason.
+5. Under **Advanced**, set the health check path to `/api/health`, then
+   **Deploy**. The URL is `https://forecast-bust-detection.onrender.com`, or
+   that name with a suffix if it is taken.
+6. When a new image is published (every push to `master`), use **Manual Deploy
+   → Deploy latest reference** so Render pulls the new `:latest`.
 
-Best fit: it is ML-native, reviewers recognise it, Docker Spaces are free with
-no card, and the URL is stable. The Space does not build this repo. It runs
-the published image through the two files in
-[`deploy/huggingface/`](../deploy/huggingface/). Pushing this repo to a Space
-would build an image without the bulletin store, which is a Release asset and
-not in git (`DATA.md`), so every panel would be empty.
+`publish.yml` runs the image in read-only mode, as a different user (UID 1000),
+before every push to GHCR. It refuses to publish unless the image serves and
+the override returns 403.
 
-1. Create a free account at <https://huggingface.co/join>.
-2. Create a Space at <https://huggingface.co/new-space>: name
-   `forecast-bust-detection`, SDK **Docker** (blank template), hardware
-   **CPU basic** (free), visibility **Public**.
-3. Put the two files in it. The simplest way is in the browser: **Files → Add
-   file → Upload files**, then upload `deploy/huggingface/Dockerfile` and
-   `deploy/huggingface/README.md` (replacing the generated README) and commit.
-   Or with git (git asks for your username and an access token with write
-   access):
+**Limits to know:**
+* A free service sleeps after 15 minutes without traffic, and the first
+  request after that takes about a minute while it wakes. Open it before
+  showing it to anyone.
+* 750 free instance hours a month is enough for one service running all month.
+* The filesystem is ephemeral, which does not matter for a read-only store.
 
-```bash
-git clone https://huggingface.co/spaces/<your-username>/forecast-bust-detection hf-space
-cp deploy/huggingface/Dockerfile deploy/huggingface/README.md hf-space/
-cd hf-space && git add . && git commit -m "Run the published image" && git push
-```
+### Other hosts, and why not
 
-4. The Space pulls the image and starts in a few minutes. The URL is
-   `https://<your-username>-forecast-bust-detection.hf.space`.
-5. When a new image is published (every push to `master`), open the Space's
-   **Settings → Factory rebuild** so it pulls the new `:latest`.
-
-**Read-only by design.** The Space sets `FBD_READ_ONLY=1`, so
-`POST /api/override` answers 403 with a message instead of writing
-anonymous entries into the forecaster audit log. A Space also runs the
-container as UID 1000, which cannot write the image's data directory.
-`publish.yml` runs the image exactly that way, as UID 1000 in read-only mode,
-before every push to GHCR, and refuses to publish if it does not serve.
-
-**Limit to know:** free Spaces sleep when idle and cold-start in about 30 s.
-Wake it before showing it to anyone.
-
-### 3b. Google Cloud Run
-
-The most production-shaped option. Free tier is 2 M requests, 360 k GB-seconds
-and 180 k vCPU-seconds per month — orders of magnitude above this project's
-usage. Scales to zero, so idle costs nothing.
+* **Hugging Face Spaces:** Docker Spaces now need a paid plan. The free Gradio
+  and Static tiers cannot run this container.
+* **Google Cloud Run:** free at this volume, but needs a billing account on
+  file:
 
 ```bash
-gcloud run deploy fbd \
-  --image ghcr.io/blazingarrows1525/forecast-bust-detection:latest \
-  --region asia-south1 \
-  --allow-unauthenticated \
-  --memory 512Mi --cpu 1 \
-  --min-instances 0 --max-instances 2 \
-  --port 8912
+gcloud run deploy fbd   --image ghcr.io/blazingarrows1525/forecast-bust-detection:latest   --region asia-south1 --allow-unauthenticated   --memory 512Mi --cpu 1 --min-instances 0 --max-instances 2   --port 8912 --set-env-vars FBD_READ_ONLY=1
 ```
 
-`--min-instances 0` is the cost control: no idle billing, at the price of a
-cold start. `--max-instances 2` caps the blast radius if something loops.
-`asia-south1` (Mumbai) is nearest to the users this system is for.
-
-**Requires a billing account on file**, even though the free tier covers this
-workload. If that is not acceptable, use Spaces.
-
-### 3c. Fly.io / Render
-
-Both have free allowances that fit, and both can run the published image
-directly. Point the service at
-`ghcr.io/blazingarrows1525/forecast-bust-detection:latest`, set port 8912, and
-set `FBD_READ_ONLY=1` for a public instance. Render free web services sleep
-when idle, with the same caveat as Spaces.
+* **Fly.io:** needs a card for new accounts.
 
 ---
 
@@ -171,7 +143,7 @@ every number in the evaluation work with it switched off.
 |---|---|---|
 | CI | GitHub Actions (public repo) | ₹0 — unmetered |
 | Registry | GHCR (public package) | ₹0 |
-| Hosting | HF Spaces or Cloud Run free tier | ₹0 |
+| Hosting | Render free web service | ₹0 |
 | LLM | Ollama, local | ₹0 |
 | Data | IMD + WeatherBench 2, public archives | ₹0 |
 | **Total** | | **₹0** |
