@@ -113,3 +113,19 @@ is shown.
 - **F15** (volume frame rate on software rendering) is untouched.
 - **Captures are local.** Like the baseline, they are not committed
   (2.9 MB per set).
+
+## 6. Re-audit (2026-10-06)
+
+A second audit pass scored the shipped frontend **15/20** (Impeccable
+`audit`). The full record is in `docs/FRONTEND_AUDIT.md`, under "Re-audit".
+
+| item | status |
+|---|---|
+| R1–R13: skip links, landmarks, region jump list, 3-D leak, touch and pinch, render on demand, hover readout, focus-to-column, 44 px targets, 404 page, scoped reduced motion, tokens, meta | **implemented & verified** |
+| L1: chart-paper locator map of the case region | **implemented & verified** |
+| L2: register readings drawn on scales with interval bands and the baseline notch | **implemented & verified** |
+| F15: volume frame rate under software rendering | open (needs a GPU measurement) |
+
+Evidence: `artifacts/frontend/reaudit-after/` (20 captures, 0 overflow,
+0 console errors, 0 failed requests) and the full test suite.
+

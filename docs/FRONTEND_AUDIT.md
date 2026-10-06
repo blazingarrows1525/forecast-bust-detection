@@ -188,3 +188,35 @@ defects):
   measurement.
 - **The volume view's render loop and shaders** are test-pinned; this pass
   does not touch them.
+
+### Verification after the fixes
+
+Status: **implemented & verified** for R1–R13, L1 and L2.
+
+| check | result |
+|---|---|
+| Captures | `artifacts/frontend/reaudit-after/`: 20 captures (4 views × 5 viewports), 0 horizontal overflow, 0 console errors, 0 exceptions, 0 failed requests |
+| Tests | full suite green; `test_web_pages.py` + `test_voxel_grid.py` 93 passed (every pinned literal kept) |
+| 3-D memory (R3) | geometries stay at 6–7 across 10 lead changes (was +340 each) |
+| Render on demand (R6) | the columns view draws only when the camera signature changes |
+| Keyboard (R1, R5) | skip link first in tab order on every page; `/` focuses the subdivision jump list; picking a region pans it into view |
+| API 404 | `/api/nope` still returns JSON 404; any other unknown path gets `web/404.html` |
+| Volume (R1, R13) | skip link to the controls heading, `<main>` around the render, meta description; shaders and render loop untouched |
+
+**Detector after the fixes** (`impeccable detect`, current version): 9
+advisories, none actionable.
+- 5 × `repeating-stripes-gradient`: the refusal hatch, intentional and
+  test-pinned.
+- 3 × `design-system-radius "3px0"`: segmented buttons round only their
+  outer corners with the 3 px step.
+- 1 × `flat-type-hierarchy` on the columns view: it reads the visually
+  hidden `h1`. The visible panel heads are deliberately compact (ops
+  density).
+
+The detector version used here also checks code against the `DESIGN.md`
+frontmatter. Master showed 20 such advisories. Eleven were real type steps
+the prose already described but the frontmatter did not list (13 px
+controls and panel heads, the 15 px wordmark and register notes, the lede
+clamp, the 17 px HUD title, the 1 px swatch hairline, two continuous
+viridis stops). They are now recorded in `DESIGN.md`. The 404 headline
+moved onto the existing headline step.
