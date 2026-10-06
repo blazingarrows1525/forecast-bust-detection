@@ -79,13 +79,18 @@ in progress, implemented & verified, blocked.
   removes the short-lead cost.
 - **Registration needed.** The served claim stays on Days 3–7 until then.
 
-## B5. Serve a network? (now: the window model)
+## B5. Serve a network?
 
-- **Status:** unblocked (S3c scored, D-032). The candidate is the
-  **registered S3c primary** (both branches) inside the ENS combination.
-  The window-only variant looks better on 2019–2022, but those are test
-  years; preferring it needs confirmation on an untouched season first
-  (D-032 addendum).
+- **Status:** implemented & verified, scored once (2026-10-06, D-034).
+  Spatial + ENS outranks the served XGBoost + ENS: **+0.0064 [+0.0027,
+  +0.0100]**, with lower calibration error in every year. The served
+  combination still wins 2022 (−0.0142), the case-study season.
+- **Next:** the spatial model is **eligible, not served**. Serving it needs
+  its own design:
+  - reasons for a CNN
+  - OOD inputs
+  - offline store regeneration
+  - the owner's decision on the 2022 trade-off
 - **Context:** D-027 promoted the MLP under the S3 rule. D-028 did not
   confirm its ENS lead on untouched 2018. The served product is unchanged
   by design until S3c is scored.
