@@ -57,12 +57,18 @@ second at 06:30 UTC (12:00 IST) (LOGIC.md). The forecast judged is the
   feature (7 local + 9 national + 6 tendencies + 8 regime = 30 of the 52).
   - A live system has the **operational IFS analysis**, available a few
     hours after 00 UTC, not ERA5.
-  - The registered way to prove the swap is harmless: rebuild these
-    features from WB2 `hres_t0` (the operational initial conditions),
-    retrain on the same folds, and compare under a registration (backlog
-    B2).
-  - Until then, the live path must refuse to serve a probability that
-    depends on them, or serve a reduced-feature model labelled as such.
+  - **Tested (B2, D-033):** these features were rebuilt from WB2 `hres_t0`
+    (the operational initial state), with total column water vapour
+    integrated from its humidity, then retrained on the same folds and
+    compared under a registration.
+    - Non-inferiority at 0.005 AUROC was **not established**: −0.0033
+      [−0.0057, −0.0010].
+    - The cost is small but real, and ERA5 is clearly better in 2021 and
+      2022.
+    - The derived TCWV itself passed both validation gates.
+  - So the live path still must refuse to serve a probability that depends
+    on them, or serve a model built on the operational state **labelled as
+    such**, with its measured cost stated.
 - **Never inputs (VO):** `observed_rain_mm` and `actual_bust`.
 - **The 3-hour window offset (D-005)** affects labels, not inputs. It is
   accepted and applies equally to every baseline.

@@ -1,0 +1,144 @@
+{
+  "study": "B2",
+  "registration_sha256": "2917eaccbb656677e1965bee1d8298ef9004817c4db0bebae9b9053ba39c4a94",
+  "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+  "inputs_sha256": "9acc6654426023f217a01e0c848b04ca8d59eb78157ade082f968f82aca881e8",
+  "params_sha256": "205d618ace558e0bc2a72b48feb5ac5f0455604602fb582931d80080d86403cf",
+  "source": "analysis_t0",
+  "row_rule": "S1b comparison_rows per fold; both models score every row",
+  "folds": {
+    "2019": {
+      "candidate_auroc": 0.7862837468098316,
+      "incumbent_auroc": 0.7829065826684753,
+      "candidate_bss": 0.1387366297847683,
+      "incumbent_bss": 0.1404361981423642,
+      "refused_share": {
+        "candidate": 0.0068295114656031905,
+        "incumbent": 0.006979062811565304
+      },
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 22.7,
+      "dataset_sha256": "2e7f1b39ea69fe583c2c9c4a53a02243127bba51093e47284bf11f1302d3b8e9",
+      "model_sha256": "405889ca5b3bc8976c22145fd76c826635abb7bd92d9426472aea822d85dada4"
+    },
+    "2020": {
+      "candidate_auroc": 0.8388196264687234,
+      "incumbent_auroc": 0.841478039979675,
+      "candidate_bss": 0.2177512605915637,
+      "incumbent_bss": 0.21848875522872058,
+      "refused_share": {
+        "candidate": 0.00613160518444666,
+        "incumbent": 0.006031904287138584
+      },
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 22.8,
+      "dataset_sha256": "7a8861d3b22d3daa0c3cd6592314e8bbe367e45b6a76f0b28fcd37b5c57a4373",
+      "model_sha256": "b15d5b23906528ecac8db88c8d1f28a1e0f79727eddf2573e86457a3754eeb8c"
+    },
+    "2021": {
+      "candidate_auroc": 0.8076323875961624,
+      "incumbent_auroc": 0.815429338072502,
+      "candidate_bss": 0.17472667443329948,
+      "incumbent_bss": 0.1785889808585256,
+      "refused_share": {
+        "candidate": 0.006630109670987039,
+        "incumbent": 0.006679960119641077
+      },
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 23.4,
+      "dataset_sha256": "dc66d7bcabec0daa2569bafa2949a7647ea7e44d398c3607ce818d5d29640611",
+      "model_sha256": "b5157a4c295ca465e5fb91a08cadf73759ee93cb7e600f65c3f1f9b2eb3fcfac"
+    },
+    "2022": {
+      "candidate_auroc": 0.8345779474380319,
+      "incumbent_auroc": 0.8408289724017748,
+      "candidate_bss": 0.08922587327248943,
+      "incumbent_bss": 0.08764338839445684,
+      "refused_share": {
+        "candidate": 0.008374875373878364,
+        "incumbent": 0.008624127617148555
+      },
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 24.6,
+      "dataset_sha256": "ddfdd3c3432a79402466149685c246bbd0135eaf779c1c66f2676ccfa56841cb",
+      "model_sha256": "f6b9c7c238209cd4df12aef611ca0814be59b238606f5c23edd87e4f93b48ddc"
+    }
+  },
+  "primary": {
+    "point": -0.0033323062024194217,
+    "lo": -0.005725214243193065,
+    "hi": -0.0010359882367525785,
+    "n_boot": 10000,
+    "n_clusters": 480,
+    "n_degenerate": 0,
+    "alpha": 0.05,
+    "excludes_zero": true,
+    "years": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "verdict": "inconclusive",
+    "text": "non-inferiority of the operational-analysis features is not established across 2019\u20132022 (margin 0.005 AUROC)",
+    "margin": 0.005
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.003377164141356248,
+      "lo": -0.002038261468146499,
+      "hi": 0.009335373723715297,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2020": {
+      "point": -0.0026584135109515294,
+      "lo": -0.005776259507762416,
+      "hi": 0.0002513454159346728,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2021": {
+      "point": -0.007796950476339548,
+      "lo": -0.013349327173644832,
+      "hi": -0.0027254907330875214,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": "the ERA5-built incumbent outranks the operational-analysis model in 2021",
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2022": {
+      "point": -0.006251024963742857,
+      "lo": -0.010615994687238103,
+      "hi": -0.0020992207635085456,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": "the ERA5-built incumbent outranks the operational-analysis model in 2022",
+      "n_rows": 20060,
+      "n_init_dates": 120
+    }
+  }
+}
