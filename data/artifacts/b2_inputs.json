@@ -1,0 +1,17 @@
+{
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2016.nc": "46fbb57ec14c114a5e740ab9a5ef571859c0bd8b280df27ac4118d430b6fbac0",
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2017.nc": "526c5548965d438992a3b8151064c69ad6180a675543a41ed36f5104c63eff3f",
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2018.nc": "ed4087f9841e8a8996eae429f69ee04168e6332c03a9beecee7e41bc946c5220",
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2019.nc": "a9a4b28c4e1e8780b0865a240f8a94478af788cfa90f181d75f882563c47240e",
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2020.nc": "a4f3b57fe59e610fa703f20e92da4b5615ec415d2402a5873ecc0a1245f0f3ff",
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2021.nc": "9b0b52690ecfab9a96af0c064f15bd3c98113ed0e1c8e8aeded2f5eee84cf20f",
+  "data/raw/wb2/analysis_t0/analysis_t0_2d_2022.nc": "1a94fe359cb3b7c62df577d215b75e088c6ef6aa7aea3885b0d078fb5c81edf6",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2016.nc": "71e3b0c6ea59b7b49d82e1741be79d1efc5afe42e18d9393a4e10fb733602b82",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2017.nc": "5408d50bc9697b136e190456f84c73e82613b7b7013a2553828171b5a6455b05",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2018.nc": "fa87656ce49249f2df380747b13b8a8d49d9c060f548d32fb0596ebe1734006b",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2019.nc": "93cb87dfe74fdedd24030653078ae45249bac44634b9a52a6dec73b336eb3b56",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2020.nc": "bc09e7cb0b57d57bfc3024c5cf6e056494f59d0ba07412ba793cd82d248a0001",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2021.nc": "aadbce886f13c2bda5d6e7983c3aa05b8c7fdba233f6307a6dba17872b9ef474",
+  "data/raw/wb2/analysis_t0/analysis_t0_3d_2022.nc": "d3e000303fd935aec8d283356d7a5393965fde9a6bfd5666408463ec6f9bab4c",
+  "data/raw/wb2/era5/era5_static.nc": "a0327d730f3d890dc432c65a3716a4b31275b32eaab121bf7fe3cdcda7750935"
+}

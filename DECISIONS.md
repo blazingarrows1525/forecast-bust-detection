@@ -2138,3 +2138,81 @@ window narrows the gap most (−0.0255 for the MLP, −0.0064 for window-only).
   fitting fast, not possible.
 - Whether a larger window, more runs or another encoder would help. Each
   would be a new candidate under a new registration.
+
+## D-033 — B2: the operational state costs a little skill; non-inferiority is not established — LOCKED
+
+Registration: `docs/PREREGISTRATION_B2.md`, pushed with CI 5/5 green (PR #12)
+before any operational-state model predicted 2019–2022. Design (gates and
+margin committed first):
+`docs/superpowers/specs/2026-10-06-b2-operational-analysis-design.md`.
+Output: `data/artifacts/b2_noninferiority.json`.
+
+**The question.** 30 of the 52 inputs come from ERA5, a reanalysis that does
+not exist when a forecast is issued. Can they come from the operational HRES
+initial state (WB2 `hres_t0`) without costing ranking skill?
+
+**The approach.** `hres_t0` has no total column water vapour, which 11 of the
+30 need. On the owner's choice, it was derived: integrated from the 13-level
+specific humidity and the surface pressure (`fbd.features.tcwv`). Everything
+else is unchanged: the same rows and labels, the regime classifier refitted
+on each fold's training years, XGBoost with `DEFAULT_PARAMS`, and isotonic
+calibration on the validation year.
+
+**The audit (`b2_audit.json`)** checked five things before registering:
+- **Neutrality:** the switched builder rebuilds all four ERA5 folds byte for
+  byte.
+- **Gates** (2016–2017, 00Z, India box):
+  - **G1:** the 13-level integral on ERA5's own humidity against ERA5's TCWV
+    gives RMSE 0.86 kg m⁻², bias −0.15, r 0.9992.
+  - **G2:** `hres_t0`'s derived TCWV against ERA5's gives RMSE 1.57, bias
+    −0.09, r 0.9973.
+  - Both pass the limits fixed in advance.
+- **Causality:** poisoning the state after the issue time changed nothing.
+- **Determinism:** two trainings were bit-identical.
+- **Scope:** exactly 30 inputs differ between the two sources.
+
+### Result — registered primary, run once
+
+| test year | operational state | ERA5 (incumbent) | margin [95%] | Brier skill (op / ERA5) | refused (op / ERA5) |
+|---|---|---|---|---|---|
+| 2019 | 0.7863 | 0.7829 | +0.0034 [−0.0020, +0.0093] | 0.139 / 0.140 | 0.7% / 0.7% |
+| 2020 | 0.8388 | 0.8415 | −0.0027 [−0.0058, +0.0003] | 0.218 / 0.219 | 0.6% / 0.6% |
+| 2021 | 0.8076 | 0.8154 | **−0.0078 [−0.0133, −0.0027]** | 0.175 / 0.179 | 0.7% / 0.7% |
+| 2022 | 0.8346 | 0.8408 | **−0.0063 [−0.0106, −0.0021]** | 0.089 / 0.088 | 0.8% / 0.9% |
+
+Mean over 2019–2022, stratified cluster bootstrap, 10,000 resamples, seed
+20260919, two-sided 95%, no degenerate resample:
+
+**−0.0033 [−0.0057, −0.0010] against a margin of −0.005 → inconclusive:
+non-inferiority of the operational-state features is not established.**
+
+### Reading it
+
+- **The cost is real but small.** The interval excludes zero, so the
+  operational state ranks busts slightly worse than ERA5: about a third of a
+  hundredth of AUROC on average, up to 0.008 in 2021.
+- **Its lower end just crosses the margin committed in advance**, so the
+  swap cannot be called harmless.
+- **What does not move:**
+  - Brier skill: within 0.004 every year.
+  - The OOD refusal rate: within 0.1 point.
+- **The water vapour is not the weak link.** It passed both gates
+  comfortably, and the inputs that agree least between the two sources are
+  the day-to-day tendencies (`bob_vorticity_max_d1` r 0.89, `somali_jet_d1`
+  0.92). Differencing two analyses amplifies their disagreement.
+
+### Consequences, as committed
+
+- **"Inconclusive" row:** the live path cannot claim the full model. It may
+  serve a model built on the operational state only if labelled as such,
+  with this cost stated, or refuse. `FEATURE_AVAILABILITY_MATRIX.md` §3 says
+  so.
+- **Nothing served changes.** The store stays ERA5-built.
+
+### What this does not settle
+
+- Whether retraining on more operational-state seasons, or dropping the
+  noisiest tendencies, would close the gap. Each would be a new registered
+  question.
+- Whether a live operational analysis matches WB2's archived `hres_t0`. The
+  archive's publication times are unknown.

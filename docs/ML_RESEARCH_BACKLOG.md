@@ -37,8 +37,11 @@ in progress, implemented & verified, blocked.
 
 ## B2. Operational-analysis substitution: make the model live-legal
 
-- **Status:** research candidate. **The data exists:** WB2 `hres_t0`,
-  2016–2022, 512×256 and 240×121 (`REALTIME_SOURCE_MATRIX.md`).
+- **Status:** implemented & verified, scored once (2026-10-06, D-033).
+  **Inconclusive.** The TCWV was derived from `hres_t0` humidity and passed
+  both gates (G1 RMSE 0.86, G2 RMSE 1.57 kg m⁻²). The margin was −0.0033
+  [−0.0057, −0.0010] against 0.005: a small, real cost, so non-inferiority
+  is not established. A live model on the operational state must say so.
 - **Hypothesis:** rebuilding the 30 ERA5-derived inputs from the
   operational initial conditions costs **no material skill**. This is a
   non-inferiority question.
