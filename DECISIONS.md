@@ -2139,6 +2139,19 @@ window narrows the gap most (−0.0255 for the MLP, −0.0064 for window-only).
 - Whether a larger window, more runs or another encoder would help. Each
   would be a new candidate under a new registration.
 
+
+### D-032 addendum — the B5 candidate is the registered primary, not the window variant
+
+D-032's consequences said "the obvious candidate is now the window model".
+That preference rests on the window-only variant's 2019–2022 secondaries.
+Those are test years, and choosing a model on them is exactly what the
+project's rule forbids.
+
+**Corrected:** B5 tests the registered S3c primary (window and map) inside
+the ENS combination. The window-only variant can become the candidate only
+after a registered confirmation on a season no S3 result has touched, the
+way S3a-C tested the MLP on 2018. D-032's result and reading are unchanged.
+
 ## D-033 — B2: the operational state costs a little skill; non-inferiority is not established — LOCKED
 
 Registration: `docs/PREREGISTRATION_B2.md`, pushed with CI 5/5 green (PR #12)
