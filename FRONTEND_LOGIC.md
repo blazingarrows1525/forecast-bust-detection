@@ -350,9 +350,28 @@ clear. The landing page has the opposite job and may breathe.
 
 ## 8. Claims the UI may and may not make
 
-Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026, D-029, D-030, D-031).
+Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026, D-029, D-030, D-031, D-032, D-034, D-037).
 
 **May claim:**
+- **What is served (store v0.3.0, D-037).** The served number is a spatial
+  network, the S3c CNN that also reads the forecast's rainfall pattern
+  around each subdivision. It is combined with the ENS spread by a
+  logistic combiner fitted on 2021, with a separate Day 1–2 set (D-036, V3).
+  - On the 2022 rows the landing shows: AUROC **0.842 [0.825, 0.860]**,
+    Brier skill 0.077, ECE 0.0073. Beside it, the previous combination's
+    0.856.
+  - Over 2019–2022 it outranks the previous XGBoost + ENS combination,
+    **+0.0064 [+0.0027, +0.0100]** (D-034), **but not in 2022 (−0.0142)**,
+    the case-study season. Whenever the first is said, the second is said
+    with it.
+  - Against ENS spread alone: **+0.0376 [+0.0323, +0.0428]** over
+    2019–2021.
+  - Its reasons are **occlusion**, not TreeSHAP. Say "how much the estimate
+    moves if this input were at its training average"; never call them
+    additive.
+- The items below up to the refusal line are the **XGBoost model's**
+  registered results. Attribute them to it ("the XGBoost model this product
+  served until v0.3.0").
 - AUROC **0.840 [0.821, 0.859]** on a held-out year never used in training.
 - Beats a cheap ensemble-spread proxy by **+0.082 AUROC [+0.062, +0.104]**.
 - **Outranks a real 50-member operational ensemble over the 2022 held-out
@@ -369,7 +388,9 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   ensemble". The product has shown the combination since store v0.2.0
   (D-030), and the landing page states it only when `/api/metrics`
   `served.combined` is true, so a v0.1.0 store never carries the claim.
-- Refused days bust **6.9×** more often than accepted ones (23.4% vs 3.4%).
+- Refused days bust **6.9×** more often than accepted ones (23.3% vs 3.4% in
+  2022, store v0.3.0; 23.4% in v0.2.0). The detector checks the 52 static
+  inputs only, not the forecast window or the map: say so if asked.
 - Calibrated: ECE **0.0108** (the model, decision band, `results.json`), with
   a stated overconfidence in the extreme tail. For the served number on the
   2022 rows the product scores, ECE is 0.0085 and the top bin predicts 0.207
@@ -386,23 +407,18 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
 - That the combination's lead holds at every lead time. It was fitted and
   tested on Days 3–7. In 2022 it ranks slightly below the model alone at
   Days 1–2 (descriptive, D-030).
-- That the product runs a neural network, or any transformer, BERT, LSTM,
-  Random Forest or LightGBM. **None is served.** The served model is XGBoost +
-  isotonic calibration + TreeSHAP + a Mahalanobis OOD detector, combined with
-  the ENS spread by a two-input logistic regression (D-030). An MLP outranks
-  the served XGBoost in a registered backtest across 2019–2022 (**+0.0088
-  [+0.0023, +0.0157]**, D-027), but it is not served, and XGBoost is the better
-  of the two in 2022. A temporal model (the MLP plus a GRU over 14 days of
-  history) was tested and is not distinguishable from XGBoost, **+0.0060
-  [−0.0010, +0.0131]** (D-031); it is not served either. A spatial model (the
-  MLP head plus CNNs on the forecast window around each subdivision and the
-  monsoon map) outranks XGBoost across 2019–2022, **+0.0159 [+0.0092,
-  +0.0228]** (D-032), and the MLP too. Combined with ENS spread exactly as the
-  served model is, it also outranks the served combination, **+0.0064
-  [+0.0027, +0.0100]** (D-034). It is **eligible, not served**: the served
-  combination is still better in 2022, and serving a CNN needs its own design
-  (reasons, OOD inputs, a regenerated store). Claiming otherwise fails the first
-  question a reviewer asks.
+- That the product runs a transformer, BERT, LSTM, Random Forest or LightGBM.
+  **None is served.** Since store v0.3.0 the served base model is the S3c
+  spatial CNN (D-032, D-037). The tested-but-not-served candidates are:
+  - an MLP (D-027)
+  - a temporal GRU (D-031)
+  - the window-only and map-only variants (D-032)
+- That the served network beats the previous combination every year. It
+  does not in 2022 (−0.0142, D-034).
+- That the network's reasons are exact or additive. They are one-at-a-time
+  occlusion (D-037).
+- That the refusal detector screens the images. It checks the 52 static
+  inputs only (D-037).
 - That the MLP outranks a real ensemble. Its lead over ENS spread in 2019–2021
   was an uncorrected secondary; the registered confirmation on 2018 did not
   confirm it, **−0.0080 [−0.0254, +0.0087]** (D-028).

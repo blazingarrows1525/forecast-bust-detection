@@ -407,6 +407,6 @@ def test_readout_never_prints_a_probability_for_a_refused_cell():
     branch = html[start:html.index("} else if", start)]
     assert '"not scored"' in branch
     assert "toFixed" not in branch, "no numeric probability may be rendered here"
-    assert "REFUSED" in branch and "23.4%" in branch, (
+    assert "REFUSED" in branch and "23.3%" in branch, (
         "a refusal must state that it is elevated risk, not merely absent"
     )

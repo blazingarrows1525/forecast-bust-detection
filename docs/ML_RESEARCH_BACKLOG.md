@@ -80,17 +80,10 @@ in progress, implemented & verified, blocked.
   Spatial + ENS outranks the served XGBoost + ENS: **+0.0064 [+0.0027,
   +0.0100]**, with lower calibration error in every year. The served
   combination still wins 2022 (−0.0142), the case-study season.
-- **Next:** the spatial model is **eligible, not served**. Serving it needs
-  its own design:
-  - reasons for a CNN
-  - OOD inputs
-  - offline store regeneration
-  - the owner's decision on the 2022 trade-off
-- **Context:** D-027 promoted the MLP under the S3 rule. D-028 did not
-  confirm its ENS lead on untouched 2018. The served product is unchanged
-  by design until S3c is scored.
-- **Decision input:** S3c's result, then a registered combination test
-  (MLP + ENS vs the current XGBoost + ENS) before any store regeneration.
+- **Served since store v0.3.0** (D-037, the owner's decision):
+  - the Day 1–2 combiner re-held on the network (V3)
+  - the beta form did not, and was left out
+  - reasons are occlusion
 
 ## B6. Multi-model disagreement (GEFS)
 

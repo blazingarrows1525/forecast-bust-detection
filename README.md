@@ -226,23 +226,30 @@ combination, again registered first
 **Spatial + ENS outranks the served combination across 2019–2022:**
 **+0.0064 [+0.0027, +0.0100]**.
 
-Its calibration error is lower in every year. The served combination still
-wins 2022 (−0.0142), the season of the case study. The spatial model is
-therefore **eligible, not served**. Serving a CNN needs its own design:
-- reasons, because TreeSHAP does not apply
-- the OOD detector's inputs
-- a regenerated store
+Its calibration error is lower in every year. The previous combination
+still wins 2022 (−0.0142), the season of the case study.
 
-Record: D-034.
+**Since store v0.3.0, this spatial network + ENS is the number the product
+serves** (D-037; the owner's decision after D-034). It keeps a separate
+Day 1–2 combiner, which held on the network in a registered re-check (V3).
+The beta-family combiner did not transfer to it and was left out. Its
+reasons are occlusion (how much the estimate moves when an input is set to
+its training average), not TreeSHAP. The serving path is unchanged:
+precomputed SQLite on a CPU.
 
-Two smaller registered refinements of the served combiner both passed, and
-are adopted at the next store regeneration:
+Records: D-034, D-037.
+
+Two smaller registered refinements of the XGBoost combiner both passed.
+Each was then re-tested on the network before v0.3.0 (V3):
 - **A combiner fitted on Days 1–2** (D-036) instead of extrapolating the Day
   3–7 fit: **+0.0023 [+0.0008, +0.0039]**. It removes the short-lead cost
-  measured in 2022.
+  measured in 2022. On the network it held again, **+0.0029 [+0.0010,
+  +0.0050]**, and it is in v0.3.0.
 - **A beta-family combiner** (D-035) narrows the top-decile reliability gap,
   **−0.0091 [−0.0124, −0.0037]**, without a worse Brier score. The gain is
-  mostly in 2019–2020; 2022's overconfidence is barely helped.
+  mostly in 2019–2020; 2022's overconfidence is barely helped. On the
+  network it **widens** the gap (+0.0016 [+0.0003, +0.0034]), so it is not
+  served.
 
 Moving the 30 reanalysis inputs to the operational analysis (B2, D-033) costs
 a small but real amount of skill, **−0.0033 [−0.0057, −0.0010]**, so that

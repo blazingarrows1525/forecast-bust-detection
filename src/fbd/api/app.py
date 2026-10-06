@@ -453,7 +453,12 @@ def _served() -> dict | None:
     except sqlite3.Error:
         return None
     return {"model_version": meta.get("model_version"),
-            "combined": meta.get("combined") == "1"}
+            "combined": meta.get("combined") == "1",
+            # v0.3.0 (D-037): which base model, how its reasons are computed,
+            # and what the refusal detector does and does not check.
+            "base_model": meta.get("base_model"),
+            "reasons_method": meta.get("reasons_method"),
+            "ood_inputs": meta.get("ood_inputs")}
 
 
 def _refusal_rates() -> dict | None:
@@ -500,6 +505,8 @@ def metrics() -> dict:
     out["backtest"] = _json_or_none(config.ARTIFACTS / "backtest.json")
     out["combination"] = _json_or_none(config.ARTIFACTS / "combination.json")
     out["served"] = _served()
+    # The served number's own held-out metrics and registered evidence (v0.3.0).
+    out["served_metrics"] = _json_or_none(config.ARTIFACTS / "served_metrics.json")
     out["refusal"] = _refusal_rates()
     out["test_year"] = config.TEST_YEARS[0]
     return out

@@ -1,0 +1,464 @@
+{
+  "study": "V3",
+  "registration_sha256": "e8a8059b3a0dcb7c8d661ac745bcac912ea465595ce3d00acfd49ad51fbd4fce",
+  "folds": {
+    "2019": {
+      "b4": {
+        "n_rows": 8262,
+        "n_fit_rows": 8262,
+        "auroc": {
+          "short": 0.8558154377017219,
+          "served": 0.8547500302926825
+        },
+        "coefficients": {
+          "short": {
+            "logit_p_model": 0.6923206510559011,
+            "log1p_ens_spread": 0.3830596582591075,
+            "intercept": -3.635650199997364
+          },
+          "served": {
+            "logit_p_model": 0.6804884876277418,
+            "log1p_ens_spread": 0.6205759263391682,
+            "intercept": -4.109343638815993
+          }
+        }
+      },
+      "b3": {
+        "n_rows": 20060,
+        "tail_gap": {
+          "beta": 0.03125867756706946,
+          "served": 0.02821159768850956
+        },
+        "brier": {
+          "beta": 0.045410235519949965,
+          "served": 0.04546393453287731
+        },
+        "ece": {
+          "beta": 0.0062001179774944185,
+          "served": 0.006643468160570914
+        },
+        "auroc": {
+          "beta": 0.8271927896443108,
+          "served": 0.8291175131630377
+        },
+        "coefficients": {
+          "beta": {
+            "ln_p": 0.9529155124568025,
+            "ln_1mp": -0.5769057441640548,
+            "log1p_ens_spread": 0.5331184785707175,
+            "intercept": -3.6189235425822552
+          }
+        }
+      }
+    },
+    "2020": {
+      "b4": {
+        "n_rows": 8262,
+        "n_fit_rows": 8262,
+        "auroc": {
+          "short": 0.8666061597575099,
+          "served": 0.8608834394131214
+        },
+        "coefficients": {
+          "short": {
+            "logit_p_model": 0.6314240617463011,
+            "log1p_ens_spread": 0.5185685236894695,
+            "intercept": -3.7728035662055386
+          },
+          "served": {
+            "logit_p_model": 0.5583941214409133,
+            "log1p_ens_spread": 0.8872850194121906,
+            "intercept": -4.5273816880885
+          }
+        }
+      },
+      "b3": {
+        "n_rows": 20060,
+        "tail_gap": {
+          "beta": 0.03780683741795454,
+          "served": 0.039176850376806016
+        },
+        "brier": {
+          "beta": 0.04030931553204838,
+          "served": 0.04033228322603785
+        },
+        "ece": {
+          "beta": 0.01104867784881113,
+          "served": 0.011041646856031439
+        },
+        "auroc": {
+          "beta": 0.8565472857005546,
+          "served": 0.856138497087053
+        },
+        "coefficients": {
+          "beta": {
+            "ln_p": 0.9237048557604834,
+            "ln_1mp": -0.4301574643003464,
+            "log1p_ens_spread": 0.803909121075525,
+            "intercept": -3.9319717001633268
+          }
+        }
+      }
+    },
+    "2021": {
+      "b4": {
+        "n_rows": 8262,
+        "n_fit_rows": 8262,
+        "auroc": {
+          "short": 0.8706563129810435,
+          "served": 0.8690768126908563
+        },
+        "coefficients": {
+          "short": {
+            "logit_p_model": 0.8337257658504543,
+            "log1p_ens_spread": 0.1805324316483341,
+            "intercept": -3.396791683558707
+          },
+          "served": {
+            "logit_p_model": 0.8124816432995445,
+            "log1p_ens_spread": 0.4569584723324833,
+            "intercept": -4.020376772708408
+          }
+        }
+      },
+      "b3": {
+        "n_rows": 20060,
+        "tail_gap": {
+          "beta": 0.0025464886585763735,
+          "served": 0.0019200462398703544
+        },
+        "brier": {
+          "beta": 0.034386766348179935,
+          "served": 0.03448911752235457
+        },
+        "ece": {
+          "beta": 0.004438446118513103,
+          "served": 0.0036680242812887646
+        },
+        "auroc": {
+          "beta": 0.8555094583035154,
+          "served": 0.8566265197766646
+        },
+        "coefficients": {
+          "beta": {
+            "ln_p": 1.0886731110785448,
+            "ln_1mp": -0.7158576103912783,
+            "log1p_ens_spread": 0.4035158817353835,
+            "intercept": -3.604058706749709
+          }
+        }
+      }
+    },
+    "2022": {
+      "b4": {
+        "n_rows": 8262,
+        "n_fit_rows": 8262,
+        "auroc": {
+          "short": 0.8668397392308906,
+          "served": 0.8634727452547754
+        },
+        "coefficients": {
+          "short": {
+            "logit_p_model": 0.7781700666830697,
+            "log1p_ens_spread": 0.00966924943693132,
+            "intercept": -3.0022291849018883
+          },
+          "served": {
+            "logit_p_model": 0.6653181945060062,
+            "log1p_ens_spread": 0.7536266419904354,
+            "intercept": -4.372276826127993
+          }
+        }
+      },
+      "b3": {
+        "n_rows": 20060,
+        "tail_gap": {
+          "beta": 0.0391804345472678,
+          "served": 0.03489637457469788
+        },
+        "brier": {
+          "beta": 0.029340835100933896,
+          "served": 0.029489125856870545
+        },
+        "ece": {
+          "beta": 0.008072845517171424,
+          "served": 0.0072523256383126445
+        },
+        "auroc": {
+          "beta": 0.8401686410899478,
+          "served": 0.8419493272699803
+        },
+        "coefficients": {
+          "beta": {
+            "ln_p": 0.9145020917978756,
+            "ln_1mp": -0.5678175585166038,
+            "log1p_ens_spread": 0.6847628537204219,
+            "intercept": -3.9188290634959704
+          }
+        }
+      }
+    }
+  },
+  "b4": {
+    "primary": {
+      "point": 0.002933655504932575,
+      "lo": 0.0009539341457130999,
+      "hi": 0.004978281900957948,
+      "n_boot": 10000,
+      "n_clusters": 488,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "years": [
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "verdict": "short_lead_fit_better",
+      "text": "a combiner fitted on Days 1\u20132 outranks the served extrapolation at Days 1\u20132 across 2019\u20132022",
+      "adopt": true
+    },
+    "per_year": {
+      "2019": {
+        "point": 0.0010654074090393761,
+        "lo": -0.0001686619942468409,
+        "hi": 0.0022319151605995234,
+        "n_boot": 2000,
+        "n_clusters": 122,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "statement": null,
+        "n_rows": 8262,
+        "n_init_dates": 122
+      },
+      "2020": {
+        "point": 0.005722720344388477,
+        "lo": 0.0028004083953108994,
+        "hi": 0.00863307544380313,
+        "n_boot": 2000,
+        "n_clusters": 122,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "statement": null,
+        "n_rows": 8262,
+        "n_init_dates": 122
+      },
+      "2021": {
+        "point": 0.0015795002901871635,
+        "lo": -0.00036767290888381206,
+        "hi": 0.0037226520281033342,
+        "n_boot": 2000,
+        "n_clusters": 122,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "statement": null,
+        "n_rows": 8262,
+        "n_init_dates": 122
+      },
+      "2022": {
+        "point": 0.0033669939761152845,
+        "lo": -0.0034964550245347808,
+        "hi": 0.010363227635695783,
+        "n_boot": 2000,
+        "n_clusters": 122,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "statement": null,
+        "n_rows": 8262,
+        "n_init_dates": 122
+      }
+    }
+  },
+  "b3": {
+    "primary": {
+      "tail_gap": {
+        "point": 0.0016468923277460912,
+        "lo": 0.00025921567086388444,
+        "hi": 0.0034487278223715753,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "brier": {
+        "point": -8.182715925702817e-05,
+        "lo": -0.00012610350915931518,
+        "hi": -3.8228310556047316e-05,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "verdict": "reject",
+      "text": "the beta-family combiner widens the tail gap or worsens the Brier score across 2019\u20132022",
+      "adopt": false
+    },
+    "per_year": {
+      "2019": {
+        "tail_gap": {
+          "point": 0.0030470798785598996,
+          "lo": -0.00040849292044001917,
+          "hi": 0.006913662109770117,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "years": [
+            2019
+          ]
+        },
+        "brier": {
+          "point": -5.3699012927350964e-05,
+          "lo": -0.0001557330588100654,
+          "hi": 4.3170209116559635e-05,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "years": [
+            2019
+          ]
+        }
+      },
+      "2020": {
+        "tail_gap": {
+          "point": -0.0013700129588514742,
+          "lo": -0.003408709617008035,
+          "hi": 0.0031287841839030225,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "years": [
+            2020
+          ]
+        },
+        "brier": {
+          "point": -2.2967693989468796e-05,
+          "lo": -0.00011686240166233521,
+          "hi": 7.311430696040682e-05,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "years": [
+            2020
+          ]
+        }
+      },
+      "2021": {
+        "tail_gap": {
+          "point": 0.0006264424187060191,
+          "lo": -0.002899532108255662,
+          "hi": 0.0026768104820613326,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "years": [
+            2021
+          ]
+        },
+        "brier": {
+          "point": -0.00010235117417464051,
+          "lo": -0.00018504535697035172,
+          "hi": -2.4793593339494763e-05,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "years": [
+            2021
+          ]
+        }
+      },
+      "2022": {
+        "tail_gap": {
+          "point": 0.00428405997256992,
+          "lo": 0.0015408068018754578,
+          "hi": 0.007527993741217594,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "years": [
+            2022
+          ]
+        },
+        "brier": {
+          "point": -0.0001482907559366524,
+          "lo": -0.0002237493092983215,
+          "hi": -7.840562242978757e-05,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "years": [
+            2022
+          ]
+        }
+      }
+    },
+    "secondary": {
+      "auroc": {
+        "point": -0.0011034206396017543,
+        "lo": -0.0015515576024382014,
+        "hi": -0.0006646936161515766,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "ece": {
+        "point": 0.0002886556314465787,
+        "lo": -6.130370322535918e-05,
+        "hi": 0.0010555910344740129,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      }
+    }
+  }
+}

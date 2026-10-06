@@ -101,13 +101,19 @@ def _net(n_static: int, branches, map_hw, p: dict):
             layers.append(nn.Linear(n_in, 1))
             self.head = nn.Sequential(*layers)
 
+        def embed_window(self, w):
+            return self.win(w).mean(dim=(2, 3))
+
+        def embed_map(self, m):
+            z = torch.matmul(torch.matmul(self.pr, self.map(m)), self.pc.T)
+            return self.map_fc(z.flatten(1))
+
         def forward(self, x, w=None, m=None, inv=None):
             parts = [x]
             if "window" in self.branches:
-                parts.append(self.win(w).mean(dim=(2, 3)))
+                parts.append(self.embed_window(w))
             if "map" in self.branches:
-                z = torch.matmul(torch.matmul(self.pr, self.map(m)), self.pc.T)
-                parts.append(self.map_fc(z.flatten(1))[inv])
+                parts.append(self.embed_map(m)[inv])
             return self.head(torch.cat(parts, dim=1)).squeeze(1)
 
     return Net()
@@ -135,7 +141,7 @@ class _Feed:
             self.std_mask = t(std_mask).view(1, -1, 1, 1)
         self.maps = t(map_scaled) if map_scaled is not None else None
 
-    def windows(self, g, l_, s):
+    def windows(self, g, l_, s, average=False):
         """[B, 10, WIN, WIN] scaled windows; the same index arithmetic as
         ``Grids.windows_raw``, which the tests hold it to."""
         torch = self.torch
@@ -156,6 +162,8 @@ class _Feed:
         present = dom.unsqueeze(1).expand_as(raw).clone()
         present[:, G.FC_PREV] = present[:, G.FC_PREV] * okb
         z = (raw - self.mean) / self.std * present
+        if average:  # occlusion: every standardised channel at its training mean
+            return (1 - self.std_mask) * raw
         return self.std_mask * z + (1 - self.std_mask) * raw
 
     def maps_for(self, g):
@@ -326,6 +334,68 @@ class SpatialModel:
 
     def predict_raw(self, df: pd.DataFrame, shuffle=None, seed=None) -> np.ndarray:
         return self.predict_seeds(df, shuffle, seed).mean(axis=0)
+
+    #: occlusion columns after the static features, one per image branch
+    WINDOW_KEY, MAP_KEY = "window_pattern", "synoptic_map"
+
+    def occlusion_keys(self) -> list:
+        return (list(self.features) + ([self.WINDOW_KEY] if "window" in self.branches else [])
+                + ([self.MAP_KEY] if "map" in self.branches else []))
+
+    def occlusion(self, df: pd.DataFrame, chunk: int = 2048):
+        """Reasons for a network (store v0.3.0, design 2026-10-06 section 3).
+
+        Returns ``(base, occluded, keys)``: the seed-averaged raw probability
+        [n] (equal to ``predict_raw``), and the same with one input at a time
+        set to its training average [n, len(keys)]. Static inputs go to 0 in
+        the network's standardised space, the window to an average day (every
+        standardised channel 0, masks and outline kept), and the map to zero
+        anomalies. One at a time, so the effects are not additive. The image
+        encoders run once per row; only the head re-runs for the static inputs.
+        """
+        torch = _torch()
+        X, g, l_, s = self._rows(df)
+        feed = self._feed
+        win, mp = "window" in self.branches, "map" in self.branches
+        k = len(self.features)
+        keys = self.occlusion_keys()
+        n = len(df)
+        base, occ = np.zeros(n), np.zeros((n, len(keys)))
+        maps0 = None
+        if mp:
+            maps0 = feed.maps.clone()
+            maps0[:, :G.N_MAP_DYN] = 0
+        eye = torch.arange(k, device=X.device)
+        with torch.no_grad():
+            for net in self.nets:
+                def head(x, w, m):
+                    parts = [x] + ([w] if win else []) + ([m] if mp else [])
+                    return torch.sigmoid(net.head(torch.cat(parts, dim=1)).squeeze(1))
+
+                for i in range(0, n, chunk):
+                    sl = slice(i, min(i + chunk, n))
+                    xs = X[sl]
+                    we = we0 = me = me0 = None
+                    if win:
+                        we = net.embed_window(feed.windows(g[sl], l_[sl], s[sl]))
+                        we0 = net.embed_window(feed.windows(g[sl], l_[sl], s[sl], average=True))
+                    if mp:
+                        days, inv = torch.unique(g[sl], sorted=True, return_inverse=True)
+                        me = net.embed_map(feed.maps[days])[inv]
+                        me0 = net.embed_map(maps0[days])[inv]
+                    b = xs.shape[0]
+                    xk = xs.unsqueeze(0).repeat(k, 1, 1)
+                    xk[eye, :, eye] = 0.0
+                    cols = [head(xk.reshape(k * b, -1),
+                                 we.repeat(k, 1) if win else None,
+                                 me.repeat(k, 1) if mp else None).reshape(k, b).T]
+                    if win:
+                        cols.append(head(xs, we0, me).unsqueeze(1))
+                    if mp:
+                        cols.append(head(xs, we, me0).unsqueeze(1))
+                    base[sl] += head(xs, we, me).cpu().numpy()
+                    occ[sl] += torch.cat(cols, dim=1).cpu().numpy()
+        return base / len(self.nets), occ / len(self.nets), keys
 
     def predict_proba(self, df: pd.DataFrame, shuffle=None, seed=None) -> np.ndarray:
         return self.calibrator.predict(self.predict_raw(df, shuffle, seed))

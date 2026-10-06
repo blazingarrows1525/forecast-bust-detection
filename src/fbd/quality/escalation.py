@@ -10,7 +10,7 @@ instructions:
 
 The distinction between REVIEW and REFUSE is the one that matters and the one a
 binary flag destroys. A refused region is not safe -- refused rows historically
-bust at **23.4%** versus 3.4% for accepted ones (LOGIC.md 11.2). Collapsing
+bust at **23.3%** versus 3.4% for accepted ones (LOGIC.md 11.2). Collapsing
 REFUSE into "not flagged" would hide the highest-risk days in the product,
 which is the exact failure this system exists to prevent.
 

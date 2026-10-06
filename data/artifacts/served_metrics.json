@@ -1,0 +1,247 @@
+{
+  "store": "0.3.0",
+  "year": 2022,
+  "rows": "test_predictions.parquet decision band (Days 3-7 with a label)",
+  "n_rows": 20060,
+  "n_init_dates": 120,
+  "n_boot": 2000,
+  "method": "cluster bootstrap over init dates (percentile, 95%)",
+  "cross_check_b5_auroc": {
+    "got": 0.8419493272699803,
+    "want": 0.8419493272699803,
+    "ok": true
+  },
+  "served": {
+    "auroc": {
+      "point": 0.8419493272699803,
+      "lo": 0.8247910768700479,
+      "hi": 0.8598019253013199,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "brier": {
+      "point": 0.029489125856870545,
+      "lo": 0.025989187194305922,
+      "hi": 0.03320242494032846,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "bss": {
+      "point": 0.07726782976906121,
+      "lo": 0.03610367821886447,
+      "hi": 0.11681877491587447,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "ece": {
+      "point": 0.0072523256383126445,
+      "lo": 0.004515645589013541,
+      "hi": 0.011062313610354188,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    }
+  },
+  "baseline": {
+    "label": "2 spread [lagged-ensemble]",
+    "auroc": {
+      "point": 0.7578584052781094,
+      "lo": 0.7323352445170953,
+      "hi": 0.7835771909786557,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "brier": {
+      "point": 0.03096438294325308,
+      "lo": 0.027425595679961827,
+      "hi": 0.03495638921031532,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "bss": {
+      "point": 0.03110616395457011,
+      "lo": 0.0066955557296905725,
+      "hi": 0.053944860996442974,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "ece": {
+      "point": 0.010920582963067608,
+      "lo": 0.007688225278851769,
+      "hi": 0.01452503198954069,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    }
+  },
+  "registered": {
+    "b5_primary": {
+      "point": 0.006364555582853981,
+      "lo": 0.0027368611410643956,
+      "hi": 0.009966128173040534,
+      "n_boot": 10000,
+      "n_clusters": 480,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "years": [
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "verdict": "spatial_better",
+      "text": "spatial + ENS outranks the served XGBoost + ENS combination across 2019\u20132022",
+      "consequence": "eligible to be served after a separate, designed store change; the served number is unchanged until then"
+    },
+    "b5_vs_ens": {
+      "point": 0.03759724308242988,
+      "lo": 0.03228041084519162,
+      "hi": 0.04281502574411425,
+      "n_boot": 10000,
+      "n_clusters": 360,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "years": [
+        2019,
+        2020,
+        2021
+      ]
+    },
+    "b5_per_year": {
+      "2019": {
+        "point": 0.011166118685765558,
+        "lo": 0.0032521778255196034,
+        "hi": 0.019062606195139806,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "statement": null,
+        "n_rows": 20060,
+        "n_init_dates": 120
+      },
+      "2020": {
+        "point": 0.004660833955512311,
+        "lo": -0.0015973761330542458,
+        "hi": 0.011234174077690407,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": false,
+        "statement": null,
+        "n_rows": 20060,
+        "n_init_dates": 120
+      },
+      "2021": {
+        "point": 0.023828392894415185,
+        "lo": 0.016311223163517175,
+        "hi": 0.03230059302898755,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "statement": null,
+        "n_rows": 20060,
+        "n_init_dates": 120
+      },
+      "2022": {
+        "point": -0.014197123204277129,
+        "lo": -0.02043840521758967,
+        "hi": -0.008023024671250137,
+        "n_boot": 2000,
+        "n_clusters": 120,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "statement": "the served combination outranks spatial + ENS in 2022",
+        "n_rows": 20060,
+        "n_init_dates": 120
+      }
+    }
+  },
+  "combiner": {
+    "form": "logit",
+    "main": {
+      "logit_p_model": 0.6653181945060062,
+      "log1p_ens_spread": 0.7536266419904354,
+      "intercept": -4.372276826127993
+    },
+    "short": {
+      "logit_p_model": 0.7781700666830697,
+      "log1p_ens_spread": 0.00966924943693132,
+      "intercept": -3.0022291849018883
+    },
+    "short_leads": [
+      1,
+      2
+    ],
+    "refinements": {
+      "B3_beta_form": false,
+      "B4_short_leads": true,
+      "B3_verdict": "reject",
+      "B4_verdict": "short_lead_fit_better"
+    },
+    "base_model": "S3c spatial CNN, fold 2022 (trained 2016-2020, calibrated 2021)"
+  },
+  "sources": {
+    "combiner_sha256": "77af48f1f4de9603d0f4e91b679ff3ab306efb18f3fc260363819bc8b83227eb",
+    "b5_sha256": "b4420c35de71ed50a8bc51442192a13479ce4039fa59c6d487f0d8acae7c5f9f"
+  },
+  "previous_v020": {
+    "auroc": {
+      "point": 0.8559210264901563,
+      "lo": 0.8395273389596327,
+      "hi": 0.872341681502583,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "brier": {
+      "point": 0.029009087742799883,
+      "lo": 0.02550684456762144,
+      "hi": 0.0327587310199197,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "bss": {
+      "point": 0.0922885059647508,
+      "lo": 0.05836645121751155,
+      "hi": 0.1256853549322346,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    },
+    "ece": {
+      "point": 0.008220197618594155,
+      "lo": 0.005550372169068374,
+      "hi": 0.01162436538342379,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05
+    }
+  }
+}

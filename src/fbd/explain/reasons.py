@@ -186,6 +186,16 @@ TEMPLATES: dict[str, tuple[str, str, str | None]] = {
         "orographic forcing", "flow is being forced over terrain (p={v:.2f})", None),
     "regime_coastal": (
         "coastal convergence", "onshore coastal flow is indicated (p={v:.2f})", None),
+    # Store v0.3.0: the spatial network's two images, as occlusion reasons.
+    "window_pattern": (
+        "forecast rainfall pattern",
+        "the network reads the forecast's rainfall pattern around the subdivision as "
+        "bust-prone",
+        None),
+    "synoptic_map": (
+        "monsoon map",
+        "the network reads the large-scale monsoon map at issue time as bust-prone",
+        None),
 }
 
 
@@ -194,6 +204,7 @@ TEMPLATES: dict[str, tuple[str, str, str | None]] = {
 # an explanation -- it is the same explanation three times.  A forecaster wants
 # to know: how extreme, how much do the runs disagree, and what is the flow doing.
 FAMILY: dict[str, str] = {
+    "window_pattern": "pattern", "synoptic_map": "synoptic",
     "fcst_rain_mm": "amount", "fcst_anomaly": "amount", "fcst_rel_to_p90": "amount",
     "lagged_mean": "amount",
     "lagged_spread": "disagreement", "lagged_spread_rel": "disagreement",
@@ -351,3 +362,35 @@ class ReasonExplainer:
             .sort_values("mean_abs_shap", ascending=False)
             .reset_index(drop=True)
         )
+
+
+class OcclusionExplainer(ReasonExplainer):
+    """The same sentences for the spatial network (store v0.3.0), ranked by
+    occlusion: how much the served log-odds fall when an input is set to its
+    training average. One input at a time, so not additive like TreeSHAP.
+
+    ``keys`` are the network's static features followed by its image branches
+    (``SpatialModel.occlusion_keys``); the branches read as fixed sentences.
+    """
+
+    BRANCHES = ("window_pattern", "synoptic_map")
+
+    def __init__(self, keys, reference: pd.DataFrame):
+        self.model = None
+        self.features = list(keys)
+        self.reference_ = reference
+        self._explainer = None
+        self._knots = {}
+        self._build_quantile_grid()
+
+    def explain_contributions(self, df: pd.DataFrame, contributions: np.ndarray,
+                              k: int = 3) -> list[list[str]]:
+        if contributions.shape != (len(df), len(self.features)):
+            raise ValueError(f"contributions {contributions.shape} do not match "
+                             f"{len(df)} rows x {len(self.features)} inputs")
+        # The branches carry no value of their own: a finite marker lets the
+        # shared sentence logic use them.
+        marked = df.assign(**{b: 1.0 for b in self.BRANCHES if b in self.features})
+        return [self.reasons_for_row(marked.iloc[i], contributions[i], k=k)
+                for i in range(len(marked))]
+

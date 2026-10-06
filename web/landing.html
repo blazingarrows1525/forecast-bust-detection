@@ -762,27 +762,40 @@ function scaleBlock(o, key) {
   return `<div class="scale">${scaleSVG(o)}</div><div class="scale-key">${key}</div>`;
 }
 
-function statCardsHTML(m) {
+// Since store v0.3.0 the cards show the number actually served (the spatial
+// network + ensemble, D-037), on the same 2022 rows and with the same method as
+// before. Older builds fall back to the model-alone table.
+function servedBand(m) {
+  const s = m && m.served_metrics;
+  if (s && s.served && m.served && m.served.model_version === s.store) {
+    return { mod: s.served, lag: s.baseline, prev: s.previous_v020 };
+  }
   const band = m && m.confidence_intervals && m.confidence_intervals.decision_band;
-  const mod = band && band[MODEL_KEY], lag = band && band[LAGGED_KEY];
+  return { mod: band && band[MODEL_KEY], lag: band && band[LAGGED_KEY], prev: null };
+}
+
+function statCardsHTML(m) {
+  const { mod, lag, prev } = servedBand(m);
   const r = m && m.refusal;
   const iv = (o, n) => `[${o.lo.toFixed(n)}, ${o.hi.toFixed(n)}]`;
   const na = "Unavailable in this build.";
+  const was = (k, n) => prev ? ` The previous combination scored ${prev[k].point.toFixed(n)} on these rows.` : "";
   return (
     statCard("AUROC", mod ? mod.auroc.point.toFixed(3) : "n/a",
-      mod ? `${iv(mod.auroc, 3)}, against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na,
+      mod ? `${iv(mod.auroc, 3)}, against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.${was("auroc", 3)}` : na,
       mod && scaleBlock({ label: "AUROC interval on a scale from 0.5 (chance) to 1",
         min: 0.5, max: 1, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1], fmt: (t) => t.toFixed(1),
         band: [mod.auroc.lo, mod.auroc.hi], point: mod.auroc.point, base: lag && lag.auroc.point },
         "0.5 is chance. Band: the interval; notch: the baseline.")) +
     statCard("Brier skill", mod ? mod.bss.point.toFixed(3) : "n/a",
-      mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.` : na,
+      mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.${was("bss", 3)}` : na,
       mod && scaleBlock({ label: "Brier skill interval on a scale from 0, no better than climatology",
         min: 0, max: niceMax(mod.bss.hi), ticks: niceTicks(niceMax(mod.bss.hi)), fmt: (t) => t.toFixed(2),
         band: [mod.bss.lo, mod.bss.hi], point: mod.bss.point, base: lag && lag.bss.point },
         "0 is no better than climatology. Notch: the baseline.")) +
     statCard("Calibration error", mod ? mod.ece.point.toFixed(4) : "n/a",
-      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail; see the reliability diagram.` : na,
+      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band.` +
+        (prev ? was("ece", 4) : " Overconfident in the extreme tail; see the reliability diagram.") : na,
       mod && scaleBlock({ label: "Calibration error interval on a scale from 0, where lower is better",
         min: 0, max: niceMax(mod.ece.hi), ticks: niceTicks(niceMax(mod.ece.hi)), fmt: (t) => t.toFixed(3),
         band: [mod.ece.lo, mod.ece.hi], point: mod.ece.point, base: lag && lag.ece && lag.ece.point },
@@ -804,7 +817,11 @@ function ensClaimHTML(m) {
   const s = m && m.ens_settlement && m.ens_settlement.primary;
   const t = m && m.confidence_intervals && m.confidence_intervals.true_ens;
   const year = m && m.test_year;
-  const lead = "The margin over a real 50-member operational ensemble is ";
+  // Since store v0.3.0 the served base model is the spatial network, so the
+  // registered S1/S1b/S1c results below are attributed to the model they tested.
+  const v3 = isV3(m);
+  const lead = (v3 ? "For the XGBoost model this product served until v0.3.0, the margin" :
+    "The margin") + " over a real 50-member operational ensemble is ";
   const fmt = (o, n) => `<strong>${signed(o.point, 3)} AUROC [${signed(o.lo, 3)}, ${signed(o.hi, 3)}]</strong> on ${n} init dates` +
     (year ? ` of ${year}` : "");
   const words = {
@@ -834,9 +851,35 @@ function combinationHTML(m) {
   if (!(m && m.served && m.served.combined) || !c || !c.years || !c.years.length) return "";
   if (c.verdict !== "model_better") return "";
   const span = `${c.years[0]}–${c.years[c.years.length - 1]}`;
+  if (isV3(m)) {
+    return ` Together, that model and the ensemble outrank the ensemble alone on average over ${span}: ` +
+      `<strong>${signed(c.point, 3)} [${signed(c.lo, 3)}, ${signed(c.hi, 3)}]</strong> in a registered test.` +
+      servedV3HTML(m);
+  }
   return ` Together, the model and the ensemble outrank the ensemble alone on average over ${span}: ` +
     `<strong>${signed(c.point, 3)} [${signed(c.lo, 3)}, ${signed(c.hi, 3)}]</strong> in a registered ` +
     "test, and that combination is the number this product serves.";
+}
+
+// Store v0.3.0 (D-034, D-037): what is served now, and the season it costs.
+function isV3(m) {
+  return !!(m && m.served && m.served.model_version === "0.3.0" &&
+            m.served_metrics && m.served_metrics.registered);
+}
+function servedV3HTML(m) {
+  const reg = m.served_metrics.registered;
+  const p = reg.b5_primary, e = reg.b5_vs_ens;
+  if (!p || p.verdict !== "spatial_better") return "";
+  const span = `${p.years[0]}–${p.years[p.years.length - 1]}`;
+  const lost = Object.entries(reg.b5_per_year || {}).filter(([, iv]) => iv.hi < 0)
+    .map(([y, iv]) => ` It does not in ${y} (${signed(iv.point, 3)}), the season of the case above.`).join("");
+  return ` Since store v0.3.0 the number this product serves is a <strong>spatial network</strong> ` +
+    "that also reads the forecast's rainfall pattern around each subdivision, combined with the " +
+    `ensemble the same way. In a registered test it outranks that XGBoost combination over ${span}: ` +
+    `<strong>${signed(p.point, 3)} [${signed(p.lo, 3)}, ${signed(p.hi, 3)}]</strong>.` + lost +
+    (e ? ` Against the ensemble alone it leads by <strong>${signed(e.point, 3)} [${signed(e.lo, 3)}, ` +
+         `${signed(e.hi, 3)}]</strong> over ${e.years[0]}–${e.years[e.years.length - 1]}.` : "") +
+    " The figures above are the served number's own.";
 }
 
 // The registered backtest: does the held-out season's edge hold in the others?

@@ -272,7 +272,7 @@
       <div class="muted" style="margin-top:6px;font-size:12.5px">
         <strong>Hatched = refused.</strong> The state is unlike anything in training,
         so the system declines to give a number. That is not a low reading:
-        refused region-days busted <strong>23.4%</strong> of the time in the
+        refused region-days busted <strong>23.3%</strong> of the time in the
         held-out year, against <strong>3.4%</strong> for scored ones.
       </div>
     </section>
@@ -322,7 +322,7 @@ let rows=[], byRegion={};
 const CASE_STUDY = "2022-06-14";
 
 // Refusal is returned as an SVG pattern reference rather than a colour. A
-// refused region-day busts 23.4% of the time against 3.4% for scored ones, so
+// refused region-day busts 23.3% of the time against 3.4% for scored ones, so
 // it must not be readable as a point on the risk ramp and must not be quieter
 // than one. A hue -- any hue -- invites both readings; hatching does not.
 const OOD_FILL = "url(#oodHatch)";
@@ -542,7 +542,7 @@ function openOverride(action){
   const warn = document.getElementById("ovrWarn");
 
   // Dismissing a REFUSED row is the one genuinely dangerous action in this UI.
-  // A refusal is unknown, ELEVATED risk -- those region-days busted 23.4% of
+  // A refusal is unknown, ELEVATED risk -- those region-days busted 23.3% of
   // the time against 3.4% for scored ones -- so "nothing to see here" is being
   // said about the highest-risk class of row on the map. The forecaster is
   // still the authority and this does not block them; it makes sure the thing
@@ -551,7 +551,7 @@ function openOverride(action){
     warn.className = "hot";
     warn.innerHTML =
       "<strong>This region was refused, not scored.</strong> That is not a low " +
-      "reading: refused region-days busted <strong>23.4%</strong> of the time " +
+      "reading: refused region-days busted <strong>23.3%</strong> of the time " +
       "in the held-out year, against 3.4% for scored ones. You are dismissing a " +
       "row whose risk is unknown and historically elevated.";
   } else {
@@ -787,7 +787,7 @@ function renderDock(){
       <span class="li"><span class="sw" style="background:var(--c4)"></span><span class="t">&gt;35%</span></span>
       ${cur.view === "model" ? '<span class="li"><span class="sw hatch"></span><span class="t"><strong>refused</strong></span></span>' : ""}
     </div>
-    ${cur.view === "model" ? "<p>Hatched is refused, not low: refused region-days busted 23.4% of the time in the held-out year, against 3.4% for scored ones.</p>" : ""}`;
+    ${cur.view === "model" ? "<p>Hatched is refused, not low: refused region-days busted 23.3% of the time in the held-out year, against 3.4% for scored ones.</p>" : ""}`;
 }
 
 // The API stores the calibrated spread baseline alongside each row.
@@ -870,6 +870,9 @@ async function select(rid){
   let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
   (r.dominant_factors||[]).forEach(f=>html+=`<li>${esc(f)}</li>`);
   html += "</ul>";
+  // Store v0.3.0 (D-037): a network's reasons come from occlusion, not TreeSHAP.
+  if(String(r.model_version||"").startsWith("0.3") && r.status!=="OUT_OF_DISTRIBUTION")
+    html += "<div class='muted' style='margin-top:4px;font-size:12px'>The network’s reasons: the inputs that move this estimate most when set to their training average (occlusion; one at a time, not additive).</div>";
   if(r.forecast_rain_mm!=null){
     html += `<div class="muted" style="margin-top:8px">forecast ${r.forecast_rain_mm.toFixed(1)} mm/day`;
     if(r.observed_rain_mm!=null) html += ` · observed ${r.observed_rain_mm.toFixed(1)} mm/day`;

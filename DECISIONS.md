@@ -2399,3 +2399,75 @@ so its spread says less. The gain is small and mostly 2022's.
 adopted at the next store regeneration, and the served claim may then extend
 to Days 1–2. Until then the extrapolation is served and the claim stays on
 Days 3–7.
+
+## D-037 — Store v0.3.0: the served number is the spatial network + ENS, with a Day 1–2 combiner; B3 did not transfer — LOCKED
+
+**The owner's decision** after D-034: "go ahead with cnn and v0.3.0".
+Design (committed first):
+`docs/superpowers/specs/2026-10-06-v030-serve-spatial-design.md`.
+
+### First, a registered check: do B3 and B4 hold on the spatial base? (V3)
+
+B3 (D-035) and B4 (D-036) were tested with XGBoost as the base model. Before
+either could ship with the spatial model, both were re-tested under their own
+rules with the spatial fold models as the base. Registration:
+`docs/PREREGISTRATION_V3.md`, pushed with CI green. The audit reproduced
+B5's spatial combination exactly. Output:
+`data/artifacts/v3_spatial_refinements.json`.
+
+| check | result | verdict |
+|---|---|---|
+| **V3-B4:** a Day 1–2 fit − the extrapolation, Day 1–2 rows | **+0.0029 [+0.0010, +0.0050]**; per year +0.0011, +0.0057, +0.0016, +0.0034 | **adopt** |
+| **V3-B3:** beta form − logit form, tail gap | **+0.0016 [+0.0003, +0.0034]**: the gap *widens* (2022 +0.0043 [+0.0015, +0.0075]); Brier −0.00008; AUROC −0.0011 | **reject** |
+
+**B3 does not transfer.** On XGBoost the beta form narrowed the tail gap; on
+the network it widens it. One plausible reading, not tested: the network's
+raw probabilities already sit closer to the logit form's shape, so the extra
+freedom fits the calibration year rather than the tail. Either way, v0.3.0
+keeps the logit form. D-035's adoption stands for an XGBoost-based store,
+which is no longer served.
+
+### What v0.3.0 serves
+
+| part | v0.3.0 |
+|---|---|
+| base model | the S3c spatial model trained on 2016–2020 and calibrated on 2021 (fold-2022 model, SHA-256 `76fb33e7…`, verified against `spatial.json`), on its own strict-fold inputs and the 23 pinned grids |
+| combiner (`combiner.json` v2, fitted on 2021) | Days 3–10: logit 0.665, spread 0.754, intercept −4.372. This is B5's fold-2022 combiner, exactly. Days 1–2: logit 0.778, spread 0.010, intercept −3.002. At short leads the spread adds almost nothing once the network has read the window |
+| rows | 2021 and 2022, every lead: 79,900, all with ENS |
+| refusals | the same Mahalanobis detector on the network's own 52 static inputs. 667 rows refused (385 → 386 in 2022). Refused days bust **23.3%** against 3.4% for scored ones (was 23.4%). The forecast window and the map are **not** checked, and the store says so |
+| interval | 6 bootstrap refits of the spatial model (5 seeds each, on the GPU), through the combiner |
+| reasons | **occlusion**: the inputs whose replacement by their training average lowers the served log-odds most, including the forecast window and the map. One at a time, not additive; the panel says so |
+| serving path | unchanged: precomputed SQLite on the CPU |
+
+### What the product now says, measured on the same rows as before
+
+These are 2022's Day 3–7 rows (20,060 rows, 120 init dates), with the same
+cluster bootstrap as before (`data/artifacts/served_metrics.json`):
+
+| | v0.3.0 served | v0.2.0 served |
+|---|---|---|
+| AUROC | **0.842 [0.825, 0.860]** (equals B5's 2022 value exactly: cross-check) | 0.856 |
+| Brier skill | 0.077 | 0.092 |
+| ECE | 0.0073 | 0.0082 |
+
+**The honest reading:**
+- **2022 is the one season where v0.3.0 ranks worse** than the combination
+  it replaces.
+- **Over 2019–2022 it ranks better:** +0.0064 [+0.0027, +0.0100], registered
+  (D-034).
+- **Its calibration error is lower** in every year.
+
+The landing page shows the served number's own figures, with the previous
+combination's beside them. It attributes the S1, S1b and S1c results to the
+XGBoost model they tested, and states the 2022 trade-off in plain words. The
+case study's claims recompute themselves from the rows: the served reading is
+now above the spread baseline at 6 of 8 scored leads, and the gap is widest
+at Day 9.
+
+### Release
+
+- `bulletins.sqlite` v0.3.0 (SHA-256 `2d7ab6db…`) and the served model ship
+  as Release `v0.3.0` assets.
+- `scripts/fetch_release_artifacts.py` pins both.
+- Store v0.2.0 is regenerable with `fit_combiner.py --base xgboost` and
+  `generate_bulletins.py --base xgboost`.

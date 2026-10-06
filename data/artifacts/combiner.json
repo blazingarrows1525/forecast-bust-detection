@@ -1,10 +1,32 @@
 {
-  "logit_p_model": 0.5410348513026407,
-  "log1p_ens_spread": 1.065786713313329,
-  "intercept": -4.697520498002492,
+  "version": 2,
+  "form": "logit",
+  "main": {
+    "logit_p_model": 0.6653181945060062,
+    "log1p_ens_spread": 0.7536266419904354,
+    "intercept": -4.372276826127993
+  },
+  "short": {
+    "logit_p_model": 0.7781700666830697,
+    "log1p_ens_spread": 0.00966924943693132,
+    "intercept": -3.0022291849018883
+  },
+  "short_leads": [
+    1,
+    2
+  ],
   "ref_log1p_spread": 1.5873868676976268,
   "fit_year": 2021,
   "n_rows": 20060,
-  "model_sha256": "577578e7391e42eac5bf5390b8f713ce811957e77ac30073ff9d3d15dfb3e020",
-  "recipe": "D-029: logit(uncalibrated model probability), log1p(ENS spread); Day 3-7 rows of the validation year"
+  "n_rows_short": 8262,
+  "base_model": "S3c spatial CNN, fold 2022 (trained 2016-2020, calibrated 2021)",
+  "model_sha256": "76fb33e7b074f6335dc94fdcf2549a0b13cf079178fb14e452827b1d2d2d6ad4",
+  "v3_sha256": "5b4fb868a482dc29e869aea38caec5447c418ff9c1b061f9259f53409cc1d596",
+  "refinements": {
+    "B3_beta_form": false,
+    "B4_short_leads": true,
+    "B3_verdict": "reject",
+    "B4_verdict": "short_lead_fit_better"
+  },
+  "recipe": "D-037: the D-029 recipe on the spatial model's uncalibrated probability over 2021's Day 3-7 rows; logit form (V3 did not adopt the beta form); a separate logit set on 2021's Day 1-2 rows (D-036, V3)"
 }

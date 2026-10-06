@@ -29,7 +29,7 @@ These are **our derived products**, not third-party data. Safe to redistribute, 
 
 | Asset | Size | What it is |
 |---|---|---|
-| `bulletins.sqlite` | 74 MB | The precomputed bulletin store: 79,900 pre-scored (subdivision × init × lead) rows, each with the served bust probability (model + ENS spread since v0.2.0), the model alone, the ENS spread, bagged prediction interval, OOD status, SHAP reason strings, regime vector, and the baseline probability. This is what the offline dashboard serves. |
+| `bulletins.sqlite` | 74 MB | The precomputed bulletin store: 79,900 pre-scored (subdivision × init × lead) rows, each with the served bust probability (spatial network + ENS spread since v0.3.0; XGBoost + ENS in v0.2.0), the model alone, the ENS spread, bagged prediction interval, OOD status, SHAP reason strings, regime vector, and the baseline probability. This is what the offline dashboard serves. |
 
 It is a Release asset rather than a committed file because 74 MB of binary would bloat every clone of the git history. It is **fully regenerable** from the committed `dataset.parquet`, `bust_model.joblib` and `combiner.json` by running `scripts/generate_bulletins.py` (~100 s), so the Release is a convenience, not a dependency. Since v0.2.0 (D-030) the served probability combines the model with the 50-member ENS spread, so regenerating also needs the ENS spread for 2021 and 2022 on disk (`scripts/fetch_ens.py --year 2021` and `--year 2022`, about 7 MB of derived parquet under `data/raw/wb2/ens/`, gitignored).
 
@@ -43,7 +43,11 @@ PYTHONPATH=src python scripts/fetch_release_artifacts.py
 PYTHONPATH=src python scripts/generate_bulletins.py
 ```
 
-SHA-256 of `bulletins.sqlite` (v0.2.0): `deeac846b62e88e1169c349b75b4dacdd2a7f8b8b99191026de0bdc9f002a468`
+SHA-256 of `bulletins.sqlite` (v0.3.0): `2d7ab6db82786998a0d857e25eed087125584cafd69c26869df72ea0c791bb1f`.
+Release v0.3.0 also carries the served spatial model, `candidate_spatial_2022.joblib` (SHA-256 `76fb33e7b074f6335dc94fdcf2549a0b13cf079178fb14e452827b1d2d2d6ad4`).
+Regenerating v0.3.0 needs that model and the 23 public WB2 grids pinned in `data/artifacts/s3c_inputs.json`.
+
+Release v0.2.0 (the XGBoost + ENS store, SHA-256 `deeac846b62e88e1169c349b75b4dacdd2a7f8b8b99191026de0bdc9f002a468`) stays published.
 
 Release v0.1.0 (the model-alone store, SHA-256 `5cbb61350c2ba63dbcf2dc00bc1d13b9a3d2f9a70e66d8317121cf996e6f241c`) stays published. The API still serves it without error, with no combination shown and the landing page's combination sentence hidden.
 
