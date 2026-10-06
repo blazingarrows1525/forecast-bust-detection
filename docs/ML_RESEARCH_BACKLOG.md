@@ -15,9 +15,11 @@ in progress, implemented & verified, blocked.
 
 ## B1. S3c, spatial CNNs: complete the registered slate
 
-- **Status:** designed only. Spec
+- **Status:** in progress (2026-10-06). Spec
   `docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md`
-  (branch `s3c-spatial`, PR #6, awaiting your review).
+  (merged in PR #6). Implemented on branch `s3c-implement`: grids, model
+  (on the GPU, deterministic), harness changes, audit and
+  `PREREGISTRATION_S3C.md`. Scoring waits on the registration commit.
 - **Hypothesis:** the *spatial pattern* of the forecast window and the
   synoptic map carries bust information that subdivision means discard.
 - **Data:** HRES precipitation windows and ERA5/`hres_t0` fields on the
