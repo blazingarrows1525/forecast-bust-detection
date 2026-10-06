@@ -397,8 +397,11 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   [−0.0010, +0.0131]** (D-031); it is not served either. A spatial model (the
   MLP head plus CNNs on the forecast window around each subdivision and the
   monsoon map) outranks XGBoost across 2019–2022, **+0.0159 [+0.0092,
-  +0.0228]** (D-032), and the MLP too. It is **not served** either, and XGBoost
-  is still the better of the two in 2022. Claiming otherwise fails the first
+  +0.0228]** (D-032), and the MLP too. Combined with ENS spread exactly as the
+  served model is, it also outranks the served combination, **+0.0064
+  [+0.0027, +0.0100]** (D-034). It is **eligible, not served**: the served
+  combination is still better in 2022, and serving a CNN needs its own design
+  (reasons, OOD inputs, a regenerated store). Claiming otherwise fails the first
   question a reviewer asks.
 - That the MLP outranks a real ensemble. Its lead over ENS spread in 2019–2021
   was an uncorrected secondary; the registered confirmation on 2018 did not

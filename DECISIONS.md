@@ -2229,3 +2229,91 @@ non-inferiority of the operational-state features is not established.**
   question.
 - Whether a live operational analysis matches WB2's archived `hres_t0`. The
   archive's publication times are unknown.
+
+## D-034 — B5: spatial + ENS outranks the served combination; the spatial model is eligible, not yet served — LOCKED
+
+Registration: `docs/PREREGISTRATION_B5.md`, pushed with CI 5/5 green (PR #14)
+before any spatial + ENS combination was computed for a test year. Design
+(rule and consequences committed first):
+`docs/superpowers/specs/2026-10-06-b5-serving-decision-design.md`. Output:
+`data/artifacts/b5_serving.json`.
+
+**The question.** Does the S3c spatial model, combined with ENS spread
+exactly as the served model is, outrank the served XGBoost + ENS combination
+(D-030)? It uses the same combiner (`COMBINER_PARAMS`) on each base model's
+uncalibrated probability, the same validation-year fit rows, and the same
+comparison rows. The candidate is the registered S3c primary, not the
+window-only variant (D-032 addendum).
+
+**The audit (`b5_audit.json`)** reproduced every published number exactly in
+all four folds: XGBoost, the spatial fold models loaded on the GPU, and the
+served combination. It computed no new test-year number.
+
+### Result — registered primary, run once
+
+| test year | spatial + ENS | served XGBoost + ENS | spatial | XGBoost | ENS | margin [95%] |
+|---|---|---|---|---|---|---|
+| 2019 | 0.8291 | 0.8180 | 0.8148 | 0.7829 | 0.8025 | +0.0112 [+0.0033, +0.0191] |
+| 2020 | 0.8561 | 0.8515 | 0.8532 | 0.8415 | 0.8027 | +0.0047 [−0.0016, +0.0112] |
+| 2021 | 0.8566 | 0.8328 | 0.8491 | 0.8154 | 0.8239 | +0.0238 [+0.0163, +0.0323] |
+| 2022 | 0.8419 | 0.8561 | 0.8273 | 0.8408 | 0.8084 | **−0.0142 [−0.0204, −0.0080]** |
+
+Mean over 2019–2022, stratified cluster bootstrap, 10,000 resamples, seed
+20260919, two-sided 95%, no degenerate resample:
+
+**+0.0064 [+0.0027, +0.0100] → spatial + ENS outranks the served XGBoost +
+ENS combination across 2019–2022.** The served combination still outranks it
+in 2022.
+
+### Secondary (reported; cannot decide)
+
+- **Spatial + ENS − ENS spread alone:** +0.0376 [+0.0323, +0.0428] as the
+  mean over 2019–2021. It leads in every year, 2022 included (+0.0335).
+- **Spatial + ENS − spatial alone:** +0.0099 [+0.0077, +0.0121]. The
+  ensemble still adds to the network, as it does to XGBoost (D-029).
+- **Calibration and Brier skill:**
+
+  | year | ECE: spatial + ENS / served | Brier skill: spatial + ENS / served |
+  |---|---|---|
+  | 2019 | 0.0066 / 0.0097 | 0.159 / 0.146 |
+  | 2020 | 0.0110 / 0.0126 | 0.196 / 0.210 |
+  | 2021 | 0.0037 / 0.0055 | 0.192 / 0.190 |
+  | 2022 | 0.0073 / 0.0081 | 0.077 / 0.092 |
+
+  The spatial combination's calibration error is lower in every year.
+  Brier skill is mixed.
+- **Coefficients:** the spatial combiner leans more on its model
+  (logit weight 0.56–0.81 against XGBoost's 0.38–0.71) and less on the
+  spread (0.46–0.89 against 0.65–1.08). The network carries some of what
+  the spread told XGBoost.
+
+### Reading it
+
+The S3c gain survives the combination: about two-thirds of a hundredth of
+AUROC on average, with lower calibration error everywhere. **2022 is the
+exception, and it matters.** It is the season the product's case study
+(Assam & Meghalaya, June 2022) comes from. There the served combination is
+better by 0.014, and the spatial model's own 2022 deficit (D-032) carries
+through.
+
+### Consequences, as committed
+
+- **Eligible, not served.** The spatial model may replace XGBoost inside the
+  served combination only through a separate, designed change:
+  - **Reasons:** TreeSHAP does not apply to a CNN, so the reason panel needs
+    a new, honest source (or says plainly that none is available).
+  - **The OOD detector's inputs**
+  - **A store regenerated offline;** the serving path stays CPU-only and
+    precomputed.
+  - **A product decision on the 2022 trade-off,** since the case study
+    would get worse.
+- **Until then,** the served number is the XGBoost + ENS combination (D-030),
+  and `FRONTEND_LOGIC.md` §8 says so.
+
+### What this does not settle
+
+- Whether the gain holds on a season no study has touched (2023+ needs new
+  data).
+- Whether a combination that also uses the window variant, or a 2022-aware
+  choice, would do better. Choosing either on these years would be choosing
+  on test data.

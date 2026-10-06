@@ -1,0 +1,66 @@
+{
+  "folds": {
+    "2019": {
+      "got": {
+        "xgboost": 0.7829065826684753,
+        "spatial": 0.814761731772929,
+        "combination": 0.8179513944772722
+      },
+      "want": {
+        "xgboost": 0.7829065826684753,
+        "spatial": 0.814761731772929,
+        "combination": 0.8179513944772722
+      },
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    },
+    "2020": {
+      "got": {
+        "xgboost": 0.841478039979675,
+        "spatial": 0.8532472647188784,
+        "combination": 0.8514776631315407
+      },
+      "want": {
+        "xgboost": 0.841478039979675,
+        "spatial": 0.8532472647188784,
+        "combination": 0.8514776631315407
+      },
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    },
+    "2021": {
+      "got": {
+        "xgboost": 0.815429338072502,
+        "spatial": 0.8490643554600144,
+        "combination": 0.8327981268822494
+      },
+      "want": {
+        "xgboost": 0.815429338072502,
+        "spatial": 0.8490643554600144,
+        "combination": 0.8327981268822494
+      },
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    },
+    "2022": {
+      "got": {
+        "xgboost": 0.8408289724017748,
+        "spatial": 0.8273454455762816,
+        "combination": 0.8561464504742574
+      },
+      "want": {
+        "xgboost": 0.8408289724017748,
+        "spatial": 0.8273454455762816,
+        "combination": 0.8561464504742574
+      },
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    }
+  },
+  "ok": true,
+  "note": "only published numbers recomputed; spatial + ENS not computed"
+}

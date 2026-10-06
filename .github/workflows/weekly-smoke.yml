@@ -1,0 +1,81 @@
+name: Weekly image smoke test
+
+# C7 (docs/CLOUD_AND_CICD_PLAN.md). Once a week, pull the published :latest
+# image from GHCR and prove it still serves: health with real bulletin rows,
+# the review queue, the regions, the pages and the read-only refusal. An image
+# can rot without a single commit (a base-image CVE rebuild, a registry
+# problem, a dependency yanked between builds), so the check runs on a
+# schedule, not on pushes. A failure opens an issue; success is silent.
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"   # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  issues: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}:latest
+
+jobs:
+  smoke:
+    name: Pull :latest and smoke-test it
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR (read)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull
+        run: docker pull "$IMAGE"
+
+      - name: Serve and check
+        run: |
+          set -euo pipefail
+          docker run -d --name fbd -e FBD_READ_ONLY=1 -p 8912:8912 "$IMAGE"
+          for i in $(seq 1 45); do
+            curl -fsS http://localhost:8912/api/health >/dev/null 2>&1 && break
+            [ "$i" -eq 45 ] && { echo "never became healthy"; docker logs fbd; exit 1; }
+            sleep 1
+          done
+          curl -fsS http://localhost:8912/api/health -o health.json
+          python3 - <<'CHECK'
+          import json, sys
+          h = json.load(open("health.json"))
+          print(f"status={h['status']} rows={h['n_bulletin_rows']} latest={h['latest_init_date']}")
+          if h["status"] == "unavailable" or h["n_bulletin_rows"] < 1:
+              sys.exit("the image has no usable bulletin store")
+          open("latest", "w").write(h["latest_init_date"] or "")
+          CHECK
+          init=$(cat latest)
+          q=$(curl -fsS "http://localhost:8912/api/review-queue?init_date=${init}&decision_band_only=false" \
+                | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+          [ "$q" -ge 1 ] || { echo "review queue empty"; exit 1; }
+          n=$(curl -fsS http://localhost:8912/api/regions | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["features"]))')
+          [ "$n" -ge 30 ] || { echo "too few regions: $n"; exit 1; }
+          for page in / /landing.html /command.html /volume.html; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8912${page}")
+            [ "$code" = "200" ] || { echo "$page returned $code"; exit 1; }
+          done
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+            -d '{"region_id":"ASSAM_MEGHALAYA","init_date":"2022-06-14","lead_day":3,"action":"escalate","reason":"weekly smoke","user":"ci"}' \
+            http://localhost:8912/api/override)
+          [ "$code" = "403" ] || { echo "read-only override returned $code, expected 403"; exit 1; }
+          echo "OK: queue $q items, $n regions, pages 200, read-only 403"
+          docker rm -f fbd
+
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh issue create \
+            --title "Weekly smoke test failed: ${IMAGE}" \
+            --body "The scheduled smoke test of the published image failed. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
