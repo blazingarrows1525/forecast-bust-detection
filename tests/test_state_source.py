@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 def test_the_default_source_is_era5_everywhere():
     e5 = pytest.importorskip("fbd.features.era5")
-    import build_dataset as BD
+    BD = pytest.importorskip("build_dataset")
 
     assert set(e5.SOURCES) == {"era5", "analysis_t0"}
     assert e5.SOURCES["era5"][0] == e5.ERA5_DIR

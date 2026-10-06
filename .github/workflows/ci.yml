@@ -64,6 +64,9 @@ jobs:
           tests/test_promotion.py
           tests/test_spatial_inputs.py
           tests/test_spatial_model.py
+          tests/test_tcwv.py
+          tests/test_b2_rule.py
+          tests/test_state_source.py
           tests/test_mlp.py
           tests/test_combine.py
 
