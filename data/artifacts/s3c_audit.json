@@ -1,0 +1,176 @@
+{
+  "spatial_params_sha256": "3653d1de7227acc48c2347dd988e4171abb315bec2de5ce9ac5e75660732b2aa",
+  "spatial_inputs_sha256": "1152df9f60a756cded24557d32e0034cd9bad0b76dd542bcea7bc981d1adab6b",
+  "n_input_files": 23,
+  "environment": {
+    "torch": "2.14.0+cu126",
+    "cuda": "12.6",
+    "device": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "python": "3.10.11",
+    "platform": "Windows-10-10.0.26300-SP0"
+  },
+  "neutrality": {
+    "mlp": {
+      "folds": {
+        "2019": {
+          "got": {
+            "candidate_auroc": 0.8148184075598369,
+            "incumbent_auroc": 0.7829065826684753,
+            "ens_auroc": 0.8024934817097004
+          },
+          "want": {
+            "candidate_auroc": 0.8148184075598369,
+            "incumbent_auroc": 0.7829065826684753,
+            "ens_auroc": 0.8024934817097004
+          },
+          "ok": true
+        },
+        "2020": {
+          "got": {
+            "candidate_auroc": 0.8465061399257425,
+            "incumbent_auroc": 0.841478039979675,
+            "ens_auroc": 0.8027086615795306
+          },
+          "want": {
+            "candidate_auroc": 0.8465061399257425,
+            "incumbent_auroc": 0.841478039979675,
+            "ens_auroc": 0.8027086615795306
+          },
+          "ok": true
+        },
+        "2021": {
+          "got": {
+            "candidate_auroc": 0.8390818524595968,
+            "incumbent_auroc": 0.815429338072502,
+            "ens_auroc": 0.8238886574902348
+          },
+          "want": {
+            "candidate_auroc": 0.8390818524595968,
+            "incumbent_auroc": 0.815429338072502,
+            "ens_auroc": 0.8238886574902348
+          },
+          "ok": true
+        },
+        "2022": {
+          "got": {
+            "candidate_auroc": 0.8153204873543677,
+            "incumbent_auroc": 0.8408289724017748,
+            "ens_auroc": 0.8084017050731127
+          },
+          "want": {
+            "candidate_auroc": 0.8153204873543677,
+            "incumbent_auroc": 0.8408289724017748,
+            "ens_auroc": 0.8084017050731127
+          },
+          "ok": true
+        }
+      },
+      "ok": true
+    },
+    "temporal": {
+      "folds": {
+        "2019": {
+          "got": {
+            "candidate_auroc": 0.8149283332950129,
+            "incumbent_auroc": 0.7829065826684753,
+            "ens_auroc": 0.8024934817097004
+          },
+          "want": {
+            "candidate_auroc": 0.8149283332950129,
+            "incumbent_auroc": 0.7829065826684753,
+            "ens_auroc": 0.8024934817097004
+          },
+          "ok": true
+        },
+        "2020": {
+          "got": {
+            "candidate_auroc": 0.8449229320805269,
+            "incumbent_auroc": 0.841478039979675,
+            "ens_auroc": 0.8027086615795306
+          },
+          "want": {
+            "candidate_auroc": 0.8449229320805269,
+            "incumbent_auroc": 0.841478039979675,
+            "ens_auroc": 0.8027086615795306
+          },
+          "ok": true
+        },
+        "2021": {
+          "got": {
+            "candidate_auroc": 0.8301617837668097,
+            "incumbent_auroc": 0.815429338072502,
+            "ens_auroc": 0.8238886574902348
+          },
+          "want": {
+            "candidate_auroc": 0.8301617837668097,
+            "incumbent_auroc": 0.815429338072502,
+            "ens_auroc": 0.8238886574902348
+          },
+          "ok": true
+        },
+        "2022": {
+          "got": {
+            "candidate_auroc": 0.814808948313523,
+            "incumbent_auroc": 0.8408289724017748,
+            "ens_auroc": 0.8084017050731127
+          },
+          "want": {
+            "candidate_auroc": 0.814808948313523,
+            "incumbent_auroc": 0.8408289724017748,
+            "ens_auroc": 0.8084017050731127
+          },
+          "ok": true
+        }
+      },
+      "ok": true
+    },
+    "pinned_models_untouched": true,
+    "ok": true
+  },
+  "causality": {
+    "year": 2018,
+    "n": 20,
+    "violations": [],
+    "device_cut_max_abs_gap": 0.0,
+    "ok": true
+  },
+  "determinism": {
+    "bit_identical": true,
+    "val_year": 2018,
+    "val_auroc": 0.8307084119673335,
+    "floor": 0.6,
+    "fit_seconds": [
+      73.2,
+      55.3
+    ],
+    "history": [
+      {
+        "seed": 20260920,
+        "best_epoch": 2,
+        "val_loss": 1.0330671072006226
+      },
+      {
+        "seed": 20260921,
+        "best_epoch": 3,
+        "val_loss": 1.0210514068603516
+      },
+      {
+        "seed": 20260922,
+        "best_epoch": 2,
+        "val_loss": 1.051233172416687
+      },
+      {
+        "seed": 20260923,
+        "best_epoch": 2,
+        "val_loss": 1.0285108089447021
+      },
+      {
+        "seed": 20260924,
+        "best_epoch": 1,
+        "val_loss": 1.0361236333847046
+      }
+    ],
+    "ok": true
+  },
+  "ok": true
+}

@@ -87,6 +87,57 @@ TEMPORAL_PARAMS = dict(
 )
 
 
+#: S3c candidate, frozen before any run (spec 2026-09-28, docs/PREREGISTRATION_S3C.md).
+#: Every channel, scaling, layer, training setting and variant is here, so changing
+#: any of them changes spatial_params_sha256. ``device`` is "cuda": the one amendment
+#: to the spec, made before any spatial model was built (PREREGISTRATION_S3C.md §3).
+SPATIAL_PARAMS = dict(
+    window_size=13,
+    window_grid="HRES 0.703 deg, 45 x 49, zero-padded by 6 cells",
+    window_centre="area-weighted centre of the subdivision's HRES cells, rounded half up",
+    window_channels=["log1p tp24, run t, lead L", "log1p tp24, run t-1, lead L+1",
+                     "previous run present", "outline: cell area fraction inside s",
+                     "orography (ERA5 z_sfc, bilinear)", "land-sea mask (bilinear)",
+                     "in HRES domain", "tcwv at t 00Z (bilinear)",
+                     "u850 at t 00Z (bilinear)", "v850 at t 00Z (bilinear)"],
+    window_standardised=[0, 1, 4, 7, 8, 9],
+    window_scaling="per standardised channel, mean and sd of the present in-domain "
+                   "entries of the training rows' windows; absent -> 0",
+    map_grid="ERA5 1.5 deg, 37 x 47, -9..45 N, 40.5..109.5 E, t 00Z",
+    map_channels=["tcwv", "mslp", "u850", "v850", "q850", "z500", "u200",
+                  "orography", "land-sea mask"],
+    map_scaling="dynamic: per-cell mean over training issue days subtracted, divided by "
+                "the channel sd of those anomalies; orography standardised; mask unscaled",
+    conv_padding=1,
+    window_encoder="conv3x3 10->16, relu, conv3x3 16->32, relu, maxpool2, "
+                   "conv3x3 32->32, relu, global average pool -> 32",
+    map_encoder="conv3x3 9->16, relu, maxpool2, conv3x3 16->32, relu, maxpool2, "
+                "conv3x3 32->32, relu, adaptive average pool 4x4 (pooling matrices), "
+                "linear 512->32, relu -> 32",
+    branch_width=32,
+    static="S3a Preprocessor on the incumbent's 52 features",
+    hidden=[128, 64],
+    activation="relu",
+    dropout=0.2,
+    lr=1e-3,
+    weight_decay=1e-4,
+    batch_size=1024,
+    max_epochs=60,
+    patience=5,
+    seeds=[20260920, 20260921, 20260922, 20260923, 20260924],
+    threads=8,
+    dtype="float32, TF32 off",
+    device="cuda",
+    determinism="torch.use_deterministic_algorithms, cudnn deterministic, "
+                "CUBLAS_WORKSPACE_CONFIG=:4096:8; weights initialised on the CPU",
+    loss="bce with pos_weight = negatives / positives on training rows",
+    stopping="validation-year weighted bce, restore best epoch",
+    calibration="isotonic on the validation year, on the seed-averaged probability",
+    branches=["window", "map"],
+    variants={"window_only": ["window"], "map_only": ["map"]},
+)
+
+
 #: S1c combiner, frozen before any run (docs/PREREGISTRATION_S1C.md).
 COMBINER_PARAMS = dict(
     inputs=["logit of the uncalibrated model probability", "log(1 + ENS spread)"],

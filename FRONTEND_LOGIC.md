@@ -394,8 +394,12 @@ Copy has to match what the evidence supports (`DECISIONS.md` D-022, D-025, D-026
   [+0.0023, +0.0157]**, D-027), but it is not served, and XGBoost is the better
   of the two in 2022. A temporal model (the MLP plus a GRU over 14 days of
   history) was tested and is not distinguishable from XGBoost, **+0.0060
-  [−0.0010, +0.0131]** (D-031); it is not served either. Claiming otherwise
-  fails the first question a reviewer asks.
+  [−0.0010, +0.0131]** (D-031); it is not served either. A spatial model (the
+  MLP head plus CNNs on the forecast window around each subdivision and the
+  monsoon map) outranks XGBoost across 2019–2022, **+0.0159 [+0.0092,
+  +0.0228]** (D-032), and the MLP too. It is **not served** either, and XGBoost
+  is still the better of the two in 2022. Claiming otherwise fails the first
+  question a reviewer asks.
 - That the MLP outranks a real ensemble. Its lead over ENS spread in 2019–2021
   was an uncorrected secondary; the registered confirmation on 2018 did not
   confirm it, **−0.0080 [−0.0254, +0.0087]** (D-028).

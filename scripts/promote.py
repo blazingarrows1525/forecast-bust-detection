@@ -9,6 +9,11 @@ and every ENS year is complete. Writes data/artifacts/candidates/<name>.json.
 """
 from __future__ import annotations
 
+import os
+
+# S3c: cuBLAS is deterministic only with a fixed workspace, set before CUDA starts.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 # Windows: torch must load before scikit-learn (see fbd.model.mlp).
 try:
     import torch  # noqa: F401
@@ -32,24 +37,39 @@ from fbd.evaluate import folds as F  # noqa: E402
 from fbd.evaluate import promotion as PM  # noqa: E402
 from fbd.evaluate import provenance as P  # noqa: E402
 from fbd.evaluate import registration as R  # noqa: E402
+from fbd.model import grids as G  # noqa: E402
 from fbd.model import params as PR  # noqa: E402
 
 PREREG = ROOT / "docs" / "PREREGISTRATION_S3.md"
 BACKTEST = config.ARTIFACTS / "backtest.json"
 OUT_DIR = config.ARTIFACTS / "candidates"
 MLP_JSON = OUT_DIR / "mlp.json"
-#: addenda that register a candidate's own keys (docs/PREREGISTRATION_S3.md §3)
-ADDENDA = {"temporal": ROOT / "docs" / "PREREGISTRATION_S3B.md"}
-#: slate name -> (module, class, frozen parameters). S3c adds its own.
+S3C_INPUTS = G.MANIFEST
+#: addenda that register a candidate's own keys (docs/PREREGISTRATION_S3.md §3):
+#: name -> (addendum, {registration key: the file whose SHA-256 it pins})
+ADDENDA = {"temporal": (ROOT / "docs" / "PREREGISTRATION_S3B.md",
+                        {"mlp_json_sha256": MLP_JSON}),
+           "spatial": (ROOT / "docs" / "PREREGISTRATION_S3C.md",
+                       {"mlp_json_sha256": MLP_JSON, "spatial_inputs_sha256": S3C_INPUTS})}
+#: candidates whose gridded inputs are pinned file by file in a manifest (S3c §5.2)
+MANIFESTS = {"spatial": S3C_INPUTS}
+#: slate name -> (module, class, frozen parameters)
 CANDIDATES = {"mlp": ("fbd.model.mlp", "MLPModel", PR.MLP_PARAMS),
-              "temporal": ("fbd.model.temporal", "TemporalModel", PR.TEMPORAL_PARAMS)}
+              "temporal": ("fbd.model.temporal", "TemporalModel", PR.TEMPORAL_PARAMS),
+              "spatial": ("fbd.model.spatial", "SpatialModel", PR.SPATIAL_PARAMS)}
 
 
 def guards(name: str):
     reg = R.guard(PREREG, {"backtest_sha256": BACKTEST}, repo=ROOT)
     if name in ADDENDA:
-        add = R.guard(ADDENDA[name], {"mlp_json_sha256": MLP_JSON}, repo=ROOT)
+        path, pins = ADDENDA[name]
+        add = R.guard(path, pins, repo=ROOT)
         reg = R.merge_addendum(reg, add, name)
+    if name in MANIFESTS:
+        problems = G.verify_manifest(MANIFESTS[name])
+        if problems:
+            raise R.RegistrationError("pinned gridded inputs changed:\n  "
+                                      + "\n  ".join(problems))
     PM.check_candidate(name, reg)
     if name not in CANDIDATES:
         raise R.RegistrationError(f"{name!r} is declared but not implemented yet")
@@ -97,9 +117,9 @@ def score_fold(name: str, year: int, ens, lead_days, bt: dict, seed: int,
     tr, va, _te = (d.dropna(subset=["bust"]) for d in T.split_frames(ds))
     incumbent = T.BustModel.load(F.model_path(year, "strict"))
     module, cls, _p = CANDIDATES[name]
+    klass = getattr(importlib.import_module(module), cls)
     t0 = time.time()
-    cand = PM.build_candidate(getattr(importlib.import_module(module), cls), ds).fit(
-        tr, va, list(incumbent.features))
+    cand = PM.build_candidate(klass, ds).fit(tr, va, list(incumbent.features))
     fit_s = time.time() - t0
     mpath = Path(out_dir) / f"candidate_{name}_{year}.joblib"
     cand.save(mpath)
@@ -120,6 +140,18 @@ def score_fold(name: str, year: int, ens, lead_days, bt: dict, seed: int,
     })
     if mlp is not None:
         rows["p_mlp"] = mlp_probabilities(year, test, y, mlp)
+    variants = {}
+    for vname, branches in (_p.get("variants") or {}).items():  # S3c §5.1
+        t1 = time.time()
+        vm = klass(branches=tuple(branches)).fit(tr, va, list(incumbent.features))
+        vsec = time.time() - t1
+        vpath = Path(out_dir) / f"candidate_{name}_{vname}_{year}.joblib"
+        vm.save(vpath)
+        rows[f"p_{vname}"] = vm.predict_proba(test)
+        variants[vname] = {"auroc": M.auroc(y, rows[f"p_{vname}"]),
+                           "fit_seconds": round(vsec, 1), "history": vm.history,
+                           "model_sha256": P.sha256_file(vpath),
+                           "seed_auroc": [M.auroc(y, q) for q in vm.predict_seeds(test)]}
     inc_auc = M.auroc(y, rows.p_inc)
     if inc_auc != bt["folds"][str(year)]["model_auroc"]:
         raise RuntimeError(f"fold {year}: incumbent AUROC {inc_auc!r} does not reproduce "
@@ -131,6 +163,8 @@ def score_fold(name: str, year: int, ens, lead_days, bt: dict, seed: int,
             "fit_seconds": round(fit_s, 1), "history": getattr(cand, "history", None),
             "model_sha256": P.sha256_file(mpath),
             "seed_auroc": ([M.auroc(y, s) for s in seeds] if seeds is not None else None)}
+    if variants:
+        info["variants"] = variants
     groups = getattr(cand, "SHUFFLE_GROUPS", ())
     if groups:
         info["shuffle_auroc"] = {g: M.auroc(y, cand.predict_proba(test, shuffle=g, seed=seed))
@@ -189,6 +223,15 @@ def main() -> int:
         m = secondary["mlp"]["mean"]
         print(f"secondary, {name} - MLP over {list(PM.YEARS)}: {m['point']:+.4f} "
               f"[{m['lo']:+.4f}, {m['hi']:+.4f}]", flush=True)
+    for v in (CANDIDATES[name][2].get("variants") or {}):
+        secondary[v] = {
+            "mean": BS.mean_margin(rows, f"p_{v}", "p_inc", PM.YEARS, n_boot, seed),
+            "per_year": BS.per_year(rows, f"p_{v}", "p_inc", n_year, seed,
+                                    who="the XGBoost incumbent",
+                                    whom=f"the {v.replace('_', '-')} model")}
+        m = secondary[v]["mean"]
+        print(f"secondary, {v} - XGBoost over {list(PM.YEARS)}: {m['point']:+.4f} "
+              f"[{m['lo']:+.4f}, {m['hi']:+.4f}]", flush=True)
     exploratory = {
         "by_month": BS.by_month(rows, "p_cand", "p_inc", n_year, seed),
         "shuffle_auroc": {y: f.get("shuffle_auroc") for y, f in folds.items()},
@@ -200,6 +243,9 @@ def main() -> int:
         "registration_sha256": P.sha256_file(PREREG),
         "backtest_sha256": P.sha256_file(BACKTEST),
         "params_sha256": PR.params_sha256(CANDIDATES[name][2]),
+        **({"addendum_sha256": P.sha256_file(ADDENDA[name][0])} if name in ADDENDA else {}),
+        **({"inputs_manifest_sha256": P.sha256_file(MANIFESTS[name])}
+           if name in MANIFESTS else {}),
         "row_rule": "S1b comparison_rows per fold; both models score every row",
         "folds": folds, "primary": prim, "per_year": per_year,
         "secondary": secondary, "exploratory": exploratory,

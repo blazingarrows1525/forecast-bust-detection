@@ -190,12 +190,42 @@ already carry. Figure:
 [`docs/figures/candidate_temporal.png`](docs/figures/candidate_temporal.png);
 record: D-031.
 
+The third candidate asked whether the *spatial pattern* helps. It is the same
+MLP head with two small CNNs in front:
+- **The window:** a 13 × 13 patch of the HRES grid around the subdivision,
+  holding the forecast being judged and the previous run for the same day.
+- **The map:** the monsoon-region analysis at issue time.
+
+It was registered before it was scored
+([`docs/PREREGISTRATION_S3C.md`](docs/PREREGISTRATION_S3C.md)), trained
+deterministically on a GPU, and scored once:
+
+**The spatial model outranks XGBoost across 2019–2022:**
+**+0.0159 [+0.0092, +0.0228]**.
+
+It is ahead in 2019, 2020 and 2021. XGBoost is still better in 2022
+(−0.0135). Unlike the temporal model, it also clears the MLP: +0.0072
+[+0.0047, +0.0097]. So the gain is information, not architecture.
+
+The two registered variants say where that information is:
+- **The window carries it.** Window-only is +0.0180 over XGBoost and level
+  with it in 2022 (−0.0064 [−0.0152, +0.0037]).
+- **The map adds nothing detectable.** Map-only behaves like the MLP.
+
+A subdivision average hides *where* the forecast puts its rain; the window
+sees it. Nothing is served yet: the served number is the XGBoost + ENS
+combination, and replacing it needs its own registered test (backlog B5).
+Figure:
+[`docs/figures/candidate_spatial.png`](docs/figures/candidate_spatial.png);
+record: D-032.
+
 Against the lagged proxy the margin is **+0.082 AUROC** with a 19% reduction in
 asymmetric decision cost, and every predictor is given the *same* isotonic
 calibration on the *same* validation year so the comparison is fair.
 
 Everything above is reproducible from `scripts/` with public data only.
-No GPU is used anywhere.
+The served product needs no GPU. The one research model trained on a GPU is
+the S3c spatial candidate, deterministically; it is not served.
 
 ### Uncertainty: every number above has an interval
 
