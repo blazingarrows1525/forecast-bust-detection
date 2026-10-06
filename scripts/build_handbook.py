@@ -51,6 +51,8 @@ DOCS = [
     ("C. Decisions and evidence", "docs/PREREGISTRATION_S3.md", "S3 registration: the three-candidate slate and its promotion rule"),
     ("C. Decisions and evidence", "docs/PREREGISTRATION_S3A_CONFIRM.md", "S3a-C registration: the untouched-2018 confirmation"),
     ("C. Decisions and evidence", "docs/PREREGISTRATION_S3B.md", "S3b registration: the temporal (GRU) candidate"),
+    ("C. Decisions and evidence", "docs/PREREGISTRATION_S3C.md", "S3c registration: the spatial (CNN) candidate"),
+    ("C. Decisions and evidence", "docs/PREREGISTRATION_B2.md", "B2 registration: the operational state, non-inferiority"),
     ("D. Frontend", "FRONTEND_LOGIC.md", "the law for every page: claims, honesty, states"),
     ("D. Frontend", "docs/FRONTEND_BUILT.md", "what was built before the redesign"),
     ("D. Frontend", "FRONTEND_HANDOFF.md", "the earlier frontend handoff"),
@@ -75,7 +77,8 @@ DOCS = [
     ("H. Design specs", "docs/superpowers/specs/2026-09-25-serve-combination-design.md", "serving the combination (D-030)"),
     ("H. Design specs", "docs/superpowers/specs/2026-09-25-s3a-candidate-harness-mlp-design.md", "S3a, the MLP"),
     ("H. Design specs", "docs/superpowers/specs/2026-09-27-s3b-temporal-candidate-design.md", "S3b, the GRU"),
-    ("H. Design specs", "docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md", "S3c, the spatial CNNs (not yet scored)"),
+    ("H. Design specs", "docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md", "S3c, the spatial CNNs (scored: D-032)"),
+    ("H. Design specs", "docs/superpowers/specs/2026-10-06-b2-operational-analysis-design.md", "B2, the operational state with derived TCWV"),
 ]
 
 #: Not combined: the step-by-step build plans. They are long task scripts

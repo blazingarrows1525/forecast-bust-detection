@@ -81,8 +81,11 @@ in progress, implemented & verified, blocked.
 
 ## B5. Serve a network? (now: the window model)
 
-- **Status:** unblocked (S3c scored, D-032). The candidate to test is the
-  window model inside the ENS combination, not the MLP.
+- **Status:** unblocked (S3c scored, D-032). The candidate is the
+  **registered S3c primary** (both branches) inside the ENS combination.
+  The window-only variant looks better on 2019–2022, but those are test
+  years; preferring it needs confirmation on an untouched season first
+  (D-032 addendum).
 - **Context:** D-027 promoted the MLP under the S3 rule. D-028 did not
   confirm its ENS lead on untouched 2018. The served product is unchanged
   by design until S3c is scored.
