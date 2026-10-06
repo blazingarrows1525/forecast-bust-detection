@@ -23,9 +23,13 @@ ENV PIP_NO_CACHE_DIR=1 \
 WORKDIR /build
 
 # Dependencies first so source edits do not invalidate the pip layer.
-COPY requirements-serve.txt .
+# requirements-serve.lock is requirements-serve.txt resolved for this exact
+# base image (Linux, Python 3.11) with every transitive dependency pinned by
+# SHA-256 (C5). --require-hashes makes pip refuse any file whose hash differs,
+# and --no-deps refuses anything the lock does not list.
+COPY requirements-serve.lock .
 RUN python -m venv /opt/venv \
- && /opt/venv/bin/pip install --no-cache-dir -r requirements-serve.txt \
+ && /opt/venv/bin/pip install --no-cache-dir --require-hashes --no-deps -r requirements-serve.lock \
  && find /opt/venv -name '__pycache__' -type d -prune -exec rm -rf {} + \
  && find /opt/venv -name '*.pyc' -delete
 

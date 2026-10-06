@@ -69,6 +69,7 @@ jobs:
           tests/test_state_source.py
           tests/test_mlp.py
           tests/test_combine.py
+          tests/test_lockfile.py
 
   invariants:
     name: Decision-log invariants

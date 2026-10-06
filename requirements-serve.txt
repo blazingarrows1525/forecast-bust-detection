@@ -1,5 +1,17 @@
 # Minimal serving dependencies for the offline demo image.
 #
+# The image does not install this file directly. It installs
+# requirements-serve.lock: this list resolved for the image's base
+# (python:3.11-slim, Linux) with every transitive dependency pinned by SHA-256
+# (C5). After editing this file, regenerate the lock in that same base:
+#
+#   docker run --rm -v "$PWD:/w" -w /w python:3.11-slim sh -c "pip install
+#     pip-tools==7.5.1 && pip-compile --generate-hashes --allow-unsafe
+#     --strip-extras --no-emit-index-url -o requirements-serve.lock
+#     requirements-serve.txt"
+#
+# tests/test_lockfile.py fails in CI if the two drift apart.
+#
 # Deliberately does NOT include geopandas / shapely / pyproj (D-020). Those
 # exist only to read the subdivision GeoPackage, and the two endpoints that
 # needed them (/api/regions and the 3-D risk-cube centroids) now read
