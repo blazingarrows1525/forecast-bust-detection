@@ -2317,3 +2317,85 @@ through.
 - Whether a combination that also uses the window variant, or a 2022-aware
   choice, would do better. Choosing either on these years would be choosing
   on test data.
+
+## D-035 — B3: a beta-family combiner narrows the tail gap; adopted for the next store, with its limits stated — LOCKED
+
+Registration: `docs/PREREGISTRATION_B3.md`, pushed with CI green (PR #21)
+before any beta-family combiner was computed. Design:
+`docs/superpowers/specs/2026-10-06-b3-b4-combiner-refinements-design.md`.
+Output: `data/artifacts/b3_tail.json`.
+
+**The question.** D-030 found the served combination overconfident in its top
+bin in 2022 (it predicts 0.207 and observes 0.172). The candidate is a
+logistic regression on [ln p_raw, ln(1 − p_raw), log1p ENS spread], which nests
+the served form. Does it narrow the top-decile reliability gap without
+worsening the Brier score?
+
+**Result** (registered primary, run once; 10,000 resamples, 95%):
+
+- **The tail gap** narrows by **−0.0091 [−0.0124, −0.0037]**, candidate −
+  served, mean over 2019–2022.
+- **The Brier guard** gives **−0.00012 [−0.00025, +0.00001]**: not worse.
+- **Verdict: adopt.**
+
+| year | tail gap: beta / served | tail-gap margin [95%] | Brier margin [95%] | AUROC: beta / served |
+|---|---|---|---|---|
+| 2019 | 0.044 / 0.063 | −0.0187 [−0.0266, −0.0104] | −0.0005 [−0.0009, −0.0002] | 0.8275 / 0.8180 |
+| 2020 | 0.011 / 0.029 | −0.0188 [−0.0232, +0.0056] | −0.0004 [−0.0007, −0.0002] | 0.8537 / 0.8515 |
+| 2021 | 0.012 / 0.009 | +0.0029 [−0.0046, +0.0079] | +0.0002 [−0.0000, +0.0004] | 0.8402 / 0.8328 |
+| 2022 | 0.030 / 0.032 | −0.0018 [−0.0078, +0.0022] | **+0.0003 [+0.0001, +0.0005]** | 0.8542 / 0.8561 |
+
+Secondary: AUROC +0.0043 [+0.0029, +0.0058]; ECE −0.0008 [−0.0022, −0.0000].
+
+**Reading it, including what argues against it.**
+- **The gain is concentrated in 2019 and 2020.**
+- **The year that motivated the study, 2022, is barely helped:** the tail
+  gap is −0.0018 with an interval spanning zero, and the Brier score is
+  slightly *worse*.
+- **The fitted form is far from the served logit.** The coefficient on
+  ln p is 0.08–0.26 and on ln(1 − p) −0.77 to −1.01. So the model's
+  probability enters almost linearly, not on the log-odds scale. That is
+  also why AUROC moved: this is a re-weighting, not a pure recalibration.
+
+**Consequence, as committed.** The beta-family combiner replaces the served
+form at the next store regeneration, with the served claim's numbers
+re-derived. Until then the served combiner stays, and its measured
+overconfidence stays stated. The regeneration is not done here: it publishes
+a new Release asset, which needs the owner's approval, and it should carry
+B4 (D-036) and the decision on the spatial model (D-034) at the same time.
+
+## D-036 — B4: a Day 1–2 combiner outranks the extrapolation; adopted for the next store — LOCKED
+
+Registration: `docs/PREREGISTRATION_B4.md`, pushed with CI green (PR #21)
+before any Day 1–2 combiner was computed. Output:
+`data/artifacts/b4_short_leads.json`.
+
+**The question.** The served combiner is fitted on Days 3–7 and extrapolated
+to Days 1–2, where D-030 saw it rank slightly below the model alone in 2022.
+Does the same combiner, fitted on the validation year's Day 1–2 rows,
+outrank it there?
+
+**Result** (registered primary, run once; 10,000 resamples, 95%):
+**+0.0023 [+0.0008, +0.0039] → a combiner fitted on Days 1–2 outranks the
+served extrapolation at Days 1–2 across 2019–2022.**
+
+| year | Day 1–2 fit | served | model alone | margin [95%] |
+|---|---|---|---|---|
+| 2019 | 0.8096 | 0.8083 | 0.7820 | +0.0012 [+0.0005, +0.0019] |
+| 2020 | 0.8532 | 0.8521 | 0.8481 | +0.0011 [−0.0015, +0.0035] |
+| 2021 | 0.8355 | 0.8354 | 0.8313 | +0.0001 [−0.0012, +0.0013] |
+| 2022 | 0.8709 | 0.8641 | 0.8696 | **+0.0068 [+0.0015, +0.0125]** |
+
+Secondary: the Day 1–2 fit against the model alone, +0.0096 [+0.0058,
++0.0133]. The short-lead cost D-030 saw in 2022 is gone: the fit is 0.8709
+against the model's 0.8696.
+
+**Reading it.** The Day 1–2 fit puts less weight on ENS spread than the
+served combiner in three of the four years (0.46–0.80 against 0.65–1.08,
+the 2019 fold being level). At short leads the ensemble has not yet spread,
+so its spread says less. The gain is small and mostly 2022's.
+
+**Consequence, as committed.** A lead-split combiner (Days 1–2 and 3–10) is
+adopted at the next store regeneration, and the served claim may then extend
+to Days 1–2. Until then the extrapolation is served and the claim stays on
+Days 3–7.

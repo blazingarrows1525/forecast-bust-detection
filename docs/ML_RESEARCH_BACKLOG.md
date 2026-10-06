@@ -59,25 +59,20 @@ in progress, implemented & verified, blocked.
 
 ## B3. Tail calibration
 
-- **Status:** research candidate.
-- **Evidence:** in 2022 the top bin predicts 0.207 and observes 0.172.
-  The served combination is overconfident by 0.036 (D-030).
-- **Candidates:** beta calibration and Venn-Abers, compared with isotonic
-  on the same validation year.
-- **Metric:** ECE and a tail reliability interval. AUROC must not move
-  (calibration is monotone).
-- **Acceptance:** adopt only if the tail interval improves and the
-  decision-band Brier score does not worsen.
+- **Status:** implemented & verified, scored once (2026-10-06, D-035).
+  **Adopt** at the next store regeneration:
+  - The beta-family combiner narrows the top-decile reliability gap by
+    −0.0091 [−0.0124, −0.0037], with the Brier score not worse.
+  - The gain is mostly in 2019–2020. 2022 is barely helped, and its Brier
+    score is slightly worse.
+  - Venn–Abers was not tested.
 
 ## B4. Day 1–2 combination fit
 
-- **Status:** research candidate.
-- **Evidence:** at Days 1–2 in 2022 the model alone ranks slightly better
-  than the served combination (D-030 table: −0.002, −0.010). That is one
-  year with no intervals.
-- **Hypothesis:** a lead-dependent combiner, fitted on the same 2021 year,
-  removes the short-lead cost.
-- **Registration needed.** The served claim stays on Days 3–7 until then.
+- **Status:** implemented & verified, scored once (2026-10-06, D-036).
+  **Adopt** at the next store regeneration. A Day 1–2-fitted combiner
+  outranks the served extrapolation, +0.0023 [+0.0008, +0.0039], and removes
+  the 2022 short-lead cost.
 
 ## B5. Serve a network?
 
