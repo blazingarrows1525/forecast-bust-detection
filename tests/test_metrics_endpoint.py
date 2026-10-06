@@ -71,8 +71,27 @@ def test_metrics_says_whether_the_combination_is_served(monkeypatch, tmp_path):
     con.close()
     (tmp_path / "combination.json").write_text(json.dumps({"primary": {"verdict": "model_better"}}))
     body = client.get("/api/metrics").json()
-    assert body["served"] == {"model_version": "0.2.0", "combined": True}
+    assert body["served"] == {"model_version": "0.2.0", "combined": True, "base_model": None,
+                              "reasons_method": None, "ood_inputs": None}
     assert body["combination"]["primary"]["verdict"] == "model_better"
+
+
+def test_metrics_names_the_v030_base_model_and_its_reasons(monkeypatch, tmp_path):
+    import sqlite3
+    client = _client(monkeypatch, tmp_path)
+    con = sqlite3.connect(tmp_path / "bulletins.sqlite")
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.executemany("INSERT INTO meta VALUES (?, ?)",
+                    [("model_version", "0.3.0"), ("combined", "1"),
+                     ("base_model", "S3c spatial CNN"), ("reasons_method", "occlusion"),
+                     ("ood_inputs", "the 52 static inputs")])
+    con.commit()
+    con.close()
+    (tmp_path / "served_metrics.json").write_text(json.dumps({"store": "0.3.0"}))
+    body = client.get("/api/metrics").json()
+    assert body["served"]["model_version"] == "0.3.0"
+    assert body["served"]["reasons_method"] == "occlusion"
+    assert body["served_metrics"] == {"store": "0.3.0"}
 
 
 def test_served_is_null_without_a_meta_table(monkeypatch, tmp_path):
