@@ -102,3 +102,56 @@ def test_the_confirmation_year_is_outside_the_s3_years():
 @pytest.mark.parametrize("v", ["model_better", "ens_better", "indistinguishable"])
 def test_confirmation_text_covers_every_verdict(v):
     assert "2018" in PM.CONFIRM_TEXT[v] and "MLP" in PM.CONFIRM_TEXT[v]
+
+
+def test_spatial_params_are_frozen_and_hashable():
+    p = PR.SPATIAL_PARAMS
+    assert p["window_size"] == 13 and len(p["window_channels"]) == 10
+    assert len(p["map_channels"]) == 9 and p["branch_width"] == 32
+    assert p["hidden"] == PR.MLP_PARAMS["hidden"] and p["seeds"] == PR.MLP_PARAMS["seeds"]
+    assert p["dropout"] == PR.MLP_PARAMS["dropout"] and p["lr"] == PR.MLP_PARAMS["lr"]
+    json.dumps(p)
+    assert PR.params_sha256(p) == PR.params_sha256(dict(p))
+    for k, v in (("window_size", 11), ("device", "cpu"), ("conv_padding", 0),
+                 ("variants", {"window_only": ["window"]})):
+        assert PR.params_sha256(dict(p, **{k: v})) != PR.params_sha256(p)
+
+
+def test_spatial_primary_and_variants_are_exactly_the_registered_three():
+    p = PR.SPATIAL_PARAMS
+    assert p["branches"] == ["window", "map"]
+    assert p["variants"] == {"window_only": ["window"], "map_only": ["map"]}
+
+
+def _promote():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    import promote
+    return promote
+
+
+def test_each_addendum_carries_its_own_pins():
+    pm = _promote()
+    path_b, pins_b = pm.ADDENDA["temporal"]
+    assert path_b.name == "PREREGISTRATION_S3B.md" and pins_b == {"mlp_json_sha256": pm.MLP_JSON}
+    path_c, pins_c = pm.ADDENDA["spatial"]
+    assert path_c.name == "PREREGISTRATION_S3C.md"
+    assert pins_c == {"mlp_json_sha256": pm.MLP_JSON, "spatial_inputs_sha256": pm.S3C_INPUTS}
+    assert pm.MANIFESTS == {"spatial": pm.S3C_INPUTS}
+    assert set(pm.CANDIDATES) == set(PM.SLATE)
+
+
+def test_a_changed_gridded_input_is_refused(tmp_path, monkeypatch):
+    pm = _promote()
+    f = tmp_path / "hres.nc"
+    f.write_bytes(b"grid")
+    man = tmp_path / "s3c_inputs.json"
+    from fbd.model import grids as G
+    G.write_manifest(man, files=[f], root=tmp_path)
+    f.write_bytes(b"regridded")
+    real = G.verify_manifest
+    monkeypatch.setattr(pm.G, "verify_manifest", lambda path: real(path, root=tmp_path))
+    monkeypatch.setattr(pm.R, "guard", lambda path, *a, **k: (
+        {"spatial_params_sha256": "x"} if path.name == "PREREGISTRATION_S3C.md" else {}))
+    monkeypatch.setitem(pm.MANIFESTS, "spatial", man)
+    with pytest.raises(R.RegistrationError, match="pinned gridded inputs changed"):
+        pm.guards("spatial")

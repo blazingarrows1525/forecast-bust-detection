@@ -9,3 +9,7 @@ pytest==8.4.2
 # every TestClient-based test errors out -- which is exactly how CI was failing
 # while the same tests passed locally on a machine that happened to have httpx.
 httpx2==2.13.0
+
+# S3c's input tests build synthetic grids through the real loader (xarray).
+# Test-only: the serving image installs requirements-serve.txt alone.
+xarray==2025.6.1

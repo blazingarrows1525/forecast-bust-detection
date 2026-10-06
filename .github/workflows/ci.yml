@@ -62,6 +62,8 @@ jobs:
           tests/test_backtest_guard.py
           tests/test_backtest_stats.py
           tests/test_promotion.py
+          tests/test_spatial_inputs.py
+          tests/test_spatial_model.py
           tests/test_mlp.py
           tests/test_combine.py
 
