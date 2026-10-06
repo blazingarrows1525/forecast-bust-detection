@@ -1,0 +1,361 @@
+{
+  "study": "B5",
+  "registration_sha256": "aca4f24fee03329d014c4ed0cda77c7d4647a7af63dbf91497cfe0055c083795",
+  "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+  "combination_sha256": "e4af6751f9fe0752bb9b2f6b76908f42614eb8d7860bdb9546f8a9c8ff679ad1",
+  "spatial_json_sha256": "56236ac0a0b5eda8dcaff0496f2133e80c0fc8cd8adc9c9f46c5e7ff89d5faca",
+  "combiner_params_sha256": "835dcb7ed5adfe0b23784e47ed16e7b021ce7c0a434dc6d359c8f190db46e780",
+  "row_rule": "per fold: both combiners fitted on the validation year's Day 3-7 rows with a label and ENS spread; scored on the fold's S1b comparison rows",
+  "folds": {
+    "2019": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_fit_rows": 20060,
+      "fit_year": 2018,
+      "auroc": {
+        "spatial_combination": 0.8291175131630377,
+        "xgboost": 0.7829065826684753,
+        "spatial": 0.814761731772929,
+        "combination": 0.8179513944772722,
+        "ens": 0.8024934817097004
+      },
+      "brier_skill": {
+        "spatial_combination": 0.15872205061990918,
+        "combination": 0.1457595783789153
+      },
+      "ece": {
+        "spatial_combination": 0.006643468160570914,
+        "combination": 0.009729503886351534
+      },
+      "coefficients": {
+        "spatial": {
+          "logit_p_model": 0.6804884876277418,
+          "log1p_ens_spread": 0.6205759263391682,
+          "intercept": -4.109343638815993
+        },
+        "xgboost": {
+          "logit_p_model": 0.38101273356005566,
+          "log1p_ens_spread": 0.9892541805858862,
+          "intercept": -4.306531696554872
+        }
+      }
+    },
+    "2020": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_fit_rows": 20060,
+      "fit_year": 2019,
+      "auroc": {
+        "spatial_combination": 0.856138497087053,
+        "xgboost": 0.841478039979675,
+        "spatial": 0.8532472647188784,
+        "combination": 0.8514776631315407,
+        "ens": 0.8027086615795306
+      },
+      "brier_skill": {
+        "spatial_combination": 0.19629553993660476,
+        "combination": 0.20954525946497315
+      },
+      "ece": {
+        "spatial_combination": 0.011041646856031439,
+        "combination": 0.01260502125982658
+      },
+      "coefficients": {
+        "spatial": {
+          "logit_p_model": 0.5583941214409133,
+          "log1p_ens_spread": 0.8872850194121906,
+          "intercept": -4.5273816880885
+        },
+        "xgboost": {
+          "logit_p_model": 0.4738533098267569,
+          "log1p_ens_spread": 1.0630703494244587,
+          "intercept": -4.456555269778982
+        }
+      }
+    },
+    "2021": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_fit_rows": 20060,
+      "fit_year": 2020,
+      "auroc": {
+        "spatial_combination": 0.8566265197766646,
+        "xgboost": 0.815429338072502,
+        "spatial": 0.8490643554600144,
+        "combination": 0.8327981268822494,
+        "ens": 0.8238886574902348
+      },
+      "brier_skill": {
+        "spatial_combination": 0.19174245447317506,
+        "combination": 0.19034982076859874
+      },
+      "ece": {
+        "spatial_combination": 0.0036680242812887646,
+        "combination": 0.005490087436540861
+      },
+      "coefficients": {
+        "spatial": {
+          "logit_p_model": 0.8124816432995445,
+          "log1p_ens_spread": 0.4569584723324833,
+          "intercept": -4.020376772708408
+        },
+        "xgboost": {
+          "logit_p_model": 0.708129269029092,
+          "log1p_ens_spread": 0.6473704985957529,
+          "intercept": -3.937763393572796
+        }
+      }
+    },
+    "2022": {
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_fit_rows": 20060,
+      "fit_year": 2021,
+      "auroc": {
+        "spatial_combination": 0.8419493272699803,
+        "xgboost": 0.8408289724017748,
+        "spatial": 0.8273454455762816,
+        "combination": 0.8561464504742574,
+        "ens": 0.8084017050731127
+      },
+      "brier_skill": {
+        "spatial_combination": 0.07726782976906121,
+        "combination": 0.09165739440530773
+      },
+      "ece": {
+        "spatial_combination": 0.0072523256383126445,
+        "combination": 0.008065849382981417
+      },
+      "coefficients": {
+        "spatial": {
+          "logit_p_model": 0.6653181945060062,
+          "log1p_ens_spread": 0.7536266419904354,
+          "intercept": -4.372276826127993
+        },
+        "xgboost": {
+          "logit_p_model": 0.5339448002767417,
+          "log1p_ens_spread": 1.0824525598091994,
+          "intercept": -4.730261743645106
+        }
+      }
+    }
+  },
+  "primary": {
+    "point": 0.006364555582853981,
+    "lo": 0.0027368611410643956,
+    "hi": 0.009966128173040534,
+    "n_boot": 10000,
+    "n_clusters": 480,
+    "n_degenerate": 0,
+    "alpha": 0.05,
+    "excludes_zero": true,
+    "years": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "verdict": "spatial_better",
+    "text": "spatial + ENS outranks the served XGBoost + ENS combination across 2019\u20132022",
+    "consequence": "eligible to be served after a separate, designed store change; the served number is unchanged until then"
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.011166118685765558,
+      "lo": 0.0032521778255196034,
+      "hi": 0.019062606195139806,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2020": {
+      "point": 0.004660833955512311,
+      "lo": -0.0015973761330542458,
+      "hi": 0.011234174077690407,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2021": {
+      "point": 0.023828392894415185,
+      "lo": 0.016311223163517175,
+      "hi": 0.03230059302898755,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2022": {
+      "point": -0.014197123204277129,
+      "lo": -0.02043840521758967,
+      "hi": -0.008023024671250137,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": "the served combination outranks spatial + ENS in 2022",
+      "n_rows": 20060,
+      "n_init_dates": 120
+    }
+  },
+  "secondary": {
+    "spatial_combination_minus_ens": {
+      "mean": {
+        "point": 0.03759724308242988,
+        "lo": 0.03228041084519162,
+        "hi": 0.04281502574411425,
+        "n_boot": 10000,
+        "n_clusters": 360,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.02662403145333736,
+          "lo": 0.01882988961259042,
+          "hi": 0.034881063472957496,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.05342983550752245,
+          "lo": 0.045582331877125466,
+          "hi": 0.06159077312313608,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.03273786228642983,
+          "lo": 0.02128415846236219,
+          "hi": 0.043314580784766764,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.03354762219686758,
+          "lo": 0.021541925269548075,
+          "hi": 0.045822029352533114,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    },
+    "spatial_combination_minus_spatial": {
+      "mean": {
+        "point": 0.009853264942158074,
+        "lo": 0.007689115779125759,
+        "hi": 0.012076733485841743,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.014355781390108735,
+          "lo": 0.010205439854046885,
+          "hi": 0.018430180466072907,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.0028912323681746788,
+          "lo": -0.001786930517559518,
+          "hi": 0.007533329210570308,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.007562164316650244,
+          "lo": 0.004717288110583145,
+          "hi": 0.010807570353012866,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.01460388169369864,
+          "lo": 0.009606990927226593,
+          "hi": 0.019854792990216676,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    }
+  }
+}
