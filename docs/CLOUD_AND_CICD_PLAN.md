@@ -44,11 +44,11 @@ account. Hugging Face Docker Spaces turned out to be paid.
 | C1 | no live deployment | Create the Render web service from the GHCR image: port 8912, `FBD_READ_ONLY=1`, health check `/api/health`. Follow DEPLOY.md §3. | free tier | **yes**: account and clicks |
 | C2 | the frontend has no visual regression in CI | Run `scripts/capture_screenshots.py` in CI (Chrome is on the runner) and assert `overflowX=false`, zero console errors and zero failed requests per page and viewport. Upload the PNGs as an artifact. No pixel diff yet, because SwiftShader output varies. | free | no |
 | C3 | ~~`pip-audit` only warns~~ **done 2026-10-06** | Fail on high-severity findings in the serving set; keep an allowlist file with an expiry date per exception | free | no |
-| C4 | no SBOM or provenance on images | Add `docker/build-push-action` `sbom: true` and `provenance: mode=max`; optionally cosign keyless signing with GitHub OIDC | free | no |
+| C4 | ~~no SBOM or provenance on images~~ **done 2026-10-06** (SBOM + provenance; cosign signing left optional: it writes to Sigstore's public log) | Add `docker/build-push-action` `sbom: true` and `provenance: mode=max`; optionally cosign keyless signing with GitHub OIDC | free | no |
 | C5 | ~~dependencies are unpinned by hash~~ **done 2026-10-06** (`requirements-serve.lock`, `--require-hashes`) | `pip-compile --generate-hashes` for `requirements-serve.txt`; install with `--require-hashes` in the image | free | no |
 | C6 | no staged rollout | Use the `staging` → `latest` GHCR tags: staging deploys on merge to master, production on a `v*` tag. **Rollback** is redeploying the previous tag. | free | yes, for the second Render service |
 | C7 | no scheduled integration check | Weekly `workflow_dispatch` plus cron: pull the latest GHCR image, run the smoke test, open an issue on failure | free | no |
-| C8 | no ML pipeline CI | On PRs touching `src/fbd/model` or `evaluate`: run the registration-guard tests (`test_backtest_guard.py`, `test_promotion.py`) and a tiny-fixture training smoke test. **Never** a registered score in CI. | free | no |
+| C8 | ~~no ML pipeline CI~~ **done 2026-10-06** (`.github/workflows/ml-guards.yml`) | On PRs touching `src/fbd/model` or `evaluate`: run the registration-guard tests (`test_backtest_guard.py`, `test_promotion.py`) and a tiny-fixture training smoke test. **Never** a registered score in CI. | free | no |
 | C9 | live ingestion (when built) | A cron job, a GitHub Action or a small always-on worker. Never inside the API process. Raw runs go to immutable storage. | the free GitHub Actions cron is enough for daily 00 UTC pulls of one source | yes, if cloud storage is wanted |
 
 ## 3. AWS (withdrawn, kept as a learning artifact)
