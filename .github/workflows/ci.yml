@@ -70,6 +70,7 @@ jobs:
           tests/test_b5_rule.py
           tests/test_mlp.py
           tests/test_combine.py
+          tests/test_pip_audit_gate.py
 
   invariants:
     name: Decision-log invariants
@@ -219,10 +220,15 @@ jobs:
       - run: python -m pip install --upgrade pip
 
       - name: Dependency vulnerability audit
+        # Fails on any known vulnerability in the serving set unless
+        # config/pip_audit_allowlist.json names it with a reason and an expiry
+        # (C3). The gate script, not pip-audit's exit code, decides: a report
+        # that is missing or empty fails, because an audit that did not run is
+        # not a clean audit.
         run: |
           pip install pip-audit
-          pip-audit -r requirements-serve.txt --strict || \
-            echo "::warning::pip-audit reported findings; review before release"
+          pip-audit -r requirements-serve.txt --format json -o pip-audit.json || true
+          python scripts/check_pip_audit.py pip-audit.json
 
       - name: Static security analysis
         run: |
