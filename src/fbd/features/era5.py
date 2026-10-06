@@ -38,6 +38,14 @@ from fbd.regions import masks
 
 ERA5_DIR = config.WB2_RAW / "era5"
 
+#: Where the analysed state comes from (B2). "era5" is the reanalysis the
+#: product was built on; "analysis_t0" is the operational HRES initial state
+#: from WB2 hres_t0, cached by scripts/fetch_analysis_t0.py with its total
+#: column water vapour derived from humidity (fbd.features.tcwv). Both caches
+#: share one layout, so every index below is computed by the same code.
+SOURCES = {"era5": (ERA5_DIR, "era5"),
+           "analysis_t0": (config.WB2_RAW / "analysis_t0", "analysis_t0")}
+
 # Index boxes (lat_min, lat_max, lon_min, lon_max)
 BOX_SOMALI_JET = (5.0, 15.0, 50.0, 65.0)
 BOX_MONSOON_TROUGH = (20.0, 28.0, 72.0, 88.0)
@@ -48,12 +56,16 @@ BOX_INDIA = (6.0, 38.0, 66.0, 100.0)
 EARTH_R = 6.371e6
 
 
-def _open(kind: str, years=None) -> xr.Dataset:
+def _open(kind: str, years=None, source: str = "era5") -> xr.Dataset:
     years = years or config.ALL_YEARS
-    paths = [ERA5_DIR / f"era5_{kind}_{y}.nc" for y in years]
+    if source not in SOURCES:
+        raise ValueError(f"unknown state source {source!r}; one of {sorted(SOURCES)}")
+    folder, prefix = SOURCES[source]
+    paths = [folder / f"{prefix}_{kind}_{y}.nc" for y in years]
     missing = [p.name for p in paths if not p.exists()]
     if missing:
-        raise FileNotFoundError(f"missing ERA5 cache: {missing} -- run scripts/fetch_era5.py")
+        fetch = "fetch_era5.py" if source == "era5" else "fetch_analysis_t0.py"
+        raise FileNotFoundError(f"missing {source} cache: {missing} -- run scripts/{fetch}")
     ds = xr.concat([xr.open_dataset(p) for p in paths], dim="time")
     ds = ds.rename({"latitude": "lat", "longitude": "lon"})
     return ds.sortby("lat").sortby("lon")
@@ -81,10 +93,10 @@ def _relative_vorticity(u: xr.DataArray, v: xr.DataArray) -> xr.DataArray:
     return dvdx - dudy
 
 
-def national_indices(years=None) -> pd.DataFrame:
+def national_indices(years=None, source: str = "era5") -> pd.DataFrame:
     """One row per analysis timestamp: large-scale circulation indices."""
-    d3 = _open("3d", years)
-    d2 = _open("2d", years)
+    d3 = _open("3d", years, source)
+    d2 = _open("2d", years, source)
 
     u850 = d3.u_component_of_wind.sel(level=850)
     v850 = d3.v_component_of_wind.sel(level=850)
@@ -134,12 +146,12 @@ def _daily_at_00z(df: pd.DataFrame) -> pd.DataFrame:
     return d.drop(columns="time")
 
 
-def national_daily(years=None, train_years=None) -> pd.DataFrame:
+def national_daily(years=None, train_years=None, source: str = "era5") -> pd.DataFrame:
     """Daily 00Z indices plus standardised anomalies and multi-day tendencies.
 
     ``train_years`` defaults to ``config.TRAIN_YEARS``; an S1b fold passes its own.
     """
-    idx = _daily_at_00z(national_indices(years)).sort_values("date").reset_index(drop=True)
+    idx = _daily_at_00z(national_indices(years, source)).sort_values("date").reset_index(drop=True)
     cols = [c for c in idx.columns if c != "date"]
 
     # Standardise against the training-year climatology only.
@@ -163,10 +175,10 @@ def national_daily(years=None, train_years=None) -> pd.DataFrame:
     return idx.drop(columns="_year")
 
 
-def subdivision_fields(years=None) -> pd.DataFrame:
+def subdivision_fields(years=None, source: str = "era5") -> pd.DataFrame:
     """Per (subdivision, date) local flow features from the 00Z analysis."""
-    d3 = _open("3d", years)
-    d2 = _open("2d", years)
+    d3 = _open("3d", years, source)
+    d2 = _open("2d", years, source)
     keep = pd.DatetimeIndex(d3.time.values).hour == 0
     d3 = d3.isel(time=keep)
     d2 = d2.isel(time=np.asarray(pd.DatetimeIndex(d2.time.values).hour == 0))

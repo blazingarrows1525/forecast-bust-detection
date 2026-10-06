@@ -25,7 +25,8 @@ OUT = config.PROCESSED / "dataset.parquet"
 
 
 def attach_state_features(feats: pd.DataFrame, train_years=None,
-                          regime_fit_years=None, require: bool = False) -> pd.DataFrame:
+                          regime_fit_years=None, require: bool = False,
+                          source: str = "era5") -> pd.DataFrame:
     """Join ERA5 analysis state + regime probabilities onto the feature table.
 
     CAUSALITY: joined on **init_date**, never valid_date.  The analysis valid on
@@ -45,8 +46,8 @@ def attach_state_features(feats: pd.DataFrame, train_years=None,
         return feats
 
     try:
-        nat = e5.national_daily(train_years=train_years)
-        loc = e5.subdivision_fields()
+        nat = e5.national_daily(train_years=train_years, source=source)
+        loc = e5.subdivision_fields(source=source)
         regimes = rg.classify(nat, loc, fit_years=regime_fit_years)
         static = rg.static_attributes()
     except FileNotFoundError as exc:
@@ -78,7 +79,7 @@ def attach_state_features(feats: pd.DataFrame, train_years=None,
 
 def build(train_years=config.TRAIN_YEARS, val_years=config.VAL_YEARS,
           test_years=config.TEST_YEARS, regime_fit_years=None,
-          require_state: bool = False) -> pd.DataFrame:
+          require_state: bool = False, state_source: str = "era5") -> pd.DataFrame:
     """The labelled dataset for one choice of years. Defaults = the published one."""
     print("1. pairing forecasts with IMD truth ...")
     pairs = hres.build_pairs()
@@ -97,7 +98,7 @@ def build(train_years=config.TRAIN_YEARS, val_years=config.VAL_YEARS,
     print("4. building ERA5 state + regime features ...")
     feats = attach_state_features(feats, train_years=train_years,
                                   regime_fit_years=regime_fit_years,
-                                  require=require_state)
+                                  require=require_state, source=state_source)
 
     keep = [
         "subdivision_id", "init_date", "lead_day", "valid_date",
@@ -121,11 +122,13 @@ def build(train_years=config.TRAIN_YEARS, val_years=config.VAL_YEARS,
     return ds
 
 
-def build_fold(test_year: int, mode: str) -> pd.DataFrame:
+def build_fold(test_year: int, mode: str, state_source: str = "era5") -> pd.DataFrame:
+    """One S1b fold. ``state_source`` picks the analysed state (B2); the default
+    reproduces the pinned fold datasets byte for byte."""
     fold = F.fold_for(test_year)
     return build(fold.train, fold.val, (fold.test,),
                  regime_fit_years=F.regime_fit_years(fold, mode),
-                 require_state=True)
+                 require_state=True, state_source=state_source)
 
 
 def main(argv=None) -> int:
