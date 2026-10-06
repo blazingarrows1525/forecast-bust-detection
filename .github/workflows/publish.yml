@@ -202,13 +202,20 @@ jobs:
           echo "confirmed: serves as UID 1000; read-only refuses overrides with 403"
           docker rm -f fbd-space
 
-      - name: Push
+      # C4: the pushed image carries an SPDX SBOM and a max-mode SLSA
+      # provenance attestation, stored beside it in GHCR. Inspect with:
+      #   docker buildx imagetools inspect <image> --format '{{ json .SBOM }}'
+      #   docker buildx imagetools inspect <image> --format '{{ json .Provenance }}'
+      - name: Push (with SBOM and provenance)
+        id: push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -218,6 +225,8 @@ jobs:
             echo "### Image published"
             echo ""
             echo "- size: \`${IMAGE_SIZE}\`"
+            echo "- digest: \`${{ steps.push.outputs.digest }}\`"
+            echo "- attestations: SPDX SBOM and SLSA provenance (mode=max)"
             echo "- tags:"
             echo '```'
             echo "${{ steps.meta.outputs.tags }}"
