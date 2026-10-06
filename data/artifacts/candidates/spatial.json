@@ -1,0 +1,1106 @@
+{
+  "candidate": "spatial",
+  "registration_sha256": "cf5880e8a0324aa1d00b2e45f46a44e56e3dfdac4582b3157619219b81c464d7",
+  "backtest_sha256": "0e8f23ec784240200d45ce33652f8f23ec5f736db94fec163d9d74196f1e4534",
+  "params_sha256": "3653d1de7227acc48c2347dd988e4171abb315bec2de5ce9ac5e75660732b2aa",
+  "addendum_sha256": "2ef83953db8cefa1de1270f6a2d9f60cb5648b18c41fb3ae57317734724b266e",
+  "inputs_manifest_sha256": "1152df9f60a756cded24557d32e0034cd9bad0b76dd542bcea7bc981d1adab6b",
+  "row_rule": "S1b comparison_rows per fold; both models score every row",
+  "folds": {
+    "2019": {
+      "candidate_auroc": 0.814761731772929,
+      "incumbent_auroc": 0.7829065826684753,
+      "ens_auroc": 0.8024934817097004,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 75.9,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 2,
+          "val_loss": 1.0330671072006226
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 3,
+          "val_loss": 1.0210514068603516
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 2,
+          "val_loss": 1.051233172416687
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 2,
+          "val_loss": 1.0285108089447021
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 1,
+          "val_loss": 1.0361236333847046
+        }
+      ],
+      "model_sha256": "c1b5676034ae66d2ae6b21852d1be540e074ebfd1a40a5f860d42a7de9acb5e2",
+      "seed_auroc": [
+        0.8150623778539076,
+        0.8171362288184306,
+        0.8139619938840732,
+        0.8143040489274135,
+        0.8090544455429609
+      ],
+      "variants": {
+        "window_only": {
+          "auroc": 0.815294185271193,
+          "fit_seconds": 31.6,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 2,
+              "val_loss": 1.0375138521194458
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 3,
+              "val_loss": 1.029119849205017
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 2,
+              "val_loss": 1.041934847831726
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 4,
+              "val_loss": 1.0377627611160278
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 1,
+              "val_loss": 1.0345888137817383
+            }
+          ],
+          "model_sha256": "c1a33d3c1536e4cb489bd0d8eecbc5e15306753f8770aff73b8104f4817d173d",
+          "seed_auroc": [
+            0.8146587726760629,
+            0.81654608787621,
+            0.8094150782884602,
+            0.8179670061849034,
+            0.8077570183707723
+          ]
+        },
+        "map_only": {
+          "auroc": 0.8121524843078196,
+          "fit_seconds": 24.6,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 1,
+              "val_loss": 1.043787956237793
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 3,
+              "val_loss": 1.043249487876892
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 2,
+              "val_loss": 1.042189359664917
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 1,
+              "val_loss": 1.0350935459136963
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 1,
+              "val_loss": 1.0379259586334229
+            }
+          ],
+          "model_sha256": "d627dcc39709b843ed5a4bb37a6ad4862926367d62f38bf36b93ab12ed2e9083",
+          "seed_auroc": [
+            0.807886165589865,
+            0.8127726300784034,
+            0.8094183891660727,
+            0.8156992159657875,
+            0.8078642080334767
+          ]
+        }
+      },
+      "shuffle_auroc": {
+        "window": 0.8077599613730946,
+        "map": 0.8147437288759111
+      }
+    },
+    "2020": {
+      "candidate_auroc": 0.8532472647188784,
+      "incumbent_auroc": 0.841478039979675,
+      "ens_auroc": 0.8027086615795306,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 103.8,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 7,
+          "val_loss": 1.1793479919433594
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 3,
+          "val_loss": 1.1895354986190796
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 1,
+          "val_loss": 1.2190788984298706
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 1,
+          "val_loss": 1.205763816833496
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 5,
+          "val_loss": 1.2096471786499023
+        }
+      ],
+      "model_sha256": "e4fb9dd2b1065eee10cfa64a20b625f00111a56f9375854a1d53f553a1a7bd43",
+      "seed_auroc": [
+        0.852865142691491,
+        0.8464295322958107,
+        0.8458500973392294,
+        0.8447643686474039,
+        0.8577806833984928
+      ],
+      "variants": {
+        "window_only": {
+          "auroc": 0.8537130262336315,
+          "fit_seconds": 55.4,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 7,
+              "val_loss": 1.1780327558517456
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 3,
+              "val_loss": 1.1811459064483643
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 1,
+              "val_loss": 1.215011715888977
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 1,
+              "val_loss": 1.207245945930481
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 5,
+              "val_loss": 1.2009100914001465
+            }
+          ],
+          "model_sha256": "9c9dae8945b89ba4917a53a1644992f48445079135df4bd94bb45a8c194083bb",
+          "seed_auroc": [
+            0.8503129003237675,
+            0.8481708578930447,
+            0.8457113419552159,
+            0.8477610788770876,
+            0.8545827233898546
+          ]
+        },
+        "map_only": {
+          "auroc": 0.8433987769817198,
+          "fit_seconds": 50.7,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 2,
+              "val_loss": 1.2063285112380981
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 3,
+              "val_loss": 1.2072901725769043
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 1,
+              "val_loss": 1.2079579830169678
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 5,
+              "val_loss": 1.2089673280715942
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 1,
+              "val_loss": 1.2324793338775635
+            }
+          ],
+          "model_sha256": "2fcf071aaeeecb62a9d249b8c93156da26f3bc3ecd81278807fd8c72d56a7e98",
+          "seed_auroc": [
+            0.8383235586388325,
+            0.8414647438267102,
+            0.8436651457221225,
+            0.846082123874488,
+            0.8439077943237163
+          ]
+        }
+      },
+      "shuffle_auroc": {
+        "window": 0.8389243367683297,
+        "map": 0.8534301177722224
+      }
+    },
+    "2021": {
+      "candidate_auroc": 0.8490643554600144,
+      "incumbent_auroc": 0.815429338072502,
+      "ens_auroc": 0.8238886574902348,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 169.9,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 3,
+          "val_loss": 0.9795717597007751
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 2,
+          "val_loss": 0.9991695880889893
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 10,
+          "val_loss": 0.9844618439674377
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 3,
+          "val_loss": 0.9763965606689453
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 4,
+          "val_loss": 0.9721730351448059
+        }
+      ],
+      "model_sha256": "82f365ed547cf46926055a5212383b901e2225616b7d13fefc5af71a4f1363fb",
+      "seed_auroc": [
+        0.8431653204389928,
+        0.835675138186928,
+        0.8495046049885201,
+        0.8424737743015176,
+        0.8453014872100217
+      ],
+      "variants": {
+        "window_only": {
+          "auroc": 0.8493788984461192,
+          "fit_seconds": 90.3,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 6,
+              "val_loss": 0.9655397534370422
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 6,
+              "val_loss": 0.98223876953125
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 7,
+              "val_loss": 0.9828138947486877
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 3,
+              "val_loss": 0.9785853624343872
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 6,
+              "val_loss": 0.9839651584625244
+            }
+          ],
+          "model_sha256": "76481ea95183bbd4e9b30f4587d431deb233352a2526e616d82efe5cd7b590a1",
+          "seed_auroc": [
+            0.8461481791566031,
+            0.8459491219585832,
+            0.8471359524554969,
+            0.8425723710938664,
+            0.8477041215672243
+          ]
+        },
+        "map_only": {
+          "auroc": 0.8419978540492592,
+          "fit_seconds": 99.3,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 5,
+              "val_loss": 0.9972121715545654
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 5,
+              "val_loss": 0.9993115663528442
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 5,
+              "val_loss": 1.000907063484192
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 6,
+              "val_loss": 1.0010439157485962
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 3,
+              "val_loss": 0.9981295466423035
+            }
+          ],
+          "model_sha256": "5b8bde897dbf511d4c583cfea589641bad52306bf02a0889eefe808c7280757a",
+          "seed_auroc": [
+            0.838102843967111,
+            0.8425531817004352,
+            0.8405980183733639,
+            0.8406066084660225,
+            0.8366364132338909
+          ]
+        }
+      },
+      "shuffle_auroc": {
+        "window": 0.8263893353795807,
+        "map": 0.8471670515028178
+      }
+    },
+    "2022": {
+      "candidate_auroc": 0.8273454455762816,
+      "incumbent_auroc": 0.8408289724017748,
+      "ens_auroc": 0.8084017050731127,
+      "comparator": "raw",
+      "n_rows": 20060,
+      "n_init_dates": 120,
+      "fit_seconds": 211.9,
+      "history": [
+        {
+          "seed": 20260920,
+          "best_epoch": 5,
+          "val_loss": 0.9960265755653381
+        },
+        {
+          "seed": 20260921,
+          "best_epoch": 4,
+          "val_loss": 0.9831544756889343
+        },
+        {
+          "seed": 20260922,
+          "best_epoch": 4,
+          "val_loss": 1.013336181640625
+        },
+        {
+          "seed": 20260923,
+          "best_epoch": 4,
+          "val_loss": 0.9881152510643005
+        },
+        {
+          "seed": 20260924,
+          "best_epoch": 2,
+          "val_loss": 0.983853280544281
+        }
+      ],
+      "model_sha256": "76fb33e7b074f6335dc94fdcf2549a0b13cf079178fb14e452827b1d2d2d6ad4",
+      "seed_auroc": [
+        0.8232936458041008,
+        0.8309640487236172,
+        0.818669304881545,
+        0.8182211007268855,
+        0.8142498595085259
+      ],
+      "variants": {
+        "window_only": {
+          "auroc": 0.8344524440539894,
+          "fit_seconds": 117.4,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 7,
+              "val_loss": 0.9986254572868347
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 4,
+              "val_loss": 0.9813413619995117
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 9,
+              "val_loss": 0.9845981597900391
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 7,
+              "val_loss": 0.9909770488739014
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 4,
+              "val_loss": 0.9928562045097351
+            }
+          ],
+          "model_sha256": "12002808916bff160e75577a67e798f926fbf7be8e361d4094b906e08489c5ad",
+          "seed_auroc": [
+            0.8342251149689535,
+            0.822361546011959,
+            0.8310330211533854,
+            0.8337274170695955,
+            0.8288894715646579
+          ]
+        },
+        "map_only": {
+          "auroc": 0.8142931713950883,
+          "fit_seconds": 140.2,
+          "history": [
+            {
+              "seed": 20260920,
+              "best_epoch": 5,
+              "val_loss": 1.0145587921142578
+            },
+            {
+              "seed": 20260921,
+              "best_epoch": 6,
+              "val_loss": 1.006516695022583
+            },
+            {
+              "seed": 20260922,
+              "best_epoch": 4,
+              "val_loss": 1.0141639709472656
+            },
+            {
+              "seed": 20260923,
+              "best_epoch": 4,
+              "val_loss": 1.008290410041809
+            },
+            {
+              "seed": 20260924,
+              "best_epoch": 5,
+              "val_loss": 0.9942631721496582
+            }
+          ],
+          "model_sha256": "62de34d3e16d8779213f9a7e99bfdddb8e72722f6a0c85c0623183d9e11d4763",
+          "seed_auroc": [
+            0.8171662968826873,
+            0.8106390711629847,
+            0.8163803844275962,
+            0.8075073962627829,
+            0.802096754089027
+          ]
+        }
+      },
+      "shuffle_auroc": {
+        "window": 0.7972079929326198,
+        "map": 0.8245874037369993
+      }
+    }
+  },
+  "primary": {
+    "point": 0.01594396610141907,
+    "lo": 0.009220641412713025,
+    "hi": 0.022837795743471858,
+    "n_boot": 10000,
+    "n_clusters": 480,
+    "n_degenerate": 0,
+    "alpha": 0.016666666666666666,
+    "excludes_zero": true,
+    "years": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "verdict": "promoted",
+    "text": "the spatial model outranks the XGBoost incumbent across 2019\u20132022"
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.03185514910445364,
+      "lo": 0.019218910504015887,
+      "hi": 0.045562844274528114,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2020": {
+      "point": 0.011769224739203388,
+      "lo": 0.0025582182233200522,
+      "hi": 0.021292271482109073,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2021": {
+      "point": 0.0336350173875124,
+      "lo": 0.023706908860398824,
+      "hi": 0.044155731182285225,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 20060,
+      "n_init_dates": 120
+    },
+    "2022": {
+      "point": -0.013483526825493142,
+      "lo": -0.023216974637010813,
+      "hi": -0.0033023663713276806,
+      "n_boot": 2000,
+      "n_clusters": 120,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": "the XGBoost incumbent outranks the spatial model in 2022",
+      "n_rows": 20060,
+      "n_init_dates": 120
+    }
+  },
+  "secondary": {
+    "ens": {
+      "mean": {
+        "point": 0.029327517057451995,
+        "lo": 0.02223863715170805,
+        "hi": 0.03648414285220508,
+        "n_boot": 10000,
+        "n_clusters": 360,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.012268250063228625,
+          "lo": 0.00081954283732191,
+          "hi": 0.02410596695532378,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.05053860313934777,
+          "lo": 0.03871175345528378,
+          "hi": 0.06282277297702969,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.025175697969779587,
+          "lo": 0.01124118658262438,
+          "hi": 0.038057862162546245,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.018943740503168938,
+          "lo": 0.002214275564485005,
+          "hi": 0.03502679760774013,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    },
+    "mlp": {
+      "mean": {
+        "point": 0.007172977557139859,
+        "lo": 0.004703903941186081,
+        "hi": 0.00970373985006914,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": -5.6675786907933734e-05,
+          "lo": -0.0033025858127581965,
+          "hi": 0.0028899390396450145,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.006741124793135822,
+          "lo": 0.002984521577828711,
+          "hi": 0.01047526644044928,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.009982503000417586,
+          "lo": 0.00491420184663755,
+          "hi": 0.0150264424007027,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": 0.012024958221913962,
+          "lo": 0.005554402978447656,
+          "hi": 0.019304024839653013,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    },
+    "window_only": {
+      "mean": {
+        "point": 0.01804890522062655,
+        "lo": 0.012670133482744955,
+        "hi": 0.023447759794381535,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.03238760260271767,
+          "lo": 0.019890609995143034,
+          "hi": 0.046237837826796205,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.012234986253956581,
+          "lo": 0.0028844747040603163,
+          "hi": 0.02154121657572903,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.033949560373617294,
+          "lo": 0.025176779383539856,
+          "hi": 0.043762418634961275,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": -0.0063765283477853485,
+          "lo": -0.015245485361480002,
+          "hi": 0.003699865770756016,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    },
+    "map_only": {
+      "mean": {
+        "point": 0.007799838402864967,
+        "lo": 0.0023836822775270736,
+        "hi": 0.013207032639993841,
+        "n_boot": 10000,
+        "n_clusters": 480,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.029245901639344263,
+          "lo": 0.016011908434218992,
+          "hi": 0.04333833786058273,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2020": {
+          "point": 0.00192073700204487,
+          "lo": -0.007364146396852214,
+          "hi": 0.011050619047954765,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2021": {
+          "point": 0.026568515976757245,
+          "lo": 0.01725761399782935,
+          "hi": 0.03691347598732343,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 20060,
+          "n_init_dates": 120
+        },
+        "2022": {
+          "point": -0.02653580100668651,
+          "lo": -0.03599326441460353,
+          "hi": -0.016739865198650148,
+          "n_boot": 2000,
+          "n_clusters": 120,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": "the XGBoost incumbent outranks the map-only model in 2022",
+          "n_rows": 20060,
+          "n_init_dates": 120
+        }
+      }
+    }
+  },
+  "exploratory": {
+    "by_month": {
+      "2019": {
+        "6": {
+          "point": 0.012578548212350937,
+          "lo": -0.014122416806615214,
+          "hi": 0.0440646112534788,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.017774192409827916,
+          "lo": 0.0031837481560469754,
+          "hi": 0.033082479629404034,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "8": {
+          "point": 0.0623303200242058,
+          "lo": 0.03383499206144862,
+          "hi": 0.09186475745074404,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "9": {
+          "point": 0.018345743439614814,
+          "lo": -0.009740930366483548,
+          "hi": 0.050550097576023224,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        }
+      },
+      "2020": {
+        "6": {
+          "point": 0.004483403065400515,
+          "lo": -0.007436206498448733,
+          "hi": 0.01738034983985103,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.01805746598078506,
+          "lo": -0.00027841855678619457,
+          "hi": 0.036710807625888665,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "8": {
+          "point": -0.0014383457391311527,
+          "lo": -0.013982093234430226,
+          "hi": 0.009540059160866492,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": 0.027131356628936842,
+          "lo": -0.003631015905955681,
+          "hi": 0.05289085684387708,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        }
+      },
+      "2021": {
+        "6": {
+          "point": 0.015658066318926966,
+          "lo": -0.0007543320260922136,
+          "hi": 0.03047620591586999,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": 0.03610955746512767,
+          "lo": 0.01834747734826947,
+          "hi": 0.057953484336283896,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "8": {
+          "point": 0.008117906683480669,
+          "lo": -0.006326153787021848,
+          "hi": 0.022278513489920607,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": 0.03817536813922362,
+          "lo": 0.014487838319162156,
+          "hi": 0.06069126852331429,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        }
+      },
+      "2022": {
+        "6": {
+          "point": -0.010136975605601117,
+          "lo": -0.03960914186792723,
+          "hi": 0.017079793315809038,
+          "n_boot": 2000,
+          "n_clusters": 30,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "7": {
+          "point": -0.029644618475729523,
+          "lo": -0.04194928642142302,
+          "hi": -0.017259133028001698,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true
+        },
+        "8": {
+          "point": 0.012460250374332626,
+          "lo": -0.0013269792890715753,
+          "hi": 0.028244184340975143,
+          "n_boot": 2000,
+          "n_clusters": 31,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        },
+        "9": {
+          "point": -0.00643457835580763,
+          "lo": -0.03158292317310842,
+          "hi": 0.017037951701837174,
+          "n_boot": 2000,
+          "n_clusters": 28,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false
+        }
+      }
+    },
+    "shuffle_auroc": {
+      "2019": {
+        "window": 0.8077599613730946,
+        "map": 0.8147437288759111
+      },
+      "2020": {
+        "window": 0.8389243367683297,
+        "map": 0.8534301177722224
+      },
+      "2021": {
+        "window": 0.8263893353795807,
+        "map": 0.8471670515028178
+      },
+      "2022": {
+        "window": 0.7972079929326198,
+        "map": 0.8245874037369993
+      }
+    },
+    "seed_auroc": {
+      "2019": [
+        0.8150623778539076,
+        0.8171362288184306,
+        0.8139619938840732,
+        0.8143040489274135,
+        0.8090544455429609
+      ],
+      "2020": [
+        0.852865142691491,
+        0.8464295322958107,
+        0.8458500973392294,
+        0.8447643686474039,
+        0.8577806833984928
+      ],
+      "2021": [
+        0.8431653204389928,
+        0.835675138186928,
+        0.8495046049885201,
+        0.8424737743015176,
+        0.8453014872100217
+      ],
+      "2022": [
+        0.8232936458041008,
+        0.8309640487236172,
+        0.818669304881545,
+        0.8182211007268855,
+        0.8142498595085259
+      ]
+    },
+    "n_boot": 2000,
+    "note": "exploratory: no claims are drawn from these"
+  }
+}
