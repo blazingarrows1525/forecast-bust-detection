@@ -1,0 +1,83 @@
+name: ML guards
+
+# C8 (docs/CLOUD_AND_CICD_PLAN.md). On any change to model, evaluation,
+# feature or scoring code, run the registration guards and the tiny-fixture
+# model tests with torch installed (CPU). In the main workflow those model
+# tests skip, because the serving set has no torch; here a skip fails the job.
+#
+# Never a registered score: those need the gitignored archives and are run
+# once, by hand, after a registration is committed (LOGIC.md, "registered
+# before scored").
+
+on:
+  pull_request:
+    paths:
+      - "src/fbd/model/**"
+      - "src/fbd/evaluate/**"
+      - "src/fbd/features/**"
+      - "scripts/promote.py"
+      - "scripts/score_b2.py"
+      - "scripts/b5_combination.py"
+      - "scripts/combine_ens.py"
+      - "scripts/backtest.py"
+      - "scripts/build_dataset.py"
+      - "tests/**"
+      - "requirements*.txt"
+      - ".github/workflows/ml-guards.yml"
+  push:
+    branches: [master]
+    paths:
+      - "src/fbd/model/**"
+      - "src/fbd/evaluate/**"
+      - "src/fbd/features/**"
+      - "scripts/**"
+      - "tests/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: src
+  FBD_GENAI_ENABLED: "0"
+
+jobs:
+  guards:
+    name: Registration guards and model smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install test dependencies, scikit-learn and CPU torch
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install "scikit-learn==1.3.2" "joblib==1.5.3"
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Registration guards
+        run: >-
+          pytest -q
+          tests/test_backtest_guard.py
+          tests/test_promotion.py
+          tests/test_fold_leakage.py
+          tests/test_stratified_bootstrap.py
+          tests/test_b2_rule.py
+          tests/test_tcwv.py
+          tests/test_spatial_inputs.py
+
+      - name: Model smoke tests on tiny synthetic folds (no skips allowed)
+        # The one GPU test is deselected: runners have no CUDA device.
+        run: |
+          set -o pipefail
+          pytest -q -rs tests/test_mlp.py tests/test_temporal_sequence.py \
+            tests/test_temporal_model.py tests/test_spatial_model.py \
+            --deselect tests/test_spatial_model.py::test_two_gpu_fits_are_bit_identical \
+            | tee smoke.txt
+          if grep -qiE "[0-9]+ skipped" smoke.txt; then
+            echo "::error::a model smoke test skipped; torch or a fixture is missing"
+            exit 1
+          fi
