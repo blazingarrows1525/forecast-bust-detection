@@ -1,0 +1,236 @@
+{
+  "study": "B4",
+  "registration_sha256": "943e9eab55a3b93f677c69c2d7f3ba7c8077c93fd59f5d69a11d6a7dd1b10daf",
+  "folds": {
+    "2019": {
+      "n_rows": 8262,
+      "n_fit_rows": 8262,
+      "auroc": {
+        "short": 0.80956883874379,
+        "served": 0.8083406081669071,
+        "model": 0.7819818436677277
+      },
+      "coefficients": {
+        "short": {
+          "logit_p_model": 0.3551907671516349,
+          "log1p_ens_spread": 1.0158328342575917,
+          "intercept": -4.110268173173863
+        },
+        "served": {
+          "logit_p_model": 0.38101273356005566,
+          "log1p_ens_spread": 0.9892541805858862,
+          "intercept": -4.306531696554872
+        }
+      }
+    },
+    "2020": {
+      "n_rows": 8262,
+      "n_fit_rows": 8262,
+      "auroc": {
+        "short": 0.8531682304041438,
+        "served": 0.8520791060393218,
+        "model": 0.8480929725271655
+      },
+      "coefficients": {
+        "short": {
+          "logit_p_model": 0.5665669673654661,
+          "log1p_ens_spread": 0.8026704227582959,
+          "intercept": -3.6985057722693893
+        },
+        "served": {
+          "logit_p_model": 0.4738533098267569,
+          "log1p_ens_spread": 1.0630703494244587,
+          "intercept": -4.456555269778982
+        }
+      }
+    },
+    "2021": {
+      "n_rows": 8262,
+      "n_fit_rows": 8262,
+      "auroc": {
+        "short": 0.8354792497740947,
+        "served": 0.8354146004598918,
+        "model": 0.831289043655429
+      },
+      "coefficients": {
+        "short": {
+          "logit_p_model": 0.7264480593676728,
+          "log1p_ens_spread": 0.4607730707527339,
+          "intercept": -3.350975229560885
+        },
+        "served": {
+          "logit_p_model": 0.708129269029092,
+          "log1p_ens_spread": 0.6473704985957529,
+          "intercept": -3.937763393572796
+        }
+      }
+    },
+    "2022": {
+      "n_rows": 8262,
+      "n_fit_rows": 8262,
+      "auroc": {
+        "short": 0.8709330132197466,
+        "served": 0.864111447723737,
+        "model": 0.8695677518286693
+      },
+      "coefficients": {
+        "short": {
+          "logit_p_model": 0.6288966645181678,
+          "log1p_ens_spread": 0.5228091109936697,
+          "intercept": -3.4625454788719257
+        },
+        "served": {
+          "logit_p_model": 0.5339448002767417,
+          "log1p_ens_spread": 1.0824525598091994,
+          "intercept": -4.730261743645106
+        }
+      }
+    }
+  },
+  "primary": {
+    "point": 0.002300892437979346,
+    "lo": 0.0007546475291938893,
+    "hi": 0.003912473491001193,
+    "n_boot": 10000,
+    "n_clusters": 488,
+    "n_degenerate": 0,
+    "alpha": 0.05,
+    "excludes_zero": true,
+    "years": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "verdict": "short_lead_fit_better",
+    "text": "a combiner fitted on Days 1\u20132 outranks the served extrapolation at Days 1\u20132 across 2019\u20132022"
+  },
+  "per_year": {
+    "2019": {
+      "point": 0.0012282305768829271,
+      "lo": 0.0005351045030264817,
+      "hi": 0.0018880993707642677,
+      "n_boot": 2000,
+      "n_clusters": 122,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 8262,
+      "n_init_dates": 122
+    },
+    "2020": {
+      "point": 0.0010891243648220028,
+      "lo": -0.0015259864039761373,
+      "hi": 0.003542144810002442,
+      "n_boot": 2000,
+      "n_clusters": 122,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 8262,
+      "n_init_dates": 122
+    },
+    "2021": {
+      "point": 6.464931420291364e-05,
+      "lo": -0.0011504251458543085,
+      "hi": 0.0013313240218042475,
+      "n_boot": 2000,
+      "n_clusters": 122,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": false,
+      "statement": null,
+      "n_rows": 8262,
+      "n_init_dates": 122
+    },
+    "2022": {
+      "point": 0.006821565496009541,
+      "lo": 0.0015119833604290117,
+      "hi": 0.01245336030857136,
+      "n_boot": 2000,
+      "n_clusters": 122,
+      "n_degenerate": 0,
+      "alpha": 0.05,
+      "excludes_zero": true,
+      "statement": null,
+      "n_rows": 8262,
+      "n_init_dates": 122
+    }
+  },
+  "secondary": {
+    "short_minus_model": {
+      "mean": {
+        "point": 0.0095544301156959,
+        "lo": 0.005773986730190675,
+        "hi": 0.013260618777053614,
+        "n_boot": 10000,
+        "n_clusters": 488,
+        "n_degenerate": 0,
+        "alpha": 0.05,
+        "excludes_zero": true,
+        "years": [
+          2019,
+          2020,
+          2021,
+          2022
+        ]
+      },
+      "per_year": {
+        "2019": {
+          "point": 0.027586995076062326,
+          "lo": 0.017424108530454344,
+          "hi": 0.03752743918671824,
+          "n_boot": 2000,
+          "n_clusters": 122,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": true,
+          "statement": null,
+          "n_rows": 8262,
+          "n_init_dates": 122
+        },
+        "2020": {
+          "point": 0.0050752578769782675,
+          "lo": -0.001197557040151967,
+          "hi": 0.011833563281424967,
+          "n_boot": 2000,
+          "n_clusters": 122,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 8262,
+          "n_init_dates": 122
+        },
+        "2021": {
+          "point": 0.004190206118665718,
+          "lo": -0.000921613676248656,
+          "hi": 0.009027302262717364,
+          "n_boot": 2000,
+          "n_clusters": 122,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 8262,
+          "n_init_dates": 122
+        },
+        "2022": {
+          "point": 0.0013652613910772882,
+          "lo": -0.004661525646930539,
+          "hi": 0.007679084578853039,
+          "n_boot": 2000,
+          "n_clusters": 122,
+          "n_degenerate": 0,
+          "alpha": 0.05,
+          "excludes_zero": false,
+          "statement": null,
+          "n_rows": 8262,
+          "n_init_dates": 122
+        }
+      }
+    }
+  }
+}
