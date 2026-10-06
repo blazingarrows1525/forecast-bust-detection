@@ -37,7 +37,7 @@
   REFUSAL
   -------
   status OUT_OF_DISTRIBUTION means the model declined to score the cell. On the
-  2022 test year those days busted 23.4% of the time against 3.4% for scored
+  2022 test year those days busted 23.3% of the time against 3.4% for scored
   ones, so a refusal is elevated, unknown risk -- never "safe". It is rendered
   as dense achromatic noise: loud enough to draw the eye, with no hue, so it
   can never be read as a point on the risk ramp. Cells with no data at all are
@@ -226,7 +226,7 @@
   <div id="ramp"></div>
   <div class="scale"><span>0</span><span id="rampMid">…</span><span id="rampMax">…</span></div>
   <div class="key"><span class="sw refuse"></span>
-    <span><strong>Refused</strong>, not scored. Unknown, elevated risk (23.4% bust vs 3.4%).</span></div>
+    <span><strong>Refused</strong>, not scored. Unknown, elevated risk (23.3% bust vs 3.4%).</span></div>
   <div class="key"><span class="sw none"></span><span>No data</span></div>
   <div id="outlineNote">Outline smoothed for orientation. Edges inside the
     volume are the model's own 0.25° cells, never more than one cell apart.</div>
@@ -1176,7 +1176,7 @@ function showReadout(hit) {
     $("rTier").innerHTML =
       '<span class="tag refuse">REFUSED</span> ' +
       '<span style="color:var(--muted)">unknown risk: refused days bust ' +
-      '23.4% of the time vs 3.4% for scored ones</span>';
+      '23.3% of the time vs 3.4% for scored ones</span>';
   } else if (typeof p === "number") {
     $("rProb").textContent = (p * 100).toFixed(1) + "%";
     const tier = p >= REVIEW_THRESHOLD ? "REVIEW" : "AUTO_OK";
@@ -1252,7 +1252,7 @@ function holdText(region, i) {
   const lead = cube.lead_days[i];
   const where = `${region.region} · Day ${lead} · valid ${region.valid_date[i] || "n/a"}`;
   if (region.status[i] === "OUT_OF_DISTRIBUTION") {
-    return `${where}: not scored. Refused days bust 23.4% of the time ` +
+    return `${where}: not scored. Refused days bust 23.3% of the time ` +
            `against 3.4% for scored ones: unknown, elevated risk.`;
   }
   const p = region.p[i];

@@ -109,7 +109,7 @@ def test_landing_page_breaks_the_line_at_a_refusal():
 LANDING_HEADLINE_LITERALS = [
     '"0.840"', "[0.821, 0.859]", '"0.088"', "[0.053, 0.123]", '"0.0107"',
     "+0.025 AUROC", "−0.008", "+0.058", "drawRefusal(0.034, 0.234)",
-    "6.9× more often", "23.4 percent", '"6.9×"',
+    "6.9× more often", "23.4 percent", "23.3 percent", '"6.9×"',
 ]
 
 
@@ -253,7 +253,7 @@ def test_refusal_is_a_pattern_not_a_hue():
 
     Any hue puts refusal on the same visual axis as risk, which invites reading
     it as a point on the ramp. The previous purple fill was also *darker* than
-    the top risk band, so a region that busts 23.4% of the time looked calmer
+    the top risk band, so a region that busts 23.3% of the time looked calmer
     than one at 35%.
     """
     html = _read("index.html")
@@ -289,7 +289,7 @@ def test_column_view_refusal_is_a_stripe_not_a_hue():
     assert re.search(r"--ood\s*:", html) is None, "refusal must not be a colour token"
     assert "function refusalTexture()" in html and "map: refusalTexture()" in html
     assert "wireframe: isOOD" not in html, "a wireframe reads as less there than a solid low column"
-    assert "23.4%" in html and "3.4%" in html
+    assert "23.3%" in html and "3.4%" in html
 
 
 def test_column_view_is_seen_from_the_south():
@@ -301,7 +301,7 @@ def test_column_view_is_seen_from_the_south():
 
 def test_dashboard_legend_states_that_a_refusal_is_not_low_risk():
     html = _read("index.html")
-    assert "23.4" in html and "3.4" in html, (
+    assert "23.3" in html and "3.4" in html, (
         "the legend must say what a refusal means operationally, not just "
         "that the system declined"
     )
@@ -347,7 +347,7 @@ def test_dismissing_a_refused_row_warns_that_it_is_not_low_risk():
     """The one genuinely dangerous action in this UI.
 
     "Dismiss" on a refused row says "nothing to see here" about the highest-risk
-    class of row on the map -- refused region-days busted 23.4% of the time
+    class of row on the map -- refused region-days busted 23.3% of the time
     against 3.4% for scored ones. The forecaster is still the authority and
     this does not block them; it states what is being dismissed.
     """
@@ -358,7 +358,7 @@ def test_dismissing_a_refused_row_warns_that_it_is_not_low_risk():
     )
     warn = html[html.index('action === "dismiss" && r.status !== "OK"'):]
     warn = warn[:warn.index("} else {")]
-    assert "23.4" in warn and "3.4" in warn
+    assert "23.3" in warn and "3.4" in warn
     assert "elevated" in warn
 
 

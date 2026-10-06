@@ -16,7 +16,7 @@
      stops here against index.html's.
 
      Refusal is not in the ramp. It is a stripe (ink on ground), never a hue:
-     a refused day busts 23.4% of the time against 3.4% for a scored one, so
+     a refused day busts 23.3% of the time against 3.4% for a scored one, so
      it must not read as a point on the ramp or as quieter than one.
 
      The 3-D views stay in the dark ops shell: the scene is lit for it. */
@@ -177,7 +177,7 @@
       <div class="muted" style="margin-top:7px">
         Striped columns are subdivision-days where the atmospheric state is unlike
         anything in training, so the model declined to score them. That is not a low
-        reading: refused days bust 23.4% of the time against 3.4% for scored ones.
+        reading: refused days bust 23.3% of the time against 3.4% for scored ones.
       </div>
       <div class="muted" style="margin-top:7px">
         Cells under 5% are drawn faint so the map shows through them; every other
@@ -670,7 +670,7 @@ async function select(rid, lead){
   document.getElementById("selProb").style.color = "var(--fg)";
   document.getElementById("selProbSub").textContent =
     status==="OK" ? `served (model + ensemble) · baseline says ${pct(r.baseline[i])}`
-                  : "refused: unknown, elevated risk. Refused days bust 23.4% " +
+                  : "refused: unknown, elevated risk. Refused days bust 23.3% " +
                     "of the time vs 3.4% for scored ones.";
 
   const tb = document.querySelector("#profile tbody"); tb.innerHTML="";
@@ -699,6 +699,9 @@ async function select(rid, lead){
       let html = "<h2 style='margin-top:12px'>Why</h2><ul class='reasons'>";
       (row?.dominant_factors ?? []).forEach(f=>html+=`<li>${esc(f)}</li>`);
       html += "</ul>";
+      // Store v0.3.0 (D-037): a network's reasons come from occlusion, not TreeSHAP.
+      if(String(row?.model_version||"").startsWith("0.3") && row?.status!=="OUT_OF_DISTRIBUTION")
+        html += "<div class='muted' style='margin-top:4px;font-size:12px'>The network’s reasons: the inputs that move this estimate most when set to their training average (occlusion; one at a time, not additive).</div>";
       if(row && row.forecast_rain_mm!=null){
         html += `<div class="muted" style="margin-top:6px">forecast ${row.forecast_rain_mm.toFixed(1)} mm/day`;
         if(row.observed_rain_mm!=null) html += ` · observed ${row.observed_rain_mm.toFixed(1)} mm/day`;
