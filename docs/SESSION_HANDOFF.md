@@ -23,9 +23,9 @@ lives in `LOGIC.md`, `DECISIONS.md`, `DATA.md`, `FRONTEND_LOGIC.md` and
 
 ## 1. Where everything stands
 
-**Everything in the plan is done and merged, except what needs you (§6).**
-`master` passes 433 tests, 1 skipped (the district shapefile), with the
-bulletin store present.
+**Everything is done and merged. Store v0.3.0 is released and live in the
+`:latest` image.** `master` passes 444 tests, 1 skipped (the district
+shapefile), with the bulletin store present.
 
 ### Pull requests this session (all merged, each with CI green)
 
@@ -43,7 +43,9 @@ bulletin store present.
 | [#19](https://github.com/blazingarrows1525/forecast-bust-detection/pull/19) | C7: weekly smoke test of the published image | |
 | [#20](https://github.com/blazingarrows1525/forecast-bust-detection/pull/20) | C2: UI captures in CI | |
 | [#21](https://github.com/blazingarrows1525/forecast-bust-detection/pull/21) | **B3** beta-family combiner and **B4** Day 1–2 combiner: **both adopt** | D-035, D-036 |
-| this PR | this handoff, README, CI plan, handbook | |
+| [#22](https://github.com/blazingarrows1525/forecast-bust-detection/pull/22) | handoff, README, CI plan, handbook | |
+| [#23](https://github.com/blazingarrows1525/forecast-bust-detection/pull/23) | **store v0.3.0**: the spatial network + ENS is served; V3 re-check (B4 holds, B3 does not) | D-037 |
+| this PR | this handoff, handbook | |
 
 ### Registered results this session
 
@@ -58,12 +60,30 @@ registration pushed with CI green) and scored exactly once.
 | B3 (D-035) | tail gap **−0.0091 [−0.0124, −0.0037]**, Brier not worse | Adopt at the next store; the gain is mostly 2019–2020. |
 | B4 (D-036) | Day 1–2 fit − served **+0.0023 [+0.0008, +0.0039]** | Adopt at the next store; removes the 2022 short-lead cost. |
 
-### What is served (unchanged)
+### What is served: store v0.3.0 (D-037)
 
-The XGBoost + ENS combination, store `v0.2.0` (D-030). D-034, D-035 and
-D-036 all wait on **one store regeneration**. That publishes a new Release
-asset, so it needs your approval, and it should carry your decision on the
-spatial model at the same time.
+The **S3c spatial network + ENS**:
+- **Base model:** the fold-2022 model, trained on 2016–2020 and calibrated
+  on 2021.
+- **Combiner:** fitted on 2021. Days 3–10 use B5's combiner exactly; Days
+  1–2 have their own set (B4, which held on the network in V3). B3's beta
+  form did **not** hold on the network and is not served.
+- **Reasons:** occlusion, labelled as such on the pages.
+- **Refusals:** the same detector on the network's 52 static inputs.
+  Refused days bust 23.3% of the time against 3.4%.
+- **Serving:** precomputed SQLite on the CPU.
+
+The 2022 trade-off is stated on the landing page: on 2022's decision band,
+v0.3.0 scores AUROC 0.842 against v0.2.0's 0.856. Over 2019–2022 it is
+better, +0.0064 (D-034).
+
+**Release [v0.3.0](https://github.com/blazingarrows1525/forecast-bust-detection/releases/tag/v0.3.0)**
+carries `bulletins.sqlite` and the served model, both checksum-pinned in
+`scripts/fetch_release_artifacts.py`.
+- The tag-built image `0.3.0` and the master-built `:latest` both pass
+  their smoke tests.
+- **Your main checkout still holds the v0.2.0 store.** After pulling
+  master, run `PYTHONPATH=src python scripts/fetch_release_artifacts.py`.
 
 ### CI/CD now
 
@@ -197,13 +217,14 @@ PYTHONPATH=src python -m pytest tests/test_web_pages.py tests/test_voxel_grid.py
 ```bash
 # from the repository root
 git fetch origin && git checkout master && git pull
-PYTHONPATH=src python -m pytest tests/ -q                       # expect 433 passed, 1 skipped
+PYTHONPATH=src python scripts/fetch_release_artifacts.py      # the v0.3.0 store and model
+PYTHONPATH=src python -m pytest tests/ -q                       # expect 444 passed, 1 skipped
 python -m uvicorn fbd.api.app:app --app-dir src --port 8912     # pages at http://localhost:8912/
 python -c "import torch; print(torch.cuda.is_available())"      # True: the CUDA build is installed
 ```
 
 **Say in one line:** *"Continue Forecast Bust Intelligence per
-docs/SESSION_HANDOFF.md: the store-v0.3.0 decision first."*
+docs/SESSION_HANDOFF.md."*
 
 ---
 
@@ -211,34 +232,26 @@ docs/SESSION_HANDOFF.md: the store-v0.3.0 decision first."*
 
 ### Needs you
 
-1. **The serving decision (D-034).** Should the spatial model replace
-   XGBoost inside the served combination?
-   - **For:** +0.0064 on average, and lower calibration error in every year.
-   - **Against:** 2022, the season the landing page's case study comes from,
-     gets worse (−0.0142).
-   - **And either way:** the reason panel needs a new, honest source (or
-     says none is available for the network).
-2. **Approve store `v0.3.0`.** Regenerate the bulletins with D-035 and D-036
-   (and D-034 if you choose it) and upload the new Release asset. The
-   upload is the step that needs you.
-3. **Render** (C1, `docs/DEPLOY.md` §3); a second service for staging (C6).
-4. **Optional:**
-   - enable auto-merge in the repository settings
-   - set `HAWK_API_KEY` for the HawkScan hook
-   - opt in to cosign keyless signing (it writes to Sigstore's public log)
+1. **Render** (C1, `docs/DEPLOY.md` §3), and a second service for staging
+   (C6).
+2. **Optional:**
+   - enable auto-merge
+   - set `HAWK_API_KEY`
+   - opt in to cosign keyless signing
    - delete the other agent's B2 draft in the main checkout
+   - remove the worktrees under `.claude/worktrees/` when their data is no
+     longer needed
 
-### Assistant side, once you decide
+### Assistant side (when you want more)
 
-1. **Store v0.3.0:** wire D-035 and D-036 into `generate_bulletins.py`,
-   regenerate, re-derive every served number and `/api/metrics`, update
-   `combiner.json` and the landing claims, then capture and verify.
-2. **If the spatial model is chosen:** design the CNN's reasons and OOD
-   inputs, then build the store offline on the GPU; serving stays CPU-only.
-3. **Live ingestion (C9):** designed only. D-033 says a live
+1. **Confirm v0.3.0 on unseen data:** 2023+ seasons need new WB2 data. That
+   is the only way to settle the 2022 question without reusing a test year.
+2. **Live ingestion (C9):** designed only. D-033 says a live
    operational-state model must state its cost.
+3. **GEFS disagreement (B6), historical analogues (B7), a cost-ratio slider
+   (B8).**
 4. **Optional LLM work:** wire the status-grounding check into the local
-   assistant (D-019 addendum 3) before narration can be enabled.
+   assistant before narration can be enabled (D-019 addendum 3).
 
 ---
 
@@ -249,9 +262,9 @@ docs/SESSION_HANDOFF.md: the store-v0.3.0 decision first."*
 | Frontend | implemented & verified (re-audit #10); UI captures in CI (C2) |
 | S3 slate (MLP, temporal, spatial) | complete; spatial promoted (D-032) |
 | B2 operational state | scored, inconclusive (D-033) |
-| B5 serving decision | scored: **eligible, not served** (D-034); needs your call |
-| B3 / B4 combiner refinements | scored: both adopt at the next store (D-035, D-036) |
-| Store v0.3.0 | **blocked on your approval** (Release upload) |
+| B5 serving decision | scored (D-034); **served since v0.3.0** (D-037) |
+| B3 / B4 combiner refinements | adopted on XGBoost (D-035, D-036); on the network B4 held and is served, B3 did not (V3, D-037) |
+| Store v0.3.0 | **released and live** (D-037) |
 | CI/CD C2–C5, C7, C8 | implemented & verified, merged |
 | C1 / C6 Render | **blocked**: needs your account |
 | C9 live ingestion | designed only |
