@@ -13,19 +13,29 @@ Written 2026-10-05 (master prompt §15–16), under three constraints:
 
 | job | what it proves |
 |---|---|
-| `test` | the full pytest suite (330 tests on this branch) |
+| `test` | every suite that needs no cached NWP data, including the registration rules, the dependency and capture gates, and the lockfile check |
 | `invariants` | decision-log invariants for the assistant layer: GenAI defaults to OFF; no write, override or alerting tool reaches the model; the numeric-grounding guardrail rejects an invented probability |
 | `airgap` | The app imports with sockets blocked and GenAI routes stay unmounted. Every page's external origins are checked against an allowlist; imagery must default to disabled. |
 | `security` | `pip-audit` on the serving requirements (**fails** on any finding not in the dated allowlist, C3), `bandit -r src/ -ll`, and a secret-pattern scan (fails) |
 | `container` | a serving-layer image builds; `hadolint` on the Dockerfile |
 
-### Release: `.github/workflows/publish.yml`, on `v*` tags
+### More workflows (added 2026-10-06)
 
-1. Build the image.
+| workflow | when | what it proves |
+|---|---|---|
+| `ml-guards.yml` (C8) | model, evaluation, feature or scoring changes | registration guards, then the MLP, temporal and spatial model tests with CPU torch; any skip fails |
+| `ui-captures.yml` (C2) | `web/` or API changes | the four views at five viewports in headless Chrome, served with the released store: no overflow, console error, exception or failed request |
+| `weekly-smoke.yml` (C7) | Mondays 03:17 UTC, or on demand | the published `:latest` image pulls, serves read-only and passes every check; a failure opens an issue. First run 2026-10-06: **pass** |
+
+### Release: `.github/workflows/publish.yml`, on master and `v*` tags
+
+1. Build the image from `requirements-serve.lock` with
+   `--require-hashes` (C5).
 2. Load it locally and **smoke-test it**: the container must become
    healthy and serve a real bulletin.
-3. Push to **GHCR** (`ghcr.io/<owner>/forecast-bust-detection`) with
-   version tags.
+3. Push to **GHCR** (`ghcr.io/<owner>/forecast-bust-detection`) with an
+   SPDX SBOM and SLSA provenance attached (C4). First runs 2026-10-06:
+   **pass**.
 
 Release `v0.2.0` carries `bulletins.sqlite`, checksum-pinned by
 `scripts/fetch_release_artifacts.py`.
