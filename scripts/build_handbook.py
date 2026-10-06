@@ -53,6 +53,9 @@ DOCS = [
     ("C. Decisions and evidence", "docs/PREREGISTRATION_S3B.md", "S3b registration: the temporal (GRU) candidate"),
     ("C. Decisions and evidence", "docs/PREREGISTRATION_S3C.md", "S3c registration: the spatial (CNN) candidate"),
     ("C. Decisions and evidence", "docs/PREREGISTRATION_B2.md", "B2 registration: the operational state, non-inferiority"),
+    ("C. Decisions and evidence", "docs/PREREGISTRATION_B5.md", "B5 registration: spatial + ENS against the served combination"),
+    ("C. Decisions and evidence", "docs/PREREGISTRATION_B3.md", "B3 registration: beta-family tail calibration"),
+    ("C. Decisions and evidence", "docs/PREREGISTRATION_B4.md", "B4 registration: a Day 1-2 combiner"),
     ("D. Frontend", "FRONTEND_LOGIC.md", "the law for every page: claims, honesty, states"),
     ("D. Frontend", "docs/FRONTEND_BUILT.md", "what was built before the redesign"),
     ("D. Frontend", "FRONTEND_HANDOFF.md", "the earlier frontend handoff"),
@@ -79,6 +82,8 @@ DOCS = [
     ("H. Design specs", "docs/superpowers/specs/2026-09-27-s3b-temporal-candidate-design.md", "S3b, the GRU"),
     ("H. Design specs", "docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md", "S3c, the spatial CNNs (scored: D-032)"),
     ("H. Design specs", "docs/superpowers/specs/2026-10-06-b2-operational-analysis-design.md", "B2, the operational state with derived TCWV"),
+    ("H. Design specs", "docs/superpowers/specs/2026-10-06-b5-serving-decision-design.md", "B5, the serving decision"),
+    ("H. Design specs", "docs/superpowers/specs/2026-10-06-b3-b4-combiner-refinements-design.md", "B3 and B4, combiner refinements"),
 ]
 
 #: Not combined: the step-by-step build plans. They are long task scripts

@@ -213,11 +213,40 @@ The two registered variants say where that information is:
 - **The map adds nothing detectable.** Map-only behaves like the MLP.
 
 A subdivision average hides *where* the forecast puts its rain; the window
-sees it. Nothing is served yet: the served number is the XGBoost + ENS
-combination, and replacing it needs its own registered test (backlog B5).
-Figure:
+sees it. Figure:
 [`docs/figures/candidate_spatial.png`](docs/figures/candidate_spatial.png);
 record: D-032.
+
+**Does it survive the combination?** The served number is XGBoost combined
+with ENS spread, not XGBoost alone. So the spatial model was combined with
+the spread in exactly the same way and tested against the served
+combination, again registered first
+([`docs/PREREGISTRATION_B5.md`](docs/PREREGISTRATION_B5.md)):
+
+**Spatial + ENS outranks the served combination across 2019–2022:**
+**+0.0064 [+0.0027, +0.0100]**.
+
+Its calibration error is lower in every year. The served combination still
+wins 2022 (−0.0142), the season of the case study. The spatial model is
+therefore **eligible, not served**. Serving a CNN needs its own design:
+- reasons, because TreeSHAP does not apply
+- the OOD detector's inputs
+- a regenerated store
+
+Record: D-034.
+
+Two smaller registered refinements of the served combiner both passed, and
+are adopted at the next store regeneration:
+- **A combiner fitted on Days 1–2** (D-036) instead of extrapolating the Day
+  3–7 fit: **+0.0023 [+0.0008, +0.0039]**. It removes the short-lead cost
+  measured in 2022.
+- **A beta-family combiner** (D-035) narrows the top-decile reliability gap,
+  **−0.0091 [−0.0124, −0.0037]**, without a worse Brier score. The gain is
+  mostly in 2019–2020; 2022's overconfidence is barely helped.
+
+Moving the 30 reanalysis inputs to the operational analysis (B2, D-033) costs
+a small but real amount of skill, **−0.0033 [−0.0057, −0.0010]**, so that
+substitution is not called harmless.
 
 Against the lagged proxy the margin is **+0.082 AUROC** with a 19% reduction in
 asymmetric decision cost, and every predictor is given the *same* isotonic
