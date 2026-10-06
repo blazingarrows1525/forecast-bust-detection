@@ -158,7 +158,8 @@ The study arc so far (each is a decision record):
 | S1 (D-025) | model vs real ENS spread, 2022 season | model ahead, +0.0316 AUROC |
 | S1b (D-026) | does it hold 2019–2021? | not distinguishable (ENS wins 2019) |
 | S1c (D-029) | model **+** ENS vs ENS alone | combination ahead, +0.0244 |
-| D-030 | serve the combination (store v0.2.0) | now the served number |
+| D-030 | serve the combination (store v0.2.0) | superseded by D-037 |
+| D-037 | serve the spatial network + ENS (store v0.3.0) | now the served number |
 | S3a (D-027) | an MLP on the same 52 inputs vs XGBoost | MLP ahead on average, not in 2022 |
 | S3a-C (D-028) | confirm MLP's ENS lead on untouched 2018 | not confirmed |
 | S3b (D-031) | + a GRU over 14 days of history | not distinguishable; history adds nothing |
@@ -192,14 +193,14 @@ modes**: `mode=replay` (the requested date *is* "now") and `mode=live`
 | `init_date`, `lead_day` (1–10), `valid_date` | issue day, lead, forecast day |
 | `status` | `OK` / `OUT_OF_DISTRIBUTION` / `CLIMATOLOGY_FALLBACK` / `UNAVAILABLE` |
 | `bust_probability` | **served number** = model + ENS combination; `NULL` if not `OK` |
-| `model_probability`, `ens_spread` | the two ingredients (v0.2.0) |
+| `model_probability`, `ens_spread` | the two ingredients (since v0.2.0; the model is the spatial network since v0.3.0) |
 | `confidence_in_estimate`, `pi_low`, `pi_high` | bagged interval |
 | `dominant_factors` (JSON) | reason strings (ENS line first, then TreeSHAP) |
 | `regime_json` (JSON) | soft regime vector |
 | `ood_distance` | Mahalanobis distance (drives the refusal) |
 | `forecast_rain_mm`, `observed_rain_mm`, `actual_bust` | verification log |
 | `baseline_probability` | calibrated ENS-spread baseline (model-vs-baseline toggle) |
-| `model_version` | `0.2.0` |
+| `model_version` | `0.3.0` |
 
 Also `meta` (key/value: `model_version`, `combined`, `combiner`,
 `drift_status`, `ood_threshold`, …) and `overrides` (immutable audit log,

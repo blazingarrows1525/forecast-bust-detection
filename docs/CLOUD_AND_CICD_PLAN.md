@@ -37,7 +37,7 @@ Written 2026-10-05 (master prompt §15–16), under three constraints:
    SPDX SBOM and SLSA provenance attached (C4). First runs 2026-10-06:
    **pass**.
 
-Release `v0.2.0` carries `bulletins.sqlite`, checksum-pinned by
+Release `v0.3.0` carries `bulletins.sqlite` and the served spatial model, checksum-pinned by
 `scripts/fetch_release_artifacts.py`.
 
 ### Hosting (designed and documented, not live)

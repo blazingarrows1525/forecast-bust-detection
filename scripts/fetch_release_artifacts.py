@@ -3,9 +3,11 @@
 Only `bulletins.sqlite` (~74 MB) is distributed this way -- it is too large to
 keep in git history but is what the offline dashboard serves. It is fully
 regenerable from the committed `dataset.parquet`, `bust_model.joblib` and
-`combiner.json` plus the 2021-2022 ENS spread (`scripts/fetch_ens.py`) via
+`combiner.json` plus the 2021-2022 ENS spread (`scripts/fetch_ens.py`), and for
+v0.3.0 the S3c fold-2022 spatial model and its pinned grids, via
 `scripts/generate_bulletins.py`, so this downloader is a convenience, not a
-dependency. v0.2.0 serves the model + ENS combination (D-030).
+dependency. v0.3.0 serves the spatial network + ENS combination (D-037); v0.2.0 served
+XGBoost + ENS (D-030).
 
 The download is checksum-verified: a truncated or tampered asset is rejected
 rather than silently served to the dashboard. See DATA.md for the policy.
@@ -18,14 +20,21 @@ import urllib.request
 from pathlib import Path
 
 REPO = "blazingarrows1525/forecast-bust-detection"
-TAG = "v0.2.0"
+TAG = "v0.3.0"
 
 # (release asset name, destination path relative to repo root, expected sha256)
 ASSETS = [
     (
         "bulletins.sqlite",
         "data/artifacts/bulletins.sqlite",
-        "deeac846b62e88e1169c349b75b4dacdd2a7f8b8b99191026de0bdc9f002a468",
+        "2d7ab6db82786998a0d857e25eed087125584cafd69c26869df72ea0c791bb1f",
+    ),
+    # v0.3.0: the served spatial model itself (S3c fold 2022, D-032/D-037), so the
+    # store can be regenerated from public grids without re-running the GPU study.
+    (
+        "candidate_spatial_2022.joblib",
+        "data/processed/backtest/candidate_spatial_2022.joblib",
+        "76fb33e7b074f6335dc94fdcf2549a0b13cf079178fb14e452827b1d2d2d6ad4",
     ),
 ]
 
