@@ -109,3 +109,32 @@ A forecast is read like a river gauge.
   `docs/FRONTEND_IMPLEMENTATION_REPORT.md`.
 - The roll record and both rounds are also kept in
   `.impeccable/surfaces/web-landing-html.md`.
+
+## 6. Re-audit trade-offs (2026-10-06)
+
+The findings and evidence are in `docs/FRONTEND_AUDIT.md`, under "Re-audit".
+These are the choices a reviewer could question.
+
+- **A jump list, not keyboard-focusable map polygons.** 34 tab stops on a
+  Leaflet map would bury the queue and the controls. One native `<select>`
+  reaches every subdivision, works with any screen reader, and `/` opens
+  it. The map still answers pointer clicks.
+- **Pan, never zoom, to an off-screen pick.** The forecaster chose the zoom.
+  A queue pick that changed it would lose the national view they were
+  reading. Under reduced motion the pan is instant.
+- **Render on demand in the columns view.** Idle frames cost a laptop GPU
+  and battery for nothing. The trade is a camera-signature comparison every
+  animation frame, which is cheap.
+- **The locator map is drawn, not tiled.** The landing stays offline. The
+  map is the project's own subdivision GeoJSON, decimated to about 1 px
+  (609 KB in, about 106 KB of SVG out). It loads only when the reader
+  scrolls near it, so the first paint does not wait for it.
+- **Scales on the register use the reading's own range.** AUROC runs 0.5
+  to 1 (chance to perfect). BSS and ECE use rounded maxima of their
+  intervals. A shared 0–1 axis would flatten every interval into a dot.
+- **No new hues.** The interval band is the water tone, the baseline keeps
+  its ochre notch, and refusal keeps the hatch. The 404 page is the same
+  chart paper, with a hatched staff that has no reading on it.
+
+No external references were consulted for this pass, so there is no
+source ledger.

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" data-world="chart">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Not found · Forecast Bust Intelligence</title>
+<meta name="description" content="This address is not part of Forecast Bust Intelligence." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/fbi.css" />
+<!--
+  Served by the static handler for any address that is not a page or an API
+  route (Starlette StaticFiles, html mode). Offline like every other page:
+  no external origin, no webfont.
+-->
+<style>
+  body { font-size: 16px; line-height: 1.6; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; }
+  header.top { border-bottom: 1px solid var(--rule); }
+  header.top .wrap { min-height: 56px; display: flex; align-items: center; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  main { display: grid; align-items: center; padding: 48px 0 72px; }
+  .plate { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px 36px; align-items: start; max-width: 760px; }
+  .staff { width: 44px; height: 220px; }
+  h1 { font-family: var(--font-sign); font-weight: 600; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.12; margin: 0 0 14px; text-wrap: balance; }
+  p { color: var(--ink-2); max-width: 52ch; margin: 0 0 22px; }
+  code { color: var(--ink); }
+  .ways { display: flex; flex-wrap: wrap; gap: 10px; }
+  @media (max-width: 560px) { .plate { grid-template-columns: 1fr; } .staff { display: none; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the message</a>
+<header class="top">
+  <div class="wrap">
+    <a class="wordmark" href="/landing.html">
+      <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
+      Forecast Bust Intelligence
+    </a>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  <div class="wrap">
+    <div class="plate">
+      <!-- A gauge staff with no reading on it: nothing was measured here. -->
+      <svg class="staff" viewBox="0 0 44 220" aria-hidden="true">
+        <defs><pattern id="nfHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <rect width="7" height="7" style="fill:var(--hatch-bg)"/><line x1="0" y1="0" x2="0" y2="7" stroke-width="2.6" style="stroke:var(--hatch-ink)"/></pattern></defs>
+        <rect x="1" y="1" width="42" height="218" rx="2" style="fill:url(#nfHatch);stroke:var(--ink-3)"/>
+      </svg>
+      <div>
+        <h1>There is no reading at this address.</h1>
+        <p id="what">The page you asked for is not part of this product. Every view
+          opens from the case, and keeps its date, lead day and subdivision as
+          you move between them.</p>
+        <div class="ways">
+          <a class="btn primary" href="/landing.html">Start from the case</a>
+          <a class="btn" href="/">Map</a>
+          <a class="btn" href="/command.html">Columns</a>
+          <a class="btn" href="/volume.html">Volume</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+"use strict";
+// Name the address that was asked for, as text.
+document.getElementById("what").prepend(
+  Object.assign(document.createElement("code"), { textContent: location.pathname }), " ");
+</script>
+</body>
+</html>

@@ -68,6 +68,9 @@
   .case { display: grid; gap: 28px 56px; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); align-items: start; }
   @media (max-width: 959px) { .case { grid-template-columns: 1fr; } }
   .case .claim { font-size: 18px; color: var(--ink); max-width: 46ch; }
+  .locator-fig { margin: 0 0 26px; }
+  #locator { aspect-ratio: 420 / 440; max-width: 420px; }
+  #locator svg { display: block; width: 100%; height: auto; overflow: visible; }
   .note { font-size: 14.5px; color: var(--ink-3); }
 
   table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
@@ -105,6 +108,9 @@
     line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
   .reg h3 { margin: 0 0 2px; }
   .reg p { margin: 0; font-size: 15px; }
+  .reg .scale { margin-top: 10px; max-width: 360px; }
+  .reg .scale svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .reg .scale-key { margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
   @media (max-width: 560px) { .reg { grid-template-columns: 1fr; } }
   #ensClaim { margin-top: 34px; padding-top: 18px; border-top: 2px solid var(--accent);
     color: var(--ink); max-width: 70ch; font-size: 17px; }
@@ -142,6 +148,7 @@
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to the case</a>
 
 <header class="top">
   <div class="wrap">
@@ -159,7 +166,7 @@
   </div>
 </header>
 
-<main>
+<main id="main" tabindex="-1">
 <section id="hero">
   <div class="wrap">
     <div>
@@ -203,6 +210,10 @@
       <p class="note" id="divCap"></p>
     </div>
     <div>
+      <figure class="locator-fig">
+        <div id="locator"></div>
+        <figcaption class="figkey" id="locatorKey">Assam &amp; Meghalaya, in the north-east: the subdivision this case is about.</figcaption>
+      </figure>
       <table id="caseTable">
         <caption>The same ten readings, longest lead first.</caption>
         <thead><tr><th scope="col">Lead</th><th scope="col">Issued</th><th scope="col">Served</th>
@@ -321,6 +332,9 @@ const REGION = "ASSAM_MEGHALAYA", VALID = "2022-06-17";
 // at a 10:1 cost ratio. Painted on every staff, as a gauge paints its levels.
 const REVIEW_THRESHOLD = 0.0909;
 const $ = (s) => document.querySelector(s);
+// Names from the API reach the page as text, never as markup.
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 async function getJSON(u) {
   const r = await fetch(u);
@@ -514,10 +528,114 @@ function drawRefusal(scored, refused) {
   </svg>`;
 }
 
-function statCard(label, value, note) {
+function statCard(label, value, note, scale) {
   return `<div class="reg"><span class="v">${value}</span>
-    <div><h3>${label}</h3><p>${note}</p></div></div>`;
+    <div><h3>${label}</h3><p>${note}</p>${scale || ""}</div></div>`;
 }
+
+// ------------------------------------------------------------ the locator
+// Where the case is: the subdivisions on chart paper, with a graticule every
+// five degrees, and Assam & Meghalaya under water. The polygons are the
+// store's own (/api/regions). They are fetched only as the case section
+// approaches the viewport, so the first screen never waits on 600 KB of
+// outline.
+function drawLocator(geo, regionId) {
+  const W = 420, H = 440, PAD = 30;
+  const LAT0 = 22 * Math.PI / 180, kx = Math.cos(LAT0);
+  let lo = [180, 90], hi = [-180, -90];
+  const rings = (g) => g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
+  geo.features.forEach((f) => rings(f.geometry || {}).forEach((poly) => poly[0].forEach(([x, y]) => {
+    lo = [Math.min(lo[0], x), Math.min(lo[1], y)]; hi = [Math.max(hi[0], x), Math.max(hi[1], y)];
+  })));
+  const s = Math.min((W - 2 * PAD) / ((hi[0] - lo[0]) * kx), (H - 2 * PAD) / (hi[1] - lo[1]));
+  const X = (lon) => PAD + (lon - lo[0]) * kx * s, Y = (lat) => H - PAD - (lat - lo[1]) * s;
+  // About one vertex per pixel: the outline stays exact at this size and the
+  // SVG stays small.
+  const path = (ring) => {
+    let d = "", px = null, py = null;
+    ring.forEach(([lon, lat], i) => {
+      const x = X(lon), y = Y(lat);
+      if (i && i < ring.length - 1 && Math.abs(x - px) < 0.8 && Math.abs(y - py) < 0.8) return;
+      d += (d ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+      px = x; py = y;
+    });
+    return d + "Z";
+  };
+  const P = [`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of India's subdivisions with Assam and Meghalaya, in the north-east, highlighted">`];
+  for (let lon = Math.ceil(lo[0] / 5) * 5; lon <= hi[0]; lon += 5) {
+    P.push(`<line x1="${X(lon)}" x2="${X(lon)}" y1="${PAD - 8}" y2="${H - PAD + 8}" style="stroke:var(--rule)" stroke-width="1"/>`);
+    P.push(`<text x="${X(lon)}" y="${H - 8}" text-anchor="middle" font-size="11" class="sign" style="fill:var(--ink-3)">${lon}°E</text>`);
+  }
+  for (let lat = Math.ceil(lo[1] / 5) * 5; lat <= hi[1]; lat += 5) {
+    P.push(`<line x1="${PAD - 8}" x2="${W - PAD + 8}" y1="${Y(lat)}" y2="${Y(lat)}" style="stroke:var(--rule)" stroke-width="1"/>`);
+    P.push(`<text x="2" y="${Y(lat) - 4}" font-size="11" class="sign" style="fill:var(--ink-3)">${lat}°N</text>`);
+  }
+  let target = null;
+  geo.features.forEach((f) => {
+    const hit = f.properties.subdivision_id === regionId;
+    const d = rings(f.geometry || {}).map((poly) => poly.map(path).join("")).join("");
+    if (hit) { target = { d, f }; return; }
+    P.push(`<path d="${d}" style="fill:var(--plate);stroke:var(--ink-3)" stroke-width=".7" stroke-linejoin="round"/>`);
+  });
+  if (target) {
+    P.push(`<path d="${target.d}" style="fill:var(--water);stroke:var(--ink)" stroke-width="1.6" stroke-linejoin="round"/>`);
+    const pts = rings(target.f.geometry).flatMap((poly) => poly[0]);
+    const cx = X(pts.reduce((a, p) => a + p[0], 0) / pts.length), cy = Y(pts.reduce((a, p) => a + p[1], 0) / pts.length);
+    const lx = Math.min(W - 6, cx + 4), ly = Math.max(PAD + 14, cy - 58);
+    P.push(`<path d="M${cx} ${cy} L${cx} ${ly + 6}" style="stroke:var(--ink)" stroke-width="1.2"/>`);
+    P.push(`<text x="${lx}" y="${ly}" text-anchor="end" font-size="13" font-weight="600" class="sign halo" style="fill:var(--ink)">${esc(target.f.properties.name)}</text>`);
+  }
+  P.push("</svg>");
+  return P.join("");
+}
+
+function watchLocator() {
+  const el = $("#locator");
+  if (!el) return;
+  let started = false;
+  const go = async () => {
+    if (started) return; started = true;
+    try {
+      el.innerHTML = drawLocator(await getJSON("/api/regions"), REGION);
+    } catch (e) {
+      el.innerHTML = "";
+      $("#locatorKey").textContent = "The subdivision outlines need the API; run the server to draw the map.";
+    }
+  };
+  if (!("IntersectionObserver" in window)) { go(); return; }
+  const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); go(); } },
+    { rootMargin: "600px 0px" });
+  io.observe(el);
+  // A throttled tab may never report the intersection; the map still arrives,
+  // just after the first screen has finished.
+  setTimeout(go, 3500);
+}
+
+// -------------------------------------------------------- register scales
+// Each measured value drawn on its own scale: the interval as a band, the
+// point as a tick, the ensemble-spread baseline as a notch. A number with an
+// interval is a range, and the register shows it as one.
+function scaleSVG(o) {
+  const W = 300, H = 40, L = 4, R = 4, y = 16;
+  const x = (v) => L + (W - L - R) * (Math.min(o.max, Math.max(o.min, v)) - o.min) / (o.max - o.min);
+  const P = [`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label)}">`];
+  P.push(`<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" style="stroke:var(--rule-2)" stroke-width="1"/>`);
+  o.ticks.forEach((t) => {
+    P.push(`<line x1="${x(t)}" x2="${x(t)}" y1="${y - 3}" y2="${y + 3}" style="stroke:var(--ink-3)" stroke-width="1"/>`);
+    P.push(`<text x="${x(t)}" y="${H - 2}" text-anchor="middle" font-size="10.5" class="sign" style="fill:var(--ink-3)">${o.fmt(t)}</text>`);
+  });
+  if (o.band) {
+    P.push(`<rect x="${x(o.band[0])}" y="${y - 5}" width="${Math.max(2, x(o.band[1]) - x(o.band[0]))}" height="10" rx="2" style="fill:var(--accent)" opacity=".28"/>`);
+  }
+  (o.bars || []).forEach((b) => {
+    P.push(`<rect x="${L}" y="${b.y}" width="${Math.max(2, x(b.v) - L)}" height="7" rx="1" style="${b.style}"/>`);
+  });
+  if (o.base != null) P.push(`<path d="M${x(o.base)} ${y + 6} l-5 8 h10 z" style="fill:var(--base)"/>`);
+  if (o.point != null) P.push(`<line x1="${x(o.point)}" x2="${x(o.point)}" y1="${y - 8}" y2="${y + 8}" style="stroke:var(--ink)" stroke-width="2.5"/>`);
+  P.push("</svg>");
+  return P.join("");
+}
+
 
 function caseTableHTML(rows, live) {
   return rows.map((r) => {
@@ -550,6 +668,7 @@ window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer
 
 async function boot() {
   observe();
+  watchLocator();
   try {
     const rows = await getJSON(`/api/convergence?region_id=${REGION}&valid_date=${VALID}`);
     caseRows = rows;
@@ -617,7 +736,9 @@ async function boot() {
   let m = null;
   try { m = await getJSON("/api/metrics"); } catch (e) { /* rendered as unavailable */ }
   renderRefusal(m && m.refusal);
-  $("#statCards").innerHTML = statCardsHTML(m);
+  $("#statCards").innerHTML = statCardsHTML(m) +
+    `<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><pattern id="regHatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" style="fill:var(--hatch-bg)"/><line x1="0" y1="0" x2="0" y2="6" style="stroke:var(--hatch-ink)" stroke-width="2.4"/></pattern></defs></svg>`;
   $("#ensClaim").innerHTML = ensClaimHTML(m);
 }
 
@@ -631,6 +752,16 @@ function renderRefusal(r) {
   $("#refuseChart").innerHTML = drawRefusal(r.scored.bust_rate, r.refused.bust_rate);
 }
 
+// A round upper bound for a scale, and four steps up to it.
+function niceMax(v) {
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  return [1, 2, 2.5, 5, 10].map((k) => k * p).find((m) => m >= v * 1.15) || 10 * p;
+}
+function niceTicks(max) { return [0, 0.25, 0.5, 0.75, 1].map((k) => +(k * max).toPrecision(3)); }
+function scaleBlock(o, key) {
+  return `<div class="scale">${scaleSVG(o)}</div><div class="scale-key">${key}</div>`;
+}
+
 function statCardsHTML(m) {
   const band = m && m.confidence_intervals && m.confidence_intervals.decision_band;
   const mod = band && band[MODEL_KEY], lag = band && band[LAGGED_KEY];
@@ -639,13 +770,30 @@ function statCardsHTML(m) {
   const na = "Unavailable in this build.";
   return (
     statCard("AUROC", mod ? mod.auroc.point.toFixed(3) : "n/a",
-      mod ? `${iv(mod.auroc, 3)}, against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na) +
+      mod ? `${iv(mod.auroc, 3)}, against ${lag.auroc.point.toFixed(3)} for the ensemble-spread baseline.` : na,
+      mod && scaleBlock({ label: "AUROC interval on a scale from 0.5 (chance) to 1",
+        min: 0.5, max: 1, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1], fmt: (t) => t.toFixed(1),
+        band: [mod.auroc.lo, mod.auroc.hi], point: mod.auroc.point, base: lag && lag.auroc.point },
+        "0.5 is chance. Band: the interval; notch: the baseline.")) +
     statCard("Brier skill", mod ? mod.bss.point.toFixed(3) : "n/a",
-      mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.` : na) +
+      mod ? `${iv(mod.bss, 3)} over climatology, on the decision band.` : na,
+      mod && scaleBlock({ label: "Brier skill interval on a scale from 0, no better than climatology",
+        min: 0, max: niceMax(mod.bss.hi), ticks: niceTicks(niceMax(mod.bss.hi)), fmt: (t) => t.toFixed(2),
+        band: [mod.bss.lo, mod.bss.hi], point: mod.bss.point, base: lag && lag.bss.point },
+        "0 is no better than climatology. Notch: the baseline.")) +
     statCard("Calibration error", mod ? mod.ece.point.toFixed(4) : "n/a",
-      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail; see the reliability diagram.` : na) +
+      mod ? `${iv(mod.ece, 4)} expected calibration error, decision band. Overconfident in the extreme tail; see the reliability diagram.` : na,
+      mod && scaleBlock({ label: "Calibration error interval on a scale from 0, where lower is better",
+        min: 0, max: niceMax(mod.ece.hi), ticks: niceTicks(niceMax(mod.ece.hi)), fmt: (t) => t.toFixed(3),
+        band: [mod.ece.lo, mod.ece.hi], point: mod.ece.point, base: lag && lag.ece && lag.ece.point },
+        "Lower is better. Notch: the baseline.")) +
     statCard("Refused vs scored", r ? r.ratio.toFixed(1) + "×" : "n/a",
-      r ? `Refused days bust ${pctOf(r.refused.bust_rate)} of the time against ${pctOf(r.scored.bust_rate)} for scored days (${r.year}).` : "Needs the bulletin store.")
+      r ? `Refused days bust ${pctOf(r.refused.bust_rate)} of the time against ${pctOf(r.scored.bust_rate)} for scored days (${r.year}).` : "Needs the bulletin store.",
+      r && scaleBlock({ label: "Bust rate of scored days and of refused days, on one scale",
+        min: 0, max: niceMax(r.refused.bust_rate), ticks: niceTicks(niceMax(r.refused.bust_rate)), fmt: (t) => Math.round(t * 100) + "%",
+        bars: [{ v: r.scored.bust_rate, y: 4, style: "fill:var(--plate);stroke:var(--ink)" },
+               { v: r.refused.bust_rate, y: 21, style: "fill:url(#regHatch);stroke:var(--ink)" }] },
+        "Top: scored. Bottom, hatched: refused."))
   );
 }
 

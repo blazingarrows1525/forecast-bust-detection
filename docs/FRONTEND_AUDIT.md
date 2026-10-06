@@ -111,10 +111,112 @@ The redesign keeps, verbatim where a test reads it:
 - imagery opt-in, attribution and degradation
 - system fonts only (no `@font-face`) and no competition branding
 
-## Next
+## Next (historical)
 
-Phase B (skill-driven design) is in progress: `PRODUCT.md` written through
-Impeccable `init`; the direction round is open on Impeccable's decision page
-(seed `61afe369`). The chosen world becomes the direction contract, then the
-vertical slice: landing → real case → 2-D map → selected region/lead → 3-D →
-volume → back, with F1–F4, F6, F12 and F13 fixed first.
+Done on 2026-10-05: the redesign shipped (PR #7) with F1–F14 and F16 fixed;
+see `docs/FRONTEND_IMPLEMENTATION_REPORT.md`.
+
+---
+
+## Re-audit, 2026-10-06 (after the redesign)
+
+A second pass on the shipped four-view frontend, run under the revised
+master prompt. It used two installed skills:
+- Taste `redesign-existing-projects` (scan, diagnose, fix)
+- Impeccable `audit` (technical: accessibility, performance, theming,
+  responsive, implementation integrity)
+
+The evidence is today's `master` (`dadac94`), served from an isolated
+worktree on port 8913, with captures in
+`artifacts/frontend/reaudit-baseline/` (20 captures: 0 overflow, 0 console
+errors, 0 failed requests). Tests: 346 passed, 1 skipped (the skip needs
+the gitignored district shapefile, which the worktree does not have).
+
+### Audit health score (Impeccable `audit`)
+
+| # | dimension | score | key finding |
+|---|---|---|---|
+| 1 | Accessibility | 3 | No skip link; the map and columns views have no `<main>` and no `h1`; map regions are reachable by keyboard only through the top-12 queue |
+| 2 | Performance | 2 | The columns view leaks 340 geometries and materials, plus a canvas texture, on every lead or view change, and renders 60 fps while idle |
+| 3 | Responsive | 3 | No overflow at any of 5 viewports, but the 3-D canvas has no `touch-action`, no pinch zoom and no `pointercancel` handling; controls are 30 px on touch screens |
+| 4 | Theming | 3 | Full token system, both themes AA (lowest text pair 4.84:1). Hard-coded help-overlay colour and `z-index: 9999`. |
+| 5 | Implementation integrity | 4 | The detector reports only the refusal hatch (intentional, test-pinned) |
+| | **total** | **15/20** | **Good**: address performance and touch |
+
+**Implementation integrity verdict: pass.** One product-specific system
+(chart paper, slate shell, gauge staffs), with every number from the API.
+
+### Contrast (measured, WCAG 2.x)
+
+| theme | lowest text pairs |
+|---|---|
+| dark | `ink-3` on `plate` 5.21; on `ground-2` 5.59 |
+| light | `base` (ochre) on `ground-2` 4.84; `ink-3` on `ground-2` 4.90 |
+
+Accent buttons are 7.5:1 (dark) and 10.0:1 (light). The lowest viridis
+stop on the map ground is 1.04:1 as a fill. Regions are told apart by their
+`--map-edge` outlines, not by the fill.
+
+### Findings and fixes
+
+| # | sev | where | finding | fix |
+|---|---|---|---|---|
+| R1 | P1 | all pages | no skip-to-content link | a skip link to `#main` on every page |
+| R2 | P1 | index, command | no `<main>` landmark and no `h1`; the heading outline starts at `h2` | `<main id="main">` around the work area; a visually hidden `h1` naming the view |
+| R3 | P1 | command | GPU leak: `buildColumns()` creates 340 `BoxGeometry` + `MeshLambertMaterial` per rebuild and never disposes them; `buildStaff()` leaks a `CanvasTexture` each time | Two shared geometries, a material cache keyed by colour and opacity, and dispose the staff texture |
+| R4 | P1 | command | 3-D touch: no `touch-action: none`, no pinch zoom, a drag left stuck on `pointercancel` | pointer map with pinch-to-zoom; clear state on cancel or lost capture |
+| R5 | P1 | index | Only 12 queue rows are keyboard-reachable; the help text promised "/ jumps to a subdivision" and the key went to the date | A **"Jump to subdivision"** select listing all 34 regions; `/` focuses it |
+| R6 | P2 | command | Renders every frame while idle | render on demand (a dirty flag set by orbit, rebuild and resize) |
+| R7 | P2 | command | No hover readout; selection is not marked in the scene; picking from the queue does not bring the column into view | Hover tooltip (region, lead, value or "refused"); outline the selected column; ease the camera target to it (instant under reduced motion) |
+| R8 | P2 | index | On a phone, choosing a queue row can select a region that is off-screen | pan the map to the region when it is not in view |
+| R9 | P2 | all | Touch targets 30 px | 44 px minimum under `pointer: coarse` |
+| R10 | P2 | site | An unknown URL returns raw JSON `{"detail":"Not Found"}`, a dead end | `web/404.html` (StaticFiles serves it automatically), offline, with the way back |
+| R11 | P2 | fbi.css | A global reduced-motion kill on `*` | scope it to the elements that move |
+| R12 | P3 | index | help overlay colour hard-coded; `z-index: 9999`; Leaflet credit carries a flag emoji | tokens, a small z-scale, plain "Leaflet" prefix |
+| R13 | P3 | index, command, volume | no meta description; caret colour unthemed | add both |
+
+**Landing: craft opportunities carried from the finish review** (not
+defects):
+- **L1:** the onset-chart *geography* is absent. Add a chart-paper locator
+  map of the case region drawn from `/api/regions`.
+- **L2:** the evidence register prints its intervals but does not draw
+  them. Set each reading on a scale with its interval band and the
+  baseline marked.
+
+**Unchanged by design:**
+- **F15** (volume frame rate under software rendering) needs a GPU
+  measurement.
+- **The volume view's render loop and shaders** are test-pinned; this pass
+  does not touch them.
+
+### Verification after the fixes
+
+Status: **implemented & verified** for R1–R13, L1 and L2.
+
+| check | result |
+|---|---|
+| Captures | `artifacts/frontend/reaudit-after/`: 20 captures (4 views × 5 viewports), 0 horizontal overflow, 0 console errors, 0 exceptions, 0 failed requests |
+| Tests | full suite green; `test_web_pages.py` + `test_voxel_grid.py` 93 passed (every pinned literal kept) |
+| 3-D memory (R3) | geometries stay at 6–7 across 10 lead changes (was +340 each) |
+| Render on demand (R6) | the columns view draws only when the camera signature changes |
+| Keyboard (R1, R5) | skip link first in tab order on every page; `/` focuses the subdivision jump list; picking a region pans it into view |
+| API 404 | `/api/nope` still returns JSON 404; any other unknown path gets `web/404.html` |
+| Volume (R1, R13) | skip link to the controls heading, `<main>` around the render, meta description; shaders and render loop untouched |
+
+**Detector after the fixes** (`impeccable detect`, current version): 9
+advisories, none actionable.
+- 5 × `repeating-stripes-gradient`: the refusal hatch, intentional and
+  test-pinned.
+- 3 × `design-system-radius "3px0"`: segmented buttons round only their
+  outer corners with the 3 px step.
+- 1 × `flat-type-hierarchy` on the columns view: it reads the visually
+  hidden `h1`. The visible panel heads are deliberately compact (ops
+  density).
+
+The detector version used here also checks code against the `DESIGN.md`
+frontmatter. Master showed 20 such advisories. Eleven were real type steps
+the prose already described but the frontmatter did not list (13 px
+controls and panel heads, the 15 px wordmark and register notes, the lede
+clamp, the 17 px HUD title, the 1 px swatch hairline, two continuous
+viridis stops). They are now recorded in `DESIGN.md`. The 404 headline
+moved onto the existing headline step.

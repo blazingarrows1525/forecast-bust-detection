@@ -17,6 +17,8 @@ colors:
   risk-c2: "#2a788e"
   risk-c3: "#5ec962"
   risk-c4: "#fde725"
+  risk-ramp-c3a: "#22a884"
+  risk-ramp-c3b: "#7ad151"
   chart-paper: "#f2f4f0"
   chart-paper-2: "#e8ebe5"
   enamel-plate: "#fbfcf9"
@@ -72,6 +74,26 @@ typography:
     fontWeight: 600
     lineHeight: 1
     fontFeature: "\"tnum\""
+  lede:
+    fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+    fontSize: "clamp(17px, 1.45vw, 19px)"
+    fontWeight: 400
+    lineHeight: 1.55
+  hud-title:
+    fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
+    fontSize: "17px"
+    fontWeight: 600
+    lineHeight: 1.2
+  wordmark:
+    fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 600
+    letterSpacing: "0.01em"
+  register-note:
+    fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+    fontSize: "15px"
+    fontWeight: 400
+    lineHeight: 1.5
   body:
     fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
     fontSize: "16px"
@@ -82,6 +104,16 @@ typography:
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
+  control:
+    fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.3
+  panel-head:
+    fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 600
+    letterSpacing: "0.02em"
   label:
     fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
     fontSize: "12px"
@@ -94,6 +126,7 @@ typography:
 rounded:
   r: "3px"
   swatch: "2px"
+  hairline: "1px"
 spacing:
   shell-y: "8px"
   shell-x: "14px"
