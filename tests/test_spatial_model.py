@@ -147,3 +147,24 @@ def test_a_registered_cuda_device_is_never_silently_replaced(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     with pytest.raises(RuntimeError, match="CUDA"):
         _setup(dict(SPATIAL_PARAMS))
+
+
+def test_occlusion_base_is_predict_raw_and_each_column_moves_one_input(grids):
+    tr, va, te = _split(_fold())
+    m = SpatialModel(params=_small(), grids=grids).fit(tr, va, FEATS)
+    base, occ, keys = m.occlusion(te, chunk=37)
+    np.testing.assert_allclose(base, m.predict_raw(te), rtol=1e-5, atol=1e-6)
+    assert keys == FEATS + [SpatialModel.WINDOW_KEY, SpatialModel.MAP_KEY]
+    assert occ.shape == (len(te), len(keys)) and np.all((occ > 0) & (occ < 1))
+    # setting an input that is already at its training mean changes nothing
+    te0 = te.copy()
+    te0["x1"] = float(m.prep.mean[FEATS.index("x1")])
+    b0, o0, _ = m.occlusion(te0)
+    np.testing.assert_allclose(o0[:, FEATS.index("x1")], b0, rtol=1e-5, atol=1e-6)
+
+
+def test_occlusion_drops_a_missing_branch(grids):
+    tr, va, te = _split(_fold())
+    m = SpatialModel(branches=("window",), params=_small(), grids=grids).fit(tr, va, FEATS)
+    _b, occ, keys = m.occlusion(te)
+    assert keys == FEATS + [SpatialModel.WINDOW_KEY] and occ.shape[1] == len(FEATS) + 1

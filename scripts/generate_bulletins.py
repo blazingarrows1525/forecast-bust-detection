@@ -13,27 +13,41 @@ Schema is written so a Postgres swap is a connection-string change.
 """
 from __future__ import annotations
 
-import argparse
-import json
-import sqlite3
-import sys
-import time
-from pathlib import Path
+import os
 
-import numpy as np
-import pandas as pd
+# v0.3.0 runs the spatial model on the GPU: cuBLAS is deterministic only with a
+# fixed workspace, and on Windows torch must load before scikit-learn.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+try:
+    import torch  # noqa: F401
+except ImportError:
+    pass
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+import sqlite3  # noqa: E402
+import sys  # noqa: E402
+import time  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fbd import config  # noqa: E402
 from fbd.model import train as T, baselines as B  # noqa: E402
 from fbd.ood import detector as OOD  # noqa: E402
 from fbd.explain import reasons as R  # noqa: E402
 from fbd.evaluate import ens as E  # noqa: E402
 from fbd.model import combined as K  # noqa: E402
+from fbd.evaluate import provenance as P  # noqa: E402
 
-#: v0.2.0: bust_probability is the model + ENS combination (D-029, D-030); the
-#: model alone and the ENS spread are stored beside it.
-MODEL_VERSION = "0.2.0"
+#: v0.2.0: bust_probability is the XGBoost + ENS combination (D-029, D-030).
+#: v0.3.0: the spatial CNN + ENS combination (D-034, D-036, D-037), with a
+#: separate Day 1-2 combiner and occlusion reasons. In both, the base model
+#: alone and the ENS spread are stored beside it.
+VERSIONS = {"xgboost": "0.2.0", "spatial": "0.3.0"}
 
 DB = config.ARTIFACTS / "bulletins.sqlite"
 
@@ -83,7 +97,8 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
 
-def bagged_interval(train, val, df, point, features, n_bags: int = 6, transform=None):
+def bagged_interval(train, val, df, point, features, n_bags: int = 6, transform=None,
+                    fit=None):
     """Prediction interval from bootstrap-bagged retraining.
 
     An earlier version derived the interval by truncating the boosting rounds.
@@ -102,7 +117,7 @@ def bagged_interval(train, val, df, point, features, n_bags: int = 6, transform=
     for b in range(n_bags):
         idx = rng.choice(len(train), size=len(train), replace=True)
         boot = train.iloc[idx]
-        m = T.BustModel().fit(boot, val, features=list(features))
+        m = (fit or (lambda b, v: T.BustModel().fit(b, v, features=list(features))))(boot, val)
         # transform maps a bag to the number actually served (the combination).
         draws.append(transform(m) if transform else m.predict_proba(df))
         print(f"   bag {b+1}/{n_bags} fitted")
@@ -115,61 +130,114 @@ def bagged_interval(train, val, df, point, features, n_bags: int = 6, transform=
     return lo, hi, conf
 
 
+def _load_xgboost(top_k):
+    """Store v0.2.0: the frozen XGBoost model on dataset.parquet, TreeSHAP reasons."""
+    ds = pd.read_parquet(config.PROCESSED / "dataset.parquet")
+    model = T.BustModel.load(config.ARTIFACTS / "bust_model.joblib")
+    tr, va, _te = T.split_frames(ds)
+    tr = tr.dropna(subset=["bust"])
+    explainer = R.ReasonExplainer(model, reference=tr)
+    return {"ds": ds, "tr": tr, "va": va, "features": list(model.features),
+            "p_raw": model.predict_raw, "p_model": model.predict_proba, "refit": None,
+            "reasons": lambda target, comb, lead: explainer.explain(target, k=top_k),
+            "meta": {"base_model": "XGBoost (frozen, D-030)", "reasons_method": "treeshap"}}
+
+
+def _load_spatial(top_k):
+    """Store v0.3.0: the S3c fold-2022 spatial model on its own (strict) inputs,
+    occlusion reasons (design 2026-10-06), bootstrap refits on the GPU."""
+    import fit_combiner as FC
+    from fbd.evaluate import folds as F
+    from fbd.model.spatial import SpatialModel
+
+    model, path = FC.load_spatial()
+    ds = pd.read_parquet(F.fold_path(FC.SPATIAL_YEAR, "strict"))
+    tr, va, _te = T.split_frames(ds)
+    tr = tr.dropna(subset=["bust"])
+    feats = list(model.features)
+    explainer = R.OcclusionExplainer(model.occlusion_keys(), reference=tr)
+
+    def reasons(target, comb, lead):
+        base, occ, keys = model.occlusion(target)
+        term = K.model_term(comb, base, lead)
+        contrib = np.column_stack([term - K.model_term(comb, occ[:, j], lead)
+                                   for j in range(len(keys))])
+        return explainer.explain_contributions(target, contrib, k=top_k)
+
+    def refit(boot, val):
+        return SpatialModel().fit(boot, val, feats)
+
+    return {"ds": ds, "tr": tr, "va": va, "features": feats,
+            "p_raw": model.predict_raw, "p_model": model.predict_proba,
+            "refit": refit, "reasons": reasons,
+            "meta": {"base_model": "S3c spatial CNN, fold 2022 (trained 2016-2020, "
+                                   "calibrated 2021)",
+                     "base_model_sha256": P.sha256_file(path),
+                     "reasons_method": "occlusion",
+                     "ood_inputs": "the 52 static inputs; the forecast window and the map "
+                                   "are not checked"}}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--base", choices=sorted(VERSIONS), default="spatial",
+                    help="spatial = store v0.3.0 (default); xgboost = store v0.2.0")
     ap.add_argument("--splits", nargs="*", default=["val", "test"],
                     help="which splits to write bulletins for")
     ap.add_argument("--top-k-reasons", type=int, default=3)
+    ap.add_argument("--bags", type=int, default=6)
     args = ap.parse_args()
+    MODEL_VERSION = VERSIONS[args.base]
 
     t0 = time.time()
-    ds = pd.read_parquet(config.PROCESSED / "dataset.parquet")
-    tr, va, te = T.split_frames(ds)
-    tr = tr.dropna(subset=["bust"])
+    base = (_load_spatial if args.base == "spatial" else _load_xgboost)(args.top_k_reasons)
+    ds, tr, va, features = base["ds"], base["tr"], base["va"], base["features"]
+    print(f"base {args.base} (store v{MODEL_VERSION}), {len(features)} static inputs")
 
-    model = T.BustModel.load(config.ARTIFACTS / "bust_model.joblib")
-    print(f"model loaded, {len(model.features)} features")
-
-    ood = OOD.MahalanobisOOD().fit(tr, model.features)
-    clim = B.ClimatologyBaseline().fit(tr)
+    ood = OOD.MahalanobisOOD().fit(tr, features)
     spread = B.SpreadBaseline("lagged_spread").fit(tr)
-    explainer = R.ReasonExplainer(model, reference=tr)
 
     target = ds[ds.split.isin(args.splits)].copy()
-    target = target.dropna(subset=model.features, how="all")
+    target = target.dropna(subset=features, how="all")
     print(f"scoring {len(target):,} rows across splits {args.splits}")
 
-    # The served number: the model + ENS combination (D-029), fitted once on 2021
-    # by scripts/fit_combiner.py. Where ENS is missing, the model alone, flagged.
+    # The served number: the base model + ENS combination, fitted once on 2021 by
+    # scripts/fit_combiner.py. Where ENS is missing, the model alone, flagged.
     comb = K.load()
+    if args.base == "spatial" and comb.get("version") != 2:
+        raise SystemExit("combiner.json is not the v2 (spatial) combiner; run "
+                         "scripts/fit_combiner.py first")
+    if args.base == "xgboost" and "version" in comb:
+        raise SystemExit("combiner.json is v2; run scripts/fit_combiner.py --base xgboost")
     ens = E.load_ens()[E.KEY + ["ens_spread"]]
     target["init_date"] = pd.to_datetime(target.init_date)
     ens = ens.assign(init_date=pd.to_datetime(ens.init_date))
-    target = target.merge(ens, on=E.KEY, how="left")
+    target = target.merge(ens, on=E.KEY, how="left").reset_index(drop=True)
     ens_mm = target.ens_spread.to_numpy(float)
+    lead = target.lead_day.to_numpy(int)
     has_ens = np.isfinite(ens_mm)
-    p_model = model.predict_proba(target)
-    prob = np.where(has_ens, K.apply(comb, model.predict_raw(target), ens_mm), p_model)
-    contrib = K.contribution(comb, ens_mm)
+    p_model = base["p_model"](target)
+    prob = np.where(has_ens, K.apply(comb, base["p_raw"](target), ens_mm, lead), p_model)
+    contrib = K.contribution(comb, ens_mm, lead)
     print(f"combination served on {has_ens.sum():,} / {len(target):,} rows "
           f"({(~has_ens).sum():,} without ENS fall back to the model)")
 
     def served(m):
-        return np.where(has_ens, K.apply(comb, m.predict_raw(target), ens_mm),
+        return np.where(has_ens, K.apply(comb, m.predict_raw(target), ens_mm, lead),
                         m.predict_proba(target))
 
-    print('computing bagged prediction intervals ...')
-    va_ = va.dropna(subset=['bust'])
-    lo, hi, conf = bagged_interval(tr, va_, target, prob, model.features, transform=served)
+    print("computing bagged prediction intervals ...")
+    va_ = va.dropna(subset=["bust"])
+    lo, hi, conf = bagged_interval(tr, va_, target, prob, features, n_bags=args.bags,
+                                   transform=served, fit=base["refit"])
     dist = ood.score(target)
     is_ood = dist > ood.threshold_
-    clim_p = clim.predict_proba(target)
     base_p = spread.predict_proba(target)
 
     print(f"OOD refusals: {is_ood.sum():,} / {len(target):,} ({is_ood.mean():.2%})")
 
-    print("computing SHAP reasons ...")
-    reason_lists = explainer.explain(target, k=args.top_k_reasons)
+    print(f"computing {base['meta']['reasons_method']} reasons ...")
+    reason_lists = base["reasons"](target, comb, lead)
 
     names = config.subdivision_names()
     regime_cols = [c for c in target.columns if c.startswith("regime_")]
@@ -241,7 +309,8 @@ def main() -> int:
             ("combiner", json.dumps(comb)),
             ("generated_at", pd.Timestamp.utcnow().isoformat()),
             ("ood_threshold", str(ood.threshold_)),
-            ("n_features", str(len(model.features))),
+            ("n_features", str(len(features))),
+            *[(k, v) for k, v in base["meta"].items()],
             ("splits", ",".join(args.splits)),
             # Drift is computed HERE, where the full feature frame exists, and
             # cached like every other field. /api/health then reads it instead

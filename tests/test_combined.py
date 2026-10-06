@@ -49,3 +49,52 @@ def test_agrees_with_the_fitted_combiner():
     fitted = Combiner().fit(p_raw, spread, y)
     c = {**fitted.coefficients(), "ref_log1p_spread": 0.0}
     assert np.allclose(K.apply(c, p_raw, spread), fitted.predict_proba(p_raw, spread))
+
+
+# ---------------------------------------------------------------- v2 (store v0.3.0)
+V2 = {"version": 2, "form": "beta",
+      "main": {"ln_p": 0.2, "ln_1mp": -0.8, "log1p_ens_spread": 1.0, "intercept": -5.0},
+      "short": {"logit_p_model": 0.6, "log1p_ens_spread": 0.5, "intercept": -3.5},
+      "short_leads": [1, 2], "ref_log1p_spread": 2.0}
+
+
+def test_v2_beta_main_and_logit_short_by_lead():
+    p, s = np.array([0.2, 0.2, 0.2]), np.full(3, np.expm1(2.0))
+    got = K.apply(V2, p, s, lead=np.array([1, 3, 9]))
+    zb = 0.2 * np.log(0.2) - 0.8 * np.log(0.8) + 2.0 - 5.0
+    zs = 0.6 * np.log(0.2 / 0.8) + 0.5 * 2.0 - 3.5
+    assert got[0] == pytest.approx(1 / (1 + np.exp(-zs)))
+    assert got[1] == pytest.approx(1 / (1 + np.exp(-zb))) == got[2]
+
+
+def test_v2_without_a_short_set_or_leads_uses_main_everywhere():
+    no_short = {**V2, "short": None}
+    p, s = np.array([0.1, 0.3]), np.array([5.0, 9.0])
+    assert np.allclose(K.apply(no_short, p, s, lead=[1, 5]), K.apply(V2, p, s))
+
+
+def test_v2_model_term_and_contribution_follow_the_set():
+    term = K.model_term(V2, [0.2, 0.2], lead=[2, 5])
+    assert term[0] == pytest.approx(0.6 * np.log(0.25))
+    assert term[1] == pytest.approx(0.2 * np.log(0.2) - 0.8 * np.log(0.8))
+    con = K.contribution(V2, [np.expm1(3.0)] * 2, lead=[1, 6])
+    assert con[0] == pytest.approx(0.5) and con[1] == pytest.approx(1.0)
+
+
+def test_v1_is_unchanged_by_the_lead_argument():
+    p, s = np.array([0.2, 0.4]), np.array([3.0, 8.0])
+    assert np.array_equal(K.apply(C, p, s), K.apply(C, p, s, lead=[1, 5]))
+
+
+def test_v2_beta_agrees_with_the_fitted_beta_combiner():
+    pytest.importorskip("sklearn")
+    from fbd.evaluate.refine import BetaCombiner
+
+    rng = np.random.default_rng(1)
+    p = rng.uniform(0.01, 0.6, 3000)
+    s = rng.gamma(2.0, 3.0, 3000)
+    y = (rng.uniform(size=p.size) < p).astype(int)
+    b = BetaCombiner().fit(p, s, y)
+    c = {"version": 2, "form": "beta", "main": b.coefficients(), "short": None,
+         "short_leads": [1, 2], "ref_log1p_spread": 0.0}
+    assert np.allclose(K.apply(c, p, s, lead=np.full(p.size, 4)), b.predict_proba(p, s))

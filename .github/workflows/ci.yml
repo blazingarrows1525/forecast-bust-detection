@@ -71,6 +71,8 @@ jobs:
           tests/test_refine.py
           tests/test_mlp.py
           tests/test_combine.py
+          tests/test_combined.py
+          tests/test_reasons_occlusion.py
           tests/test_pip_audit_gate.py
           tests/test_lockfile.py
           tests/test_capture_gate.py
