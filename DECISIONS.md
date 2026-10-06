@@ -1999,3 +1999,142 @@ rather than by recent persistence.
   subdivisions' errors) or another encoder would help. Each would be a new
   candidate, needing a new registration and a wider correction.
 - 2022 remains XGBoost's season for every network tested so far.
+
+## D-032 — S3c: the spatial model outranks XGBoost, and the forecast's own rain pattern is what it reads — LOCKED
+
+Registration: `docs/PREREGISTRATION_S3C.md`, commit `73891cf`. It was pushed,
+with CI 5/5 green (PR #11), before any spatial model predicted 2019–2022.
+Design: `docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md`.
+Output: `data/artifacts/candidates/spatial.json`. Figure:
+`docs/figures/candidate_spatial.png`.
+
+S3c is the spatial candidate, the last of the S3 slate. It is S3a's MLP head
+with two image encoders in front:
+- **The window:** a 13 × 13 HRES patch (~1,000 km) around the subdivision. It
+  holds the forecast being judged, the previous run for the same day, the
+  outline, terrain, and the 00Z moisture and wind.
+- **The map:** the ERA5 monsoon map at issue time.
+
+Everything else is S3a's, so S3c − MLP measures what the images add.
+
+**One amendment to the spec, before any fit: it runs on the GPU** (an RTX 3060
+Laptop GPU, at the owner's request), deterministically. The audit
+(`s3c_audit.json`) proved four things before registering:
+- **The harness changes are neutral:** the MLP and the temporal model were
+  re-scored through the changed `promote.py` and reproduced their scored
+  files exactly in all four folds.
+- **The inputs are causal:** poisoning real 2018 grids after the issue time
+  changed nothing in 20 sampled rows.
+- **The GPU cut is right:** the device's window cut equals the reference cut.
+- **Fits are deterministic:** two GPU fits were bit-identical, with 2018
+  validation AUROC 0.8307.
+
+### Result — registered primary, run once
+
+| test year | spatial | window-only | map-only | MLP | XGBoost | ENS | spatial − XGBoost [95%] |
+|---|---|---|---|---|---|---|---|
+| 2019 | 0.8148 | 0.8153 | 0.8122 | 0.8148 | 0.7829 | 0.8025 | +0.0319 [+0.0192, +0.0456] |
+| 2020 | 0.8532 | 0.8537 | 0.8434 | 0.8465 | 0.8415 | 0.8027 | +0.0118 [+0.0026, +0.0213] |
+| 2021 | 0.8491 | 0.8494 | 0.8420 | 0.8391 | 0.8154 | 0.8239 | +0.0336 [+0.0237, +0.0442] |
+| 2022 | 0.8273 | 0.8345 | 0.8143 | 0.8153 | 0.8408 | 0.8084 | **−0.0135 [−0.0232, −0.0033]** |
+
+Mean over 2019–2022, stratified cluster bootstrap, 10,000 resamples, seed
+20260919, 98.33% (Bonferroni over the slate), no degenerate resample:
+
+**+0.0159 [+0.0092, +0.0228] → the spatial model outranks the XGBoost
+incumbent across 2019–2022.** The XGBoost incumbent still outranks it in 2022.
+
+### Secondary (reported; cannot promote)
+
+- **Spatial − MLP:** +0.0072 [+0.0047, +0.0097] as the mean over 2019–2022.
+  Per year:
+
+  | year | margin [95%] |
+  |---|---|
+  | 2019 | −0.0001 [−0.0033, +0.0029] |
+  | 2020 | +0.0067 [+0.0030, +0.0105] |
+  | 2021 | +0.0100 [+0.0049, +0.0150] |
+  | 2022 | +0.0120 [+0.0056, +0.0193] |
+
+  This is D-027's check, and it clears: the gain is not the network alone.
+- **Window-only − XGBoost:** +0.0180 [+0.0127, +0.0234] as the mean.
+  Per year:
+
+  | year | margin [95%] |
+  |---|---|
+  | 2019 | +0.0324 |
+  | 2020 | +0.0122 |
+  | 2021 | +0.0339 |
+  | 2022 | −0.0064 [−0.0152, +0.0037] |
+
+  In 2022 it is level with XGBoost, the first network in the slate that is
+  not clearly behind there.
+- **Map-only − XGBoost:** +0.0078 [+0.0024, +0.0132] as the mean, and
+  −0.0265 [−0.0360, −0.0167] in 2022. That is the MLP's own pattern (+0.0088
+  mean, −0.0255 in 2022).
+- **Spatial − ENS spread:** +0.0293 [+0.0222, +0.0365] as the mean over
+  2019–2021. Per year:
+
+  | year | margin [95%] |
+  |---|---|
+  | 2019 | +0.0123 [+0.0008, +0.0241] |
+  | 2020 | +0.0505 |
+  | 2021 | +0.0252 |
+  | 2022 | +0.0189 [+0.0022, +0.0350] |
+
+  This is uncorrected, and the MLP's similar lead was not confirmed on 2018
+  (D-028). No claim is drawn.
+
+### Exploratory (no claims)
+
+- **Group shuffle (AUROC drop when the input is permuted):**
+
+  | input | 2019 | 2020 | 2021 | 2022 |
+  |---|---|---|---|---|
+  | windows, across rows | 0.007 | 0.014 | 0.023 | 0.030 |
+  | maps, across issue days | 0.000 | −0.000 | 0.002 | 0.003 |
+
+  The model reads the window and barely reads the map.
+- **Training:** best epochs 1–10 across seeds and folds. The seed AUROCs
+  span 0.814–0.831 in 2022.
+- **By month against XGBoost:** 2022 is negative in June, July and
+  September, and positive in August (+0.0125).
+
+### Reading it
+
+This is the first row of the committed consequences: **the forecast's spatial
+pattern or the synoptic map adds information beyond being a network**, and
+the variants say which.
+- **It is the window, the forecast's own rain pattern around the
+  subdivision, with its neighbourhood.** Window-only does as well as the
+  full model or better, and scrambling windows costs up to 0.030 AUROC.
+- **The synoptic map adds nothing detectable.** Map-only reproduces the
+  MLP, and scrambling maps costs about nothing.
+
+A subdivision average hides how the forecast's rain is placed: a sharp edge
+or a band just offshore makes a different bust risk from the same mean.
+The window shows that placement, and it is information the 52 inputs did
+not carry. 2022, XGBoost's season for every earlier network, is where the
+window narrows the gap most (−0.0255 for the MLP, −0.0064 for window-only).
+
+### Consequences, as registered
+
+- README "Other model families" states the result. `FRONTEND_LOGIC.md` §8
+  adds that a spatial model was tested and outranks XGBoost. **Nothing is
+  served; the product is unchanged.**
+- The S3 slate is complete. Whether anything from S3 should change the
+  served model is a separate decision (backlog B5), taken with S3's results
+  in hand. It is not pre-empted here. The served number is the XGBoost +
+  ENS combination (D-030), so a candidate would have to beat that, not the
+  XGBoost model alone, in its own registered test. The obvious candidate is
+  now the window model, not the MLP.
+
+### What this does not settle
+
+- Whether the window model inside the ENS combination outranks today's
+  served combination (B5). Nor whether its 2022 parity survives a season
+  nobody has looked at.
+- Whether the gain needs the GPU. It is a small network: the GPU makes
+  fitting fast, not possible.
+- Whether a larger window, more runs or another encoder would help. Each
+  would be a new candidate under a new registration.

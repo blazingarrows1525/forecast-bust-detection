@@ -15,11 +15,11 @@ in progress, implemented & verified, blocked.
 
 ## B1. S3c, spatial CNNs: complete the registered slate
 
-- **Status:** in progress (2026-10-06). Spec
-  `docs/superpowers/specs/2026-09-28-s3c-spatial-candidate-design.md`
-  (merged in PR #6). Implemented on branch `s3c-implement`: grids, model
-  (on the GPU, deterministic), harness changes, audit and
-  `PREREGISTRATION_S3C.md`. Scoring waits on the registration commit.
+- **Status:** implemented & verified, scored once (2026-10-06, D-032).
+  **Promoted:** spatial − XGBoost +0.0159 [+0.0092, +0.0228]; spatial − MLP
+  +0.0072 [+0.0047, +0.0097]. The forecast window carries the gain (window-only
+  +0.0180, level with XGBoost in 2022); the map adds nothing detectable.
+  Trained on the GPU, deterministically. Not served.
 - **Hypothesis:** the *spatial pattern* of the forecast window and the
   synoptic map carries bust information that subdivision means discard.
 - **Data:** HRES precipitation windows and ERA5/`hres_t0` fields on the
@@ -76,9 +76,10 @@ in progress, implemented & verified, blocked.
   removes the short-lead cost.
 - **Registration needed.** The served claim stays on Days 3–7 until then.
 
-## B5. Serve the MLP?
+## B5. Serve a network? (now: the window model)
 
-- **Status:** blocked on B1.
+- **Status:** unblocked (S3c scored, D-032). The candidate to test is the
+  window model inside the ENS combination, not the MLP.
 - **Context:** D-027 promoted the MLP under the S3 rule. D-028 did not
   confirm its ENS lead on untouched 2018. The served product is unchanged
   by design until S3c is scored.
