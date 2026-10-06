@@ -1,0 +1,34 @@
+{
+  "folds": {
+    "2019": {
+      "got": 0.8179513944772722,
+      "want": 0.8179513944772722,
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    },
+    "2020": {
+      "got": 0.8514776631315407,
+      "want": 0.8514776631315407,
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    },
+    "2021": {
+      "got": 0.8327981268822494,
+      "want": 0.8327981268822494,
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    },
+    "2022": {
+      "got": 0.8561464504742574,
+      "want": 0.8561464504742574,
+      "reproduced": true,
+      "n_fit_rows": 20060,
+      "n_rows": 20060
+    }
+  },
+  "ok": true,
+  "note": "only the published served combination recomputed; no candidate fitted"
+}
