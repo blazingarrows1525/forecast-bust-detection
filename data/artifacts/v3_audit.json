@@ -1,0 +1,26 @@
+{
+  "folds": {
+    "2019": {
+      "got": 0.8291175131630377,
+      "want": 0.8291175131630377,
+      "reproduced": true
+    },
+    "2020": {
+      "got": 0.856138497087053,
+      "want": 0.856138497087053,
+      "reproduced": true
+    },
+    "2021": {
+      "got": 0.8566265197766646,
+      "want": 0.8566265197766646,
+      "reproduced": true
+    },
+    "2022": {
+      "got": 0.8419493272699803,
+      "want": 0.8419493272699803,
+      "reproduced": true
+    }
+  },
+  "ok": true,
+  "note": "only B5's published spatial combination recomputed; no candidate fitted"
+}
