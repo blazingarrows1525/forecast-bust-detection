@@ -76,6 +76,7 @@ jobs:
           tests/test_pip_audit_gate.py
           tests/test_lockfile.py
           tests/test_capture_gate.py
+          tests/test_image_contents.py
 
   invariants:
     name: Decision-log invariants

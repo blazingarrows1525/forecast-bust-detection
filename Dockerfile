@@ -58,6 +58,9 @@ COPY --chown=fbd:fbd scripts/replay_demo.py /app/scripts/
 COPY --chown=fbd:fbd data/artifacts/ /app/data/artifacts/
 COPY --chown=fbd:fbd data/interim/regions.geojson /app/data/interim/
 COPY --chown=fbd:fbd data/interim/centroids.json /app/data/interim/
+# The Volume view's grid (/api/voxel-grid). tests/test_image_contents.py fails
+# if the API reads a file that is not COPYd here.
+COPY --chown=fbd:fbd data/interim/voxel_grid.json /app/data/interim/
 
 # fbd.config creates the full data tree at import time (raw/, processed/,
 # raw/imd, raw/shapes, raw/wb2 -- none of which are COPYd, because serving

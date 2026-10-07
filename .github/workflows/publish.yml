@@ -29,8 +29,10 @@ on:
       - "data/artifacts/**"
       - "data/interim/regions.geojson"
       - "data/interim/centroids.json"
+      - "data/interim/voxel_grid.json"
       - "scripts/replay_demo.py"
       - "scripts/precompute_geo_assets.py"
+      - "scripts/precompute_voxel_grid.py"
       - "scripts/fetch_release_artifacts.py"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
@@ -172,6 +174,11 @@ jobs:
           features=$(curl -fsS http://localhost:8912/api/regions | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["features"]))')
           echo "/api/regions returned $features features"
           [ "$features" -ge 30 ] || { echo "too few regions"; exit 1; }
+          # The Volume view reads its grid from a separate file. volume.html
+          # answering 200 proves nothing if this endpoint 404s.
+          cells=$(curl -fsS http://localhost:8912/api/voxel-grid | python3 -c 'import sys,json;g=json.load(sys.stdin);print(g["ny"]*g["nx"])')
+          echo "/api/voxel-grid returned a ${cells}-cell grid"
+          [ "$cells" -ge 1 ] || { echo "voxel grid is empty"; exit 1; }
           # config.py creates the data tree at import; the non-root runtime user
           # must be able to do that or the app dies before its first request.
           docker exec fbd-smoke python -c "import fbd.config; print('config import OK as', __import__('getpass').getuser())"
