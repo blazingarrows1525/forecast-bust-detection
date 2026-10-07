@@ -2,10 +2,10 @@ name: Weekly image smoke test
 
 # C7 (docs/CLOUD_AND_CICD_PLAN.md). Once a week, pull the published :latest
 # image from GHCR and prove it still serves: health with real bulletin rows,
-# the review queue, the regions, the pages and the read-only refusal. An image
-# can rot without a single commit (a base-image CVE rebuild, a registry
-# problem, a dependency yanked between builds), so the check runs on a
-# schedule, not on pushes. A failure opens an issue; success is silent.
+# the review queue, the regions, the Volume view's grid, the pages and the
+# read-only refusal. An image can rot without a single commit (a base-image
+# CVE rebuild, a registry problem, a dependency yanked between builds), so the
+# check runs on a schedule, not on pushes. A failure opens an issue; success is silent.
 
 on:
   schedule:
@@ -59,6 +59,8 @@ jobs:
           [ "$q" -ge 1 ] || { echo "review queue empty"; exit 1; }
           n=$(curl -fsS http://localhost:8912/api/regions | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["features"]))')
           [ "$n" -ge 30 ] || { echo "too few regions: $n"; exit 1; }
+          v=$(curl -fsS http://localhost:8912/api/voxel-grid | python3 -c 'import sys,json;g=json.load(sys.stdin);print(g["ny"]*g["nx"])')
+          [ "$v" -ge 1 ] || { echo "voxel grid is empty"; exit 1; }
           for page in / /landing.html /command.html /volume.html; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8912${page}")
             [ "$code" = "200" ] || { echo "$page returned $code"; exit 1; }
@@ -67,7 +69,7 @@ jobs:
             -d '{"region_id":"ASSAM_MEGHALAYA","init_date":"2022-06-14","lead_day":3,"action":"escalate","reason":"weekly smoke","user":"ci"}' \
             http://localhost:8912/api/override)
           [ "$code" = "403" ] || { echo "read-only override returned $code, expected 403"; exit 1; }
-          echo "OK: queue $q items, $n regions, pages 200, read-only 403"
+          echo "OK: queue $q items, $n regions, voxel grid $v cells, pages 200, read-only 403"
           docker rm -f fbd
 
       - name: Open an issue on failure
