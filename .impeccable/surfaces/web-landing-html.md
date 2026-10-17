@@ -46,6 +46,10 @@ Plotting the chart: on entry the stations are plotted in rank order, column by c
 - Brief CTA labels ("ENTER COMMAND CENTRE", "EXPLORE A VERIFIED HISTORICAL CASE"): set in sentence case; the command centre is the 3-D columns view, as PRODUCT.md names it.
 - Display face: system fonts only (no @font-face); Bahnschrift carries the plotted numerals and headings.
 - Theme: the landing is dark in every OS scheme (night orbit); the working views keep their own theme toggle.
+- Title block (finish review round 1, 2026-10-18): built bottom left, under the actions, not bottom right. India fills the right of the first viewport, so a bottom-right block would cover readings; under the actions it sits in the void the text already owns. On phones it follows the scene, below the first viewport, because the scene and the headline take the first screen.
+- Station plots (round 1): unboxed ink in a row in the void above India, right of the headline, as many as the band holds (one on a phone), each with a leader to its station; the outcome (busted or held) is the lower-right position.
+- Hero reading (round 1): the widest served-over-baseline gap among leads that busted, so "Which one?" is answered by a forecast that failed; the overall widest gap is still stated, with its outcome.
+- Display face: Bahnschrift with platform fallbacks, per the project's system-fonts rule (PRODUCT.md, tests/test_web_pages.py). A self-hosted DIN-class face was proposed in review and is left to the owner.
 
 ## Roll record
 

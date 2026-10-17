@@ -18,10 +18,13 @@
 window.FBIOrbit = (() => {
   const D2R = Math.PI / 180;
   const R = 10;                 // globe radius, scene units
-  const H0 = 0.045;             // the land plate every cell stands on
-  const H_PER_P = 1.25;         // column height per unit of probability
+  const H0 = 0.035;             // the land plate every cell stands on
+  const H_PER_P = 0.85;         // column height per unit of probability
   const H_REFUSED = H0 + 0.35 * H_PER_P;   // a fixed height, hatched: unknown, never low
-  const GAP = 0.84;             // cells stand apart, so the grid itself is visible
+  // Cells meet edge to edge: a visible gap between thousands of thin columns
+  // aliases into vertical moire at landing-page scale. The grid still shows,
+  // as the stair-stepped subdivision rims.
+  const GAP = 0.995;
   const BANDS = [0.05, 0.10, 0.20, 0.35];
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const code = (L) => "D" + String(L).padStart(2, "0");
@@ -152,10 +155,43 @@ window.FBIOrbit = (() => {
     const label = rd.state === "refused"
       ? `${rd.name}, ${code(rd.lead)}: refused, not scored. Open in the command centre.`
       : `${rd.name}, ${code(rd.lead)}: ${pct(rd.p)} served, baseline ${pct(rd.baseline)}. Open in the command centre.`;
-    return `<a class="stn" href="${href}" aria-label="${esc(label)}">` +
+    const obs = rd.actual === 1 ? "busted" : rd.actual === 0 ? "held" : "not observed";
+    return `<a class="stn" href="${href}" aria-label="${esc(label)} Observed: ${obs}.">` +
       `<span class="stn-served sign">${served}</span>${mark}<span class="stn-lead sign">${code(rd.lead)}</span>` +
       `<span class="stn-base sign">${rd.state === "refused" ? "no reading" : "base " + pct(rd.baseline)}</span>` +
+      `<span class="stn-obs sign${rd.actual === 1 ? " bust" : ""}">${obs}</span>` +
       `<span class="stn-name">${esc(rd.name)}</span></a>`;
+  }
+
+  // Station plots go in the void above the land, never over it: a row in
+  // west-to-east order of their stations, each tied to its station by a leader.
+  // Without room above, they stack beside the land; failing that, around the
+  // station itself.
+  function placeInVoid(items, land, w, h, boxW, boxH, top, minX = 8, maxN = 3) {
+    const gap = 12;
+    // As many plots as the free band holds, highest readings first. A station
+    // deep in the south would need a leader across the whole land to reach a
+    // plot above it, so it yields its place to the next reading instead.
+    const room = Math.min(maxN, Math.max(1, Math.floor((w - 8 - minX + gap) / (boxW + gap))));
+    const reach = land ? (it) => it.y - land.y0 <= 0.4 * (land.y1 - land.y0) : () => true;
+    const order = items.filter(reach).slice(0, room).sort((a, b) => a.x - b.x);
+    if (land && land.y0 - boxH - 26 >= top) {
+      const y = land.y0 - boxH - 26;
+      let xs = order.map((it) => Math.min(w - boxW - 8, Math.max(minX, it.x - boxW / 2)));
+      for (let i = 1; i < xs.length; i++) xs[i] = Math.max(xs[i], xs[i - 1] + boxW + gap);
+      const over = xs.length ? xs[xs.length - 1] + boxW + 8 - w : 0;
+      if (over > 0) xs = xs.map((x) => Math.max(minX, x - over));
+      return order.map((it, i) => ({ ...it, box: { x: xs[i], y, w: boxW, h: boxH } }));
+    }
+    if (land && land.x1 + 24 + boxW <= w - 8) {
+      let y = Math.max(top, land.y0);
+      return order.sort((a, b) => a.y - b.y).map((it) => {
+        const box = { x: land.x1 + 24, y: Math.max(y, it.y - boxH / 2), w: boxW, h: boxH };
+        y = box.y + boxH + gap;
+        return box.y + boxH > h - 8 ? { ...it, box: null } : { ...it, box };
+      });
+    }
+    return placeLabels(items, w, h, boxW, boxH);
   }
 
   // Greedy placement: each label tries four quadrants around its station and
@@ -174,6 +210,16 @@ window.FBIOrbit = (() => {
       }
       return { ...it, box: null };
     });
+  }
+
+  // A leader from the station to the nearest point of its plot's frame, and
+  // the station itself as a plotted ring.
+  function leaderSVG(it, boxW, boxH) {
+    const pin = `<circle cx="${it.x.toFixed(1)}" cy="${it.y.toFixed(1)}" r="4" class="pin"/>`;
+    if (!it.box) return pin;
+    const bx = Math.min(Math.max(it.x, it.box.x + 8), it.box.x + boxW - 8);
+    const by = it.box.y + boxH < it.y ? it.box.y + boxH : it.box.y > it.y ? it.box.y : it.y;
+    return `<path d="M${it.x.toFixed(1)} ${it.y.toFixed(1)} L${bx.toFixed(1)} ${by.toFixed(1)}" class="leader"/>` + pin;
   }
 
   // ======================================================== WebGL scene
@@ -328,9 +374,11 @@ window.FBIOrbit = (() => {
             float s = step(0.5, fract((vW.x + vW.y - vW.z) * 7.0));
             base = mix(uHatchBg, uHatchInk, s);
           }
+          // One low key light: tops face the sky and catch it, sides fall
+          // into shade, so a column reads as a column.
           float diff = max(dot(n, uSun), 0.0);
-          vec3 c = base * (0.34 + 0.78 * diff);
-          c *= mix(0.78, 1.0, smoothstep(0.0, 1.0, vY));
+          float top = max(dot(n, normalize(vW)), 0.0);
+          vec3 c = base * (0.52 + 0.62 * diff) * mix(0.6, 1.1, top);
           c = mix(c, uHot, vHot * 0.26);
           gl_FragColor = vec4(c * uShow, 1.0);
         }`,
@@ -368,7 +416,7 @@ window.FBIOrbit = (() => {
     const inner = data.edges.filter((e) => e.n >= 0);
     const rimGeo = new THREE.BufferGeometry();
     rimGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(inner.length * 6), 3));
-    const rimMat = new THREE.LineBasicMaterial({ color: col("--ground"), transparent: true, opacity: 0 });
+    const rimMat = new THREE.LineBasicMaterial({ color: col("--ink"), transparent: true, opacity: 0 });
     const rims = new THREE.LineSegments(rimGeo, rimMat);
     scene.add(rims);
 
@@ -440,7 +488,7 @@ window.FBIOrbit = (() => {
     // ---- camera: an orbit about India's middle, from the south
     // look: 0 frames the whole planet, 1 frames India; the intro carries it
     // from one to the other.
-    const view = { el: 0.6, az: -0.12, dist: 15.5, look: 1 };
+    const view = { el: 0.84, az: -0.1, dist: 10.6, look: 1 };
     const intro = { el: 0.5, az: 0.7, dist: 62, look: 0 };
     const cam = { ...view };
     let offsetFrac = 0;
@@ -462,7 +510,7 @@ window.FBIOrbit = (() => {
       // On a wide screen the text owns the left; India is framed right of centre.
       // On a phone the scene sits under the text, so India is lifted toward
       // the top of its band rather than left floating over empty void.
-      offsetFrac = W >= 960 ? 0.17 : 0;
+      offsetFrac = W >= 960 ? 0.23 : 0;
       if (offsetFrac) camera.setViewOffset(W, Hh, -W * offsetFrac, 0, W, Hh);
       else camera.setViewOffset(W, Hh, 0, Hh * 0.13, W, Hh);
       camera.updateProjectionMatrix();
@@ -485,7 +533,7 @@ window.FBIOrbit = (() => {
       globeMat.uniforms.uFade.value = fade; limbMat.uniforms.uFade.value = fade;
       if (stars) stars.material.opacity = 0.55 * fade;
       coastGeo.setDrawRange(0, Math.floor(coastPos.length / 3 * span(t, PH.coast) / 2) * 2);
-      rimMat.opacity = 0.55 * span(t, PH.rims);
+      rimMat.opacity = 0.3 * span(t, PH.rims);
       cellMat.uniforms.uShow.value = span(t, [PH.coast[0] + 0.6, PH.rims[0]]);
       cells.visible = cellMat.uniforms.uShow.value > 0;
       cellMat.uniforms.uT.value = Math.max(0, t - PH.plot[0]);
@@ -500,7 +548,7 @@ window.FBIOrbit = (() => {
       globeMat.uniforms.uFade.value = 1; limbMat.uniforms.uFade.value = 1;
       if (stars) stars.material.opacity = 0.55;
       coastGeo.setDrawRange(0, coastPos.length / 3);
-      rimMat.opacity = 0.55;
+      rimMat.opacity = 0.3;
       cellMat.uniforms.uShow.value = 1;
       cells.visible = true;
       cellMat.uniforms.uT.value = 1e3;
@@ -575,9 +623,22 @@ window.FBIOrbit = (() => {
 
     // ---- station plots: HTML over the canvas, placed from the projected tops
     const plotLayer = opts.plots, lineLayer = opts.leaders;
+    // The land's extent on screen, from the coast, so plots can avoid it.
+    const coastProbe = [];
+    data.rings.forEach((ring) => ring.forEach((p, i) => { if (i % 3 === 0) coastProbe.push(dir(p[0], p[1]).multiplyScalar(R)); }));
+    function landBox() {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      const v = new THREE.Vector3();
+      coastProbe.forEach((p) => {
+        v.copy(p).project(camera);
+        const x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * Hh;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      });
+      return isFinite(x0) ? { x0, y0, x1, y1 } : null;
+    }
     function plotStations() {
       if (!plotLayer) return;
-      const show = introDone ? ranked(rds).slice(0, opts.nStations || 3) : [];
+      const show = introDone ? ranked(rds).slice(0, 8) : [];
       const items = show.map(({ ri, r }) => {
         const st = stations.get(ri);
         if (!st) return null;
@@ -586,19 +647,15 @@ window.FBIOrbit = (() => {
         if (v.z > 1) return null;
         return { ri, r, x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * Hh };
       }).filter(Boolean);
-      const boxW = W < 640 ? 168 : 196, boxH = 70;
-      const laid = placeLabels(items, W, Hh, boxW, boxH);
+      const boxW = W < 640 ? 168 : 190, boxH = 76;
+      const laid = placeInVoid(items, landBox(), W, Hh, boxW, boxH, opts.top || 72, opts.minX ? opts.minX() : 8,
+        W < 640 ? 1 : (opts.nStations || 3));
       plotLayer.innerHTML = laid.map((it) => it.box
         ? `<div class="stn-wrap" style="left:${it.box.x.toFixed(1)}px;top:${it.box.y.toFixed(1)}px;width:${boxW}px">${stationHTML(it.r, opts.href(it.r))}</div>`
         : "").join("");
       if (lineLayer) {
         lineLayer.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
-        lineLayer.innerHTML = laid.map((it) => {
-          const pin = `<circle cx="${it.x.toFixed(1)}" cy="${it.y.toFixed(1)}" r="3.2" class="pin"/>`;
-          if (!it.box) return pin;
-          const bx = it.box.x < it.x ? it.box.x + boxW : it.box.x, by = it.box.y < it.y ? it.box.y + boxH : it.box.y;
-          return `<path d="M${it.x.toFixed(1)} ${it.y.toFixed(1)} L${bx.toFixed(1)} ${by.toFixed(1)}" class="leader"/>` + pin;
-        }).join("");
+        lineLayer.innerHTML = laid.map((it) => leaderSVG(it, boxW, boxH)).join("");
       }
     }
 
@@ -723,22 +780,19 @@ window.FBIOrbit = (() => {
     const stations = stationCells(data, cube);
     function plot() {
       if (!opts.plots) return;
-      const items = ranked(rds).slice(0, opts.nStations || 3).map(({ ri, r }) => {
+      const items = ranked(rds).slice(0, 8).map(({ ri, r }) => {
         const st = stations.get(ri); if (!st) return null;
         const c = data.cells[st.k];
         return { ri, r, x: X(c.lon), y: Y(c.lat) };
       }).filter(Boolean);
-      const boxW = W < 640 ? 168 : 196, boxH = 70, laid = placeLabels(items, W, Hh, boxW, boxH);
+      const land = { x0: X(grid.lon0), x1: X(grid.lon0 + grid.nx * grid.dlon), y0: Y(grid.lat0 + grid.ny * grid.dlat), y1: Y(grid.lat0) };
+      const boxW = W < 640 ? 168 : 190, boxH = 76, laid = placeInVoid(items, land, W, Hh, boxW, boxH, opts.top || 72,
+        opts.minX ? opts.minX() : 8, W < 640 ? 1 : (opts.nStations || 3));
       opts.plots.innerHTML = laid.map((it) => it.box
         ? `<div class="stn-wrap" style="left:${it.box.x.toFixed(1)}px;top:${it.box.y.toFixed(1)}px;width:${boxW}px">${stationHTML(it.r, opts.href(it.r))}</div>` : "").join("");
       if (opts.leaders) {
         opts.leaders.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
-        opts.leaders.innerHTML = laid.map((it) => {
-          const pin = `<circle cx="${it.x.toFixed(1)}" cy="${it.y.toFixed(1)}" r="3.2" class="pin"/>`;
-          if (!it.box) return pin;
-          const bx = it.box.x < it.x ? it.box.x + boxW : it.box.x, by = it.box.y < it.y ? it.box.y + boxH : it.box.y;
-          return `<path d="M${it.x.toFixed(1)} ${it.y.toFixed(1)} L${bx.toFixed(1)} ${by.toFixed(1)}" class="leader"/>` + pin;
-        }).join("");
+        opts.leaders.innerHTML = laid.map((it) => leaderSVG(it, boxW, boxH)).join("");
       }
     }
     function cellAtPoint(e) {

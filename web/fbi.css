@@ -47,17 +47,17 @@
    OWN-WORLD). A void tinted graphite-indigo, never pure black. */
 :root[data-world="orbit"]{
   color-scheme: dark;
-  --ground:#0a0e16; --ground-2:#0f1420; --plate:#171e2b; --plate-2:#1f2837;
-  --ink:#e8edf4; --ink-2:#b0bacb; --ink-3:#8b97ab;
-  --rule:#1e2635; --rule-2:#303c52;
+  --ground:#100e19; --ground-2:#16141f; --plate:#1e1b2a; --plate-2:#272435;
+  --ink:#ecebf4; --ink-2:#b7b4c9; --ink-3:#9390a8;
+  --rule:#25212f; --rule-2:#3a3550;
   --accent:#8fa6e8; --accent-ink:#0d1430; --accent-wash:rgba(143,166,232,.13);
   --base:#d9a24a; --outcome:#e0a274;
-  --hatch-ink:#dfe5ee; --hatch-bg:#252e3d;
+  --hatch-ink:#e4e2ee; --hatch-bg:#2b2738;
   --focus:#c3d0f5;
   --warn-bg:#33270f; --warn-rule:#7a5a22; --warn-ink:#f1d9a6;
   --water:#33415f;
-  --edge-hi:rgba(220,230,255,.09); --edge-lo:rgba(0,0,0,.5);
-  --shade:rgba(2,4,12,.6); --shade-in:rgba(0,0,0,.5);
+  --edge-hi:rgba(232,228,255,.14); --edge-lo:rgba(0,0,0,.55);
+  --shade:rgba(6,4,14,.6); --shade-in:rgba(0,0,0,.5);
 }
 
 /* Chart paper: the working views' light theme. */
