@@ -72,7 +72,8 @@ def test_metrics_says_whether_the_combination_is_served(monkeypatch, tmp_path):
     (tmp_path / "combination.json").write_text(json.dumps({"primary": {"verdict": "model_better"}}))
     body = client.get("/api/metrics").json()
     assert body["served"] == {"model_version": "0.2.0", "combined": True, "base_model": None,
-                              "reasons_method": None, "ood_inputs": None}
+                              "reasons_method": None, "ood_inputs": None,
+                              "ood_threshold": None, "generated_at": None}
     assert body["combination"]["primary"]["verdict"] == "model_better"
 
 
@@ -92,6 +93,34 @@ def test_metrics_names_the_v030_base_model_and_its_reasons(monkeypatch, tmp_path
     assert body["served"]["model_version"] == "0.3.0"
     assert body["served"]["reasons_method"] == "occlusion"
     assert body["served_metrics"] == {"store": "0.3.0"}
+
+
+def test_metrics_serves_the_refusal_threshold_from_the_store(monkeypatch, tmp_path):
+    """The provenance panel shows a row's distance against this; it comes from
+    the store that refused the row, never a number written into a page."""
+    import sqlite3
+    client = _client(monkeypatch, tmp_path)
+    con = sqlite3.connect(tmp_path / "bulletins.sqlite")
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.executemany("INSERT INTO meta VALUES (?, ?)",
+                    [("model_version", "0.3.0"), ("ood_threshold", "14.75"),
+                     ("generated_at", "2026-10-06T16:29:11+00:00")])
+    con.commit()
+    con.close()
+    served = client.get("/api/metrics").json()["served"]
+    assert served["ood_threshold"] == 14.75
+    assert served["generated_at"].startswith("2026-10-06")
+
+
+def test_a_malformed_threshold_is_unavailable_not_an_error(monkeypatch, tmp_path):
+    import sqlite3
+    client = _client(monkeypatch, tmp_path)
+    con = sqlite3.connect(tmp_path / "bulletins.sqlite")
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    con.execute("INSERT INTO meta VALUES ('ood_threshold', 'not a number')")
+    con.commit()
+    con.close()
+    assert client.get("/api/metrics").json()["served"]["ood_threshold"] is None
 
 
 def test_served_is_null_without_a_meta_table(monkeypatch, tmp_path):

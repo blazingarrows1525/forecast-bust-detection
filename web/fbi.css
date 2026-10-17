@@ -153,6 +153,16 @@ button:focus-visible,.btn:focus-visible,select:focus-visible,a:focus-visible{out
 kbd{font:11px/1 var(--font-mono);padding:2px 5px;border:1px solid var(--rule-2);
   border-bottom-width:2px;border-radius:var(--r);background:var(--plate);color:var(--ink)}
 
+/* "Why this number?": a disclosure under the reasons, a ruled definition list. */
+details.prov{margin-top:12px;border-top:1px solid var(--rule)}
+details.prov summary{cursor:pointer;padding:8px 0 4px;font-family:var(--font-sign);font-weight:600;
+  font-size:12.5px;color:var(--ink-2);letter-spacing:.02em}
+details.prov summary:hover{color:var(--ink)}
+details.prov dl{margin:2px 0 0;display:grid;grid-template-columns:minmax(92px,auto) 1fr;gap:0 10px;font-size:12px}
+details.prov dt{color:var(--ink-3);padding:4px 0;border-top:1px solid var(--rule)}
+details.prov dd{margin:0;color:var(--ink-2);padding:4px 0;border-top:1px solid var(--rule)}
+details.prov .na{color:var(--ink-3);font-style:italic}
+
 /* Refusal: a hatch, never a hue. */
 .hatch{background-image:repeating-linear-gradient(45deg,var(--hatch-ink) 0 2px,var(--hatch-bg) 2px 5px)}
 

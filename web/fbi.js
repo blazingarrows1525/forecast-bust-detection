@@ -51,8 +51,43 @@ const FBI = (() => {
     });
   }
 
+  // "Why this number?": where a reading comes from, as far as the API says.
+  // Every field is read from the row or from /api/metrics' served block;
+  // anything missing is said to be unavailable, never filled in.
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const na = '<span class="na">unavailable</span>';
+  function provenance(row, served) {
+    if (!row) return "";
+    const s = served || {};
+    const refused = row.status === "OUT_OF_DISTRIBUTION";
+    const dist = typeof row.ood_distance === "number" ? row.ood_distance.toFixed(1) : null;
+    const thr = typeof s.ood_threshold === "number" ? s.ood_threshold.toFixed(1) : null;
+    const reasons = s.reasons_method === "occlusion"
+      ? "occlusion: each input set to its training average, one at a time (not additive)"
+      : s.reasons_method ? esc(s.reasons_method) : "TreeSHAP attributions (stores before v0.3.0)";
+    const rows = [
+      ["Source", "<code>/api/bulletin</code>, archive replay (not live)"],
+      ["Issued / valid", `${esc(row.init_date)} / ${esc(row.valid_date)}, lead ${esc(row.lead_day)}`],
+      ["Store", row.model_version ? `v${esc(row.model_version)}` + (s.generated_at ? `, built ${esc(String(s.generated_at).slice(0, 10))}` : "") : na],
+      ["Base model", s.base_model ? esc(s.base_model) : na],
+      ["Served number", typeof row.model_probability === "number"
+        ? "the model combined with the ensemble spread (logistic combiner)" : "the model alone"],
+      ["Reasons", refused ? "none: a refused row is not scored" : reasons],
+      ["Refusal check", dist == null ? na
+        : `distance from training ${dist}` + (thr ? ` against a refusal threshold of ${thr}` : "") +
+          (refused ? ": refused" : ": within experience") +
+          (s.ood_inputs ? `. Checks ${esc(s.ood_inputs)}.` : "")],
+      ["Review tier", row.review_tier ? esc(row.review_tier) + (row.tier_guidance ? `: ${esc(row.tier_guidance)}` : "") : na],
+      ["Data quality", row.data_quality ? `${esc(row.data_quality)}` +
+        (typeof row.input_age_hours === "number" ? `, inputs ${row.input_age_hours.toFixed(0)} h old at issue` : "") : na],
+    ];
+    return `<details class="prov"><summary>Why this number?</summary><dl>` +
+      rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + `</dl></details>`;
+  }
+
   read();
-  return { read, write, relink, query, get state() { return { ...state }; } };
+  return { read, write, relink, query, provenance, get state() { return { ...state }; } };
 })();
 
 document.addEventListener("DOMContentLoaded", () => FBI.relink());

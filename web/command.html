@@ -57,6 +57,17 @@
   .over{position:absolute;color:var(--ink-2);font-size:12px;background:rgba(21,25,28,.82);
     border:1px solid var(--line);padding:6px 9px;border-radius:var(--r);pointer-events:none}
   #hint{left:12px;bottom:10px}
+  /* Lead-day playback: whole days only, the archive's own values. */
+  .timeline{position:absolute;right:12px;bottom:10px;z-index:var(--z-float);display:flex;align-items:center;
+    gap:6px;flex-wrap:wrap;padding:6px 8px;background:var(--ground-2);border:1px solid var(--rule-2);
+    border-radius:var(--r);box-shadow:inset 0 1px 0 var(--edge-hi),0 6px 10px -6px var(--shade);font-size:12.5px}
+  .timeline .read{color:var(--ink-2);padding:0 4px;white-space:nowrap}
+  .timeline .read b{font-family:var(--font-sign);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .timeline select{min-height:28px;padding:2px 6px}
+  .timeline button{min-height:28px;padding:3px 9px}
+  #glFail{position:absolute;inset:0;display:grid;place-content:center;gap:10px;padding:24px;text-align:center;
+    color:var(--ink-2);font-size:14px}
+  #glFail h2{margin:0;font-family:var(--font-sign);color:var(--ink);font-size:18px}
   #axis{left:12px;top:12px;line-height:1.6}
   #axis b{font-family:var(--font-sign);color:var(--ink);font-weight:600}
 
@@ -94,6 +105,7 @@
     #axis{right:12px;padding:5px 8px}
     #axis .long{display:none}
     #hint{right:12px}
+    .timeline{left:12px;right:12px;bottom:52px}
   }
 </style>
 </head>
@@ -141,6 +153,15 @@
       colour is P(forecast busts); the staff on the west edge reads D01 to D10</span></div>
     <div id="hint" class="over">drag to orbit · wheel or pinch to zoom · right-drag to pan · click a column · ← → lead · ↑ ↓ date</div>
     <div id="tip" hidden></div>
+    <div class="timeline" id="timeline" role="group" aria-label="Lead-day playback">
+      <span class="read" aria-live="polite">Lead <b id="tlLead">D04</b> · valid <b id="tlValid">loading</b></span>
+      <button id="tlStep" type="button" title="Step one lead day in the play direction">Step</button>
+      <button id="tlPlay" type="button" aria-pressed="false">Play</button>
+      <button id="tlDir" type="button" aria-pressed="false" title="Play from Day 10 toward Day 1">Reverse</button>
+      <label class="sr-only" for="tlSpeed">Playback speed</label>
+      <select id="tlSpeed"><option value="2200">Slow</option><option value="1400" selected>Normal</option><option value="700">Fast</option></select>
+      <button id="tlReset" type="button" title="Back to the lead day this view opened on">Reset lead</button>
+    </div>
   </main>
   <aside>
     <section aria-labelledby="hSel">
@@ -162,6 +183,7 @@
     </section>
     <section aria-labelledby="hQueue">
       <h2 id="hQueue">Highest risk, Day 3–7</h2>
+      <button id="btnFocusTop" type="button" style="margin:0 0 8px">Focus the top case</button>
       <table id="queue"><thead><tr><th>#</th><th>Region</th><th>Lead</th><th class="r">P(bust)</th></tr></thead><tbody></tbody></table>
     </section>
     <section aria-labelledby="hLegend">
@@ -222,6 +244,19 @@ let needsRender = true, lastView = "";
 const invalidate = () => { needsRender = true; };
 let focusGoal = null;
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+// A weaker machine draws at one pixel per CSS pixel, without antialiasing;
+// ?quality=low forces it. Nothing about the data changes with the tier.
+const QUALITY = (() => {
+  const q = new URLSearchParams(location.search).get("quality");
+  if (q === "low" || q === "high") return q;
+  return ((navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4) ? "low" : "high";
+})();
+function webglAvailable(){
+  try{
+    const c = document.createElement("canvas");
+    return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl")));
+  }catch(_){ return false; }
+}
 let geo=null, cube=null, dates=[], lonMid=0, latMid=0, lonMin=0, latMin=0;
 let cur = {init:null, lead:4, view:"model", sel:null};
 // theta = +pi/2 puts the camera on the SOUTH side looking north. It was -pi/2,
@@ -253,8 +288,8 @@ function initGL(){
   scene.fog = new THREE.Fog(getCSS("--scene"), 70, 140);
 
   camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer = new THREE.WebGLRenderer({antialias: QUALITY !== "low"});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY === "low" ? 1 : 2));
   stage.appendChild(renderer.domElement);
   renderer.domElement.setAttribute("aria-label",
     "Columns of bust probability over India, one stacked cell per lead day. The queue and lead profile in the panel list the same values.");
@@ -360,9 +395,23 @@ function bindControls(dom){
 // ------------------------------------------------------------- hover readout
 // What is under the cursor, in words: the region, the lead and the value the
 // column is showing, or that it was refused. Raycast at most once per frame.
-let hoverAt = null;
+let hoverAt = null, hoverBox = null, tipSince = 0;
 function queueHover(e){ hoverAt = e; invalidate(); }
-function hideTip(){ const t = document.getElementById("tip"); if(t) t.hidden = true; }
+function hideTip(){
+  const t = document.getElementById("tip"); if(t) t.hidden = true;
+  if(hoverBox && hoverBox.visible){ hoverBox.visible = false; invalidate(); }
+  tipSince = 0;
+}
+function hoverOutline(){
+  if(hoverBox) return hoverBox;
+  const g = new THREE.BoxGeometry(COL_W*1.6, LEAD_H*0.95, COL_W*1.6);
+  hoverBox = new THREE.LineSegments(new THREE.EdgesGeometry(g),
+    new THREE.LineBasicMaterial({color: new THREE.Color(getCSS("--focus"))}));
+  g.dispose();
+  hoverBox.visible = false;
+  scene.add(hoverBox);
+  return hoverBox;
+}
 function updateHover(){
   if(!hoverAt || !cube) return;
   const e = hoverAt; hoverAt = null;
@@ -372,7 +421,10 @@ function updateHover(){
   raycaster.setFromCamera(pointer, camera);
   const hit = raycaster.intersectObjects(colGroup.children, false)[0];
   const tip = document.getElementById("tip");
-  if(!hit){ tip.hidden = true; renderer.domElement.style.cursor = ""; return; }
+  if(!hit){ hideTip(); renderer.domElement.style.cursor = ""; return; }
+  // The hovered cell gets an outline; the camera never moves on hover.
+  const box = hoverOutline();
+  box.position.copy(hit.object.position); box.visible = true;
   const u = hit.object.userData, r = cube.regions.find(x=>x.region_id===u.region_id);
   const i = u.idx;
   let reading;
@@ -380,9 +432,14 @@ function updateHover(){
   else if(cur.view === "baseline") reading = "baseline " + pct(r.baseline[i]);
   else reading = r.status[i] === "OK" ? pct(r.p[i]) : "refused, not scored";
   tip.textContent = `${u.region} · ${code(u.lead)} · ${reading}`;
-  tip.style.left = (e.clientX - rect.left + 14) + "px";
-  tip.style.top = (e.clientY - rect.top + 14) + "px";
-  tip.hidden = false;
+  tip.style.left = Math.min(e.clientX - rect.left + 14, rect.width - tip.offsetWidth - 8) + "px";
+  tip.style.top = Math.min(e.clientY - rect.top + 14, rect.height - tip.offsetHeight - 8) + "px";
+  // A short delay before the first tooltip, so sweeping across the map does
+  // not flash one per column; once it is up it follows immediately.
+  if(tip.hidden){
+    if(!tipSince){ tipSince = performance.now(); setTimeout(() => { if(tipSince){ hoverAt = e; invalidate(); } }, 130); }
+    else if(performance.now() - tipSince >= 120) tip.hidden = false;
+  }
   renderer.domElement.style.cursor = "pointer";
 }
 
@@ -601,6 +658,7 @@ function pick(e){
     const u = hits[0].object.userData;
     setLead(u.lead, false);
     select(u.region_id, u.lead);
+    focusRegion(u.region_id);
   }
 }
 
@@ -608,7 +666,7 @@ function setLead(L, reselect = true){
   cur.lead = Math.max(1, Math.min(10, L));
   document.getElementById("leadPick").value = cur.lead;
   FBI.write({lead: cur.lead});
-  buildColumns(); buildStaff(); markQueue();
+  buildColumns(); buildStaff(); markQueue(); leadReadout();
   if(reselect && cur.sel) select(cur.sel, cur.lead);
 }
 
@@ -639,8 +697,9 @@ function markSelection(r){
   selGroup.add(edges);
 }
 
-// Picking from the panel brings that column to the centre of the view.
-// Clicking a column does not move the camera under the cursor.
+// Selecting a column, from the scene or the panel, glides it to the centre:
+// a damped move the eye can follow, so the clicked column never jumps out
+// from under the cursor. Reduced motion moves the camera at once.
 function focusRegion(rid){
   const r = cube && cube.regions.find(x=>x.region_id===rid);
   if(!r || !isFinite(r.lon) || !isFinite(r.lat)) return;
@@ -708,6 +767,7 @@ async function select(rid, lead){
         if(row.actual_bust!=null) html += ` · <b>${row.actual_bust?"BUSTED":"did not bust"}</b>`;
         html += "</div>";
       }
+      html += FBI.provenance(row, SERVED);
       document.getElementById("selReasons").innerHTML = html;
     }
   }catch(_){ /* panel simply stays empty offline */ }
@@ -755,8 +815,56 @@ async function loadCube(init){
     `${cube.n_regions} subdivisions × ${cube.lead_days.length} lead days = `+
     `${cube.n_regions*cube.lead_days.length} cells · issued ${init}` +
     (init === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : "");
-  buildColumns(); fillQueue();
+  buildColumns(); fillQueue(); leadReadout();
   if(cur.sel) select(cur.sel, cur.lead);
+}
+
+// The lead on screen and its valid date, read off the cube rather than
+// computed from the clock.
+function leadReadout(){
+  document.getElementById("tlLead").textContent = code(cur.lead);
+  const i = cube ? cube.lead_days.indexOf(cur.lead) : -1;
+  const v = i >= 0 ? cube.regions.map(r => r.valid_date[i]).find(Boolean) : null;
+  document.getElementById("tlValid").textContent = v || "unavailable";
+}
+
+// ------------------------------------------------------------- playback
+// Steps whole lead days through the archive's own values; nothing is drawn
+// between two days. Stops at the end of the run rather than looping.
+let play = {timer: null, dir: 1, start: null};
+function playStep(){
+  const next = cur.lead + play.dir;
+  if(next < 1 || next > 10){ stopPlay(); return false; }
+  setLead(next);
+  return true;
+}
+function startPlay(){
+  const b = document.getElementById("tlPlay");
+  b.textContent = "Pause"; b.setAttribute("aria-pressed", "true");
+  const tick = () => {
+    if(!playStep()) return;
+    play.timer = setTimeout(tick, +document.getElementById("tlSpeed").value);
+  };
+  play.timer = setTimeout(tick, 250);
+}
+function stopPlay(){
+  clearTimeout(play.timer); play.timer = null;
+  const b = document.getElementById("tlPlay");
+  b.textContent = "Play"; b.setAttribute("aria-pressed", "false");
+}
+function bindPlayback(){
+  play.start = cur.lead;
+  document.getElementById("tlPlay").onclick = () => (play.timer ? stopPlay() : startPlay());
+  document.getElementById("tlStep").onclick = () => { stopPlay(); playStep(); };
+  document.getElementById("tlDir").onclick = (e) => {
+    play.dir = -play.dir;
+    e.currentTarget.setAttribute("aria-pressed", String(play.dir < 0));
+  };
+  document.getElementById("tlReset").onclick = () => { stopPlay(); setLead(play.start); };
+  document.getElementById("btnFocusTop").onclick = () => {
+    const first = document.querySelector("#queue tbody tr[data-rid]");
+    if(first) first.click();
+  };
 }
 
 function setView(v){
@@ -794,7 +902,21 @@ function bindKeys(){
   });
 }
 
+let SERVED = null;
 async function boot(){
+  fetch("/api/metrics").then(r => r.ok ? r.json() : null).then(m => {
+    SERVED = m && m.served;
+    if (cur.sel && cube) select(cur.sel, cur.lead);
+  }).catch(() => {});
+  if(!webglAvailable()){
+    // The same readings live on the 2-D map; send the reading there.
+    const q = FBI.query(FBI.read());
+    document.getElementById("stage").insertAdjacentHTML("beforeend",
+      `<div id="glFail"><h2>This view needs WebGL</h2><p>Your browser could not start it. The map shows the same readings in two dimensions.</p>` +
+      `<p><a class="btn primary" href="/${q}">Open the map</a></p></div>`);
+    document.getElementById("status").textContent = "WebGL unavailable: the 2-D map has the same readings.";
+    return;
+  }
   initGL();
   orbit.r = fitR();
   geo = await (await fetch("/api/regions")).json();
@@ -850,6 +972,7 @@ async function boot(){
   buildStaff();
 
   if(want.region) cur.sel = want.region;
+  bindPlayback();
   await loadCube(cur.init);
   // A deep link that names a region opens on that column.
   if(cur.sel) focusRegion(cur.sel);
