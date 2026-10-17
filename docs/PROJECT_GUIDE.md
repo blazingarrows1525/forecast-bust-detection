@@ -320,7 +320,8 @@ src/fbd/
   quality/    escalation.py (tiers), drift.py        | explain/reasons.py (SHAP→text)
   ood/        detector.py (Mahalanobis)              | obs/metrics.py (Prometheus)
   genai/      agent.py, client.py, settings.py, tools.py (default-OFF assistant)
-web/          index.html, landing.html, command.html, volume.html, vendor/
+web/          index.html, landing.html (+ orbit.js), command.html, volume.html,
+              fbi.css (tokens, plates), fbi.js (URL context, provenance), vendor/
 scripts/      fetch_*, build_*, train_model, fit_combiner, generate_bulletins,
               precompute_geo_assets, precompute_voxel_grid, promote, audit_*, plot_*, monitor_drift
 docs/         DEPLOY.md, FIGURES.md, FRONTEND_BUILT.md, PROJECT_GUIDE.md (this),

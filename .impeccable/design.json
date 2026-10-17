@@ -1,217 +1,572 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-05T18:02:56+00:00",
+  "generatedAt": "2026-10-17T19:16:44+00:00",
   "title": "Design System: Forecast Bust Intelligence",
   "extensions": {
     "colorMeta": {
+      "gauge-periwinkle": {
+        "role": "primary",
+        "displayName": "Gauge Periwinkle",
+        "canonical": "#8fa6e8",
+        "tonalRamp": [
+          "#0a1533",
+          "#13265d",
+          "#1d398c",
+          "#274ebe",
+          "#496eda",
+          "#7c97e4",
+          "#afbfee",
+          "#e1e7f9"
+        ]
+      },
       "gauge-indigo": {
         "role": "primary",
         "displayName": "Gauge Indigo",
         "canonical": "#27407a",
         "tonalRamp": [
-          "#020922",
-          "#0f224e",
-          "#263f78",
-          "#435f9c",
-          "#6381c0",
-          "#8aa5dd",
-          "#b6c9f1",
-          "#e8effd"
+          "#0f182e",
+          "#1b2d55",
+          "#294380",
+          "#385bae",
+          "#597bca",
+          "#87a0d9",
+          "#b6c5e8",
+          "#e4e9f6"
         ]
       },
-      "gauge-indigo-slate": {
+      "accent-ink-orbit": {
         "role": "primary",
-        "displayName": "Gauge Indigo (on slate)",
-        "canonical": "#8fa6e8",
+        "displayName": "Accent Ink (orbit)",
+        "canonical": "#0d1430",
         "tonalRamp": [
-          "#030726",
-          "#131e54",
-          "#2d3d76",
-          "#4a5d9a",
-          "#6a7fbe",
-          "#8ca2e4",
-          "#b6c8f8",
-          "#e8eeff"
+          "#0d1430",
+          "#182558",
+          "#243784",
+          "#314bb5",
+          "#526cd0",
+          "#8395dd",
+          "#b3beea",
+          "#e3e7f7"
         ]
       },
-      "indigo-ink-on-slate": {
+      "accent-ink-slate": {
         "role": "primary",
-        "displayName": "Indigo Ink on Slate",
+        "displayName": "Accent Ink (slate)",
         "canonical": "#0e1530",
         "tonalRamp": [
-          "#05091d",
-          "#1b233f",
-          "#37405f",
-          "#556081",
-          "#7581a4",
-          "#98a4c8",
-          "#bdc8e8",
-          "#eaeefa"
+          "#0e152f",
+          "#192657",
+          "#263982",
+          "#344eb2",
+          "#556ecd",
+          "#8596db",
+          "#b4bfe9",
+          "#e3e7f7"
         ]
       },
-      "indigo-ink-on-paper": {
+      "accent-ink-paper": {
         "role": "primary",
-        "displayName": "Indigo Ink on Paper",
+        "displayName": "Accent Ink (paper)",
         "canonical": "#ffffff",
         "tonalRamp": [
-          "#0b0b0b",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#a5a5a5",
-          "#c9c9c9",
-          "#eeeeee"
+          "#1f1f1f",
+          "#383838",
+          "#545454",
+          "#737373",
+          "#919191",
+          "#b0b0b0",
+          "#cfcfcf",
+          "#ededed"
         ]
       },
       "baseline-ochre": {
         "role": "secondary",
         "displayName": "Baseline Ochre",
-        "canonical": "#8d5a12",
-        "tonalRamp": [
-          "#190500",
-          "#3d1b00",
-          "#633600",
-          "#875407",
-          "#a9773a",
-          "#c89c6a",
-          "#e2c3a1",
-          "#f8ece1"
-        ]
-      },
-      "baseline-ochre-slate": {
-        "role": "secondary",
-        "displayName": "Baseline Ochre (on slate)",
         "canonical": "#d9a24a",
         "tonalRamp": [
-          "#1d0300",
-          "#441500",
-          "#653500",
-          "#885500",
-          "#ab7711",
-          "#d09a41",
-          "#ebc286",
-          "#fbecd8"
+          "#33230b",
+          "#5d4113",
+          "#8b611d",
+          "#be8428",
+          "#d9a24a",
+          "#e4bc7c",
+          "#eed6af",
+          "#f9f0e1"
+        ]
+      },
+      "baseline-ochre-paper": {
+        "role": "secondary",
+        "displayName": "Baseline Ochre (paper)",
+        "canonical": "#8d5a12",
+        "tonalRamp": [
+          "#362307",
+          "#63400d",
+          "#955f13",
+          "#cc821a",
+          "#e6a03d",
+          "#edba73",
+          "#f4d5a9",
+          "#fbf0df"
         ]
       },
       "outcome-rust": {
         "role": "tertiary",
         "displayName": "Outcome Rust",
-        "canonical": "#7a4126",
-        "tonalRamp": [
-          "#1a0400",
-          "#3f1703",
-          "#663117",
-          "#8a5035",
-          "#ad7257",
-          "#cc9780",
-          "#e6c0af",
-          "#f9ebe5"
-        ]
-      },
-      "outcome-rust-slate": {
-        "role": "tertiary",
-        "displayName": "Outcome Rust (on slate)",
         "canonical": "#e0a274",
         "tonalRamp": [
-          "#1e0100",
-          "#451300",
-          "#673200",
-          "#895224",
-          "#ae7346",
-          "#d39668",
-          "#eebe9b",
-          "#fcebdf"
+          "#321c0b",
+          "#5c3314",
+          "#8a4c1f",
+          "#bc682a",
+          "#d7874c",
+          "#e2a97e",
+          "#edcab0",
+          "#f8ebe2"
         ]
       },
-      "water-paper": {
+      "outcome-rust-paper": {
         "role": "tertiary",
-        "displayName": "Gauge Water (paper)",
-        "canonical": "#c5d0e4",
+        "displayName": "Outcome Rust (paper)",
+        "canonical": "#7a4126",
         "tonalRamp": [
-          "#050b18",
-          "#1d2534",
-          "#394252",
-          "#586273",
-          "#798395",
-          "#9ba5b9",
-          "#bfcade",
-          "#eaeff7"
+          "#2f190f",
+          "#562e1b",
+          "#804428",
+          "#af5d37",
+          "#cb7d58",
+          "#d9a186",
+          "#e8c5b5",
+          "#f7eae4"
         ]
       },
-      "water-slate": {
-        "role": "tertiary",
-        "displayName": "Gauge Water (slate)",
-        "canonical": "#33415f",
+      "focus-pale": {
+        "role": "neutral",
+        "displayName": "Focus Pale",
+        "canonical": "#c3d0f5",
         "tonalRamp": [
-          "#060b18",
-          "#1a243b",
-          "#33415f",
-          "#526181",
-          "#7282a4",
-          "#97a5c3",
-          "#bfc9df",
-          "#ebeff6"
+          "#091434",
+          "#102560",
+          "#183790",
+          "#214bc5",
+          "#436ce0",
+          "#7795e8",
+          "#acbef1",
+          "#e0e7fa"
         ]
       },
       "risk-c0": {
         "role": "tertiary",
-        "displayName": "Risk Ramp c0 (viridis)",
-        "canonical": "#440154",
-        "tonalRamp": [
-          "#440154",
-          "#414487",
-          "#2a788e",
-          "#5ec962",
-          "#fde725"
-        ]
+        "displayName": "Risk c0 (<5%)",
+        "canonical": "#440154"
       },
       "risk-c1": {
         "role": "tertiary",
-        "displayName": "Risk Ramp c1 (viridis)",
-        "canonical": "#414487",
-        "tonalRamp": [
-          "#440154",
-          "#414487",
-          "#2a788e",
-          "#5ec962",
-          "#fde725"
-        ]
+        "displayName": "Risk c1 (5-10%)",
+        "canonical": "#414487"
       },
       "risk-c2": {
         "role": "tertiary",
-        "displayName": "Risk Ramp c2 (viridis)",
-        "canonical": "#2a788e",
-        "tonalRamp": [
-          "#440154",
-          "#414487",
-          "#2a788e",
-          "#5ec962",
-          "#fde725"
-        ]
+        "displayName": "Risk c2 (10-20%)",
+        "canonical": "#2a788e"
       },
       "risk-c3": {
         "role": "tertiary",
-        "displayName": "Risk Ramp c3 (viridis)",
-        "canonical": "#5ec962",
-        "tonalRamp": [
-          "#440154",
-          "#414487",
-          "#2a788e",
-          "#5ec962",
-          "#fde725"
-        ]
+        "displayName": "Risk c3 (20-35%)",
+        "canonical": "#5ec962"
       },
       "risk-c4": {
         "role": "tertiary",
-        "displayName": "Risk Ramp c4 (viridis)",
-        "canonical": "#fde725",
+        "displayName": "Risk c4 (>35%)",
+        "canonical": "#fde725"
+      },
+      "orbit-void": {
+        "role": "neutral",
+        "displayName": "Graphite-Indigo Void",
+        "canonical": "#100e19",
         "tonalRamp": [
-          "#440154",
-          "#414487",
-          "#2a788e",
-          "#5ec962",
-          "#fde725"
+          "#191627",
+          "#2e2848",
+          "#453c6c",
+          "#5e5293",
+          "#7e72b0",
+          "#a29ac6",
+          "#c6c1dc",
+          "#eae8f2"
+        ]
+      },
+      "orbit-void-2": {
+        "role": "neutral",
+        "displayName": "Lifted Void",
+        "canonical": "#16141f",
+        "tonalRamp": [
+          "#1a1825",
+          "#302c44",
+          "#494266",
+          "#635a8b",
+          "#827aa9",
+          "#a59fc1",
+          "#c8c4d9",
+          "#ebe9f1"
+        ]
+      },
+      "orbit-plate": {
+        "role": "neutral",
+        "displayName": "Night Plate",
+        "canonical": "#1e1b2a",
+        "tonalRamp": [
+          "#1b1825",
+          "#312c44",
+          "#494266",
+          "#645a8c",
+          "#837aa9",
+          "#a69fc1",
+          "#c8c4d9",
+          "#ebe9f1"
+        ]
+      },
+      "orbit-plate-2": {
+        "role": "neutral",
+        "displayName": "Night Plate 2",
+        "canonical": "#272435",
+        "tonalRamp": [
+          "#1b1924",
+          "#312d43",
+          "#4a4464",
+          "#655d89",
+          "#847ca6",
+          "#a6a1bf",
+          "#c9c5d8",
+          "#ebeaf1"
+        ]
+      },
+      "plotting-ink": {
+        "role": "neutral",
+        "displayName": "Plotting Ink",
+        "canonical": "#ecebf4",
+        "tonalRamp": [
+          "#181627",
+          "#2b2848",
+          "#413c6d",
+          "#595194",
+          "#7972b1",
+          "#9e99c7",
+          "#c4c0dd",
+          "#e9e8f2"
+        ]
+      },
+      "plotting-ink-2": {
+        "role": "neutral",
+        "displayName": "Plotting Ink 2",
+        "canonical": "#b7b4c9",
+        "tonalRamp": [
+          "#1b1a24",
+          "#322f41",
+          "#4a4662",
+          "#656085",
+          "#8580a3",
+          "#a7a3bd",
+          "#c9c7d6",
+          "#ebeaf0"
+        ]
+      },
+      "plotting-ink-3": {
+        "role": "neutral",
+        "displayName": "Plotting Ink 3",
+        "canonical": "#9390a8",
+        "tonalRamp": [
+          "#1c1b22",
+          "#33313f",
+          "#4c4a5e",
+          "#686581",
+          "#87849f",
+          "#a9a6ba",
+          "#cac9d4",
+          "#ecebef"
+        ]
+      },
+      "orbit-rule": {
+        "role": "neutral",
+        "displayName": "Orbit Rule",
+        "canonical": "#25212f",
+        "tonalRamp": [
+          "#1c1924",
+          "#342e42",
+          "#4e4563",
+          "#6a5f87",
+          "#897ea5",
+          "#aaa2be",
+          "#cbc6d7",
+          "#eceaf0"
+        ]
+      },
+      "orbit-rule-2": {
+        "role": "neutral",
+        "displayName": "Orbit Rule 2",
+        "canonical": "#3a3550",
+        "tonalRamp": [
+          "#1b1825",
+          "#312d43",
+          "#494365",
+          "#645b8a",
+          "#837ba8",
+          "#a6a0c0",
+          "#c8c5d8",
+          "#ebeaf1"
+        ]
+      },
+      "orbit-hatch-ink": {
+        "role": "neutral",
+        "displayName": "Orbit Hatch Ink",
+        "canonical": "#e4e2ee",
+        "tonalRamp": [
+          "#191727",
+          "#2e2947",
+          "#463e6a",
+          "#5f5591",
+          "#7e75ae",
+          "#a29bc5",
+          "#c6c2db",
+          "#eae8f2"
+        ]
+      },
+      "orbit-hatch-bg": {
+        "role": "neutral",
+        "displayName": "Orbit Hatch Bg",
+        "canonical": "#2b2738",
+        "tonalRamp": [
+          "#1c1924",
+          "#332e42",
+          "#4c4563",
+          "#685e87",
+          "#877ea5",
+          "#a8a2be",
+          "#cac6d7",
+          "#ebeaf0"
+        ]
+      },
+      "globe-ocean": {
+        "role": "neutral",
+        "displayName": "Globe Ocean",
+        "canonical": "#141633",
+        "tonalRamp": [
+          "#11132c",
+          "#202351",
+          "#2f3479",
+          "#4147a5",
+          "#6168c1",
+          "#8d92d2",
+          "#b9bce4",
+          "#e5e6f5"
+        ]
+      },
+      "globe-deep": {
+        "role": "neutral",
+        "displayName": "Globe Deep",
+        "canonical": "#05040e",
+        "tonalRamp": [
+          "#110e30",
+          "#1f1957",
+          "#2f2583",
+          "#4033b3",
+          "#6154ce",
+          "#8d84dc",
+          "#b9b4e9",
+          "#e5e3f7"
+        ]
+      },
+      "globe-graticule": {
+        "role": "neutral",
+        "displayName": "Globe Graticule",
+        "canonical": "#363a6c",
+        "tonalRamp": [
+          "#141629",
+          "#25284b",
+          "#383c70",
+          "#4c5299",
+          "#6d72b6",
+          "#969aca",
+          "#bec1df",
+          "#e7e8f3"
+        ]
+      },
+      "globe-limb": {
+        "role": "neutral",
+        "displayName": "Globe Limb",
+        "canonical": "#6d80e4",
+        "tonalRamp": [
+          "#0a1034",
+          "#121e5f",
+          "#1a2d8e",
+          "#243dc2",
+          "#465edd",
+          "#7a8be6",
+          "#adb8f0",
+          "#e1e5f9"
+        ]
+      },
+      "land": {
+        "role": "neutral",
+        "displayName": "Land",
+        "canonical": "#2d2a3f",
+        "tonalRamp": [
+          "#1a1825",
+          "#302d43",
+          "#484365",
+          "#625c8a",
+          "#827ba7",
+          "#a5a0c0",
+          "#c8c5d8",
+          "#ebeaf1"
+        ]
+      },
+      "land-no-reading": {
+        "role": "neutral",
+        "displayName": "Land No Reading",
+        "canonical": "#3d3a52",
+        "tonalRamp": [
+          "#1b1924",
+          "#312e42",
+          "#494663",
+          "#645f86",
+          "#837fa4",
+          "#a6a2be",
+          "#c8c6d7",
+          "#ebeaf0"
+        ]
+      },
+      "slate-ground": {
+        "role": "neutral",
+        "displayName": "Slate Ground",
+        "canonical": "#15191c",
+        "tonalRamp": [
+          "#1a1f23",
+          "#303940",
+          "#485660",
+          "#627583",
+          "#8294a1",
+          "#a5b2bb",
+          "#c8d0d5",
+          "#ebeef0"
+        ]
+      },
+      "slate-ground-2": {
+        "role": "neutral",
+        "displayName": "Slate Ground 2",
+        "canonical": "#1b2024",
+        "tonalRamp": [
+          "#1a1f23",
+          "#303940",
+          "#485560",
+          "#627583",
+          "#8293a1",
+          "#a5b1bb",
+          "#c8cfd5",
+          "#ebedf0"
+        ]
+      },
+      "slate-plate": {
+        "role": "neutral",
+        "displayName": "Slate Plate",
+        "canonical": "#20262b",
+        "tonalRamp": [
+          "#1a1f23",
+          "#303940",
+          "#485560",
+          "#627484",
+          "#8193a1",
+          "#a4b1bc",
+          "#c7cfd6",
+          "#ebedf0"
+        ]
+      },
+      "slate-plate-2": {
+        "role": "neutral",
+        "displayName": "Slate Plate 2",
+        "canonical": "#283036",
+        "tonalRamp": [
+          "#1a1f23",
+          "#303940",
+          "#485661",
+          "#627584",
+          "#8194a2",
+          "#a4b2bc",
+          "#c7d0d6",
+          "#eaeef0"
+        ]
+      },
+      "slate-ink": {
+        "role": "neutral",
+        "displayName": "Slate Ink",
+        "canonical": "#e6e9e4",
+        "tonalRamp": [
+          "#1e221b",
+          "#373e32",
+          "#525d4c",
+          "#707e67",
+          "#8f9d86",
+          "#aeb8a8",
+          "#ced3ca",
+          "#edefeb"
+        ]
+      },
+      "slate-ink-2": {
+        "role": "neutral",
+        "displayName": "Slate Ink 2",
+        "canonical": "#adb5b9",
+        "tonalRamp": [
+          "#1c1f21",
+          "#343a3d",
+          "#4e565b",
+          "#6a767c",
+          "#89949a",
+          "#aab2b6",
+          "#cbd0d2",
+          "#eceeef"
+        ]
+      },
+      "slate-ink-3": {
+        "role": "neutral",
+        "displayName": "Slate Ink 3",
+        "canonical": "#8f989e",
+        "tonalRamp": [
+          "#1c1f21",
+          "#34393c",
+          "#4e555a",
+          "#6b747b",
+          "#899399",
+          "#aab1b6",
+          "#cbcfd2",
+          "#ecedee"
+        ]
+      },
+      "slate-rule": {
+        "role": "neutral",
+        "displayName": "Slate Rule",
+        "canonical": "#2f363c",
+        "tonalRamp": [
+          "#1b1f22",
+          "#31393f",
+          "#4a555e",
+          "#657481",
+          "#84929f",
+          "#a6b1ba",
+          "#c9cfd4",
+          "#ebedef"
+        ]
+      },
+      "slate-rule-2": {
+        "role": "neutral",
+        "displayName": "Slate Rule 2",
+        "canonical": "#414a51",
+        "tonalRamp": [
+          "#1b1f22",
+          "#32393e",
+          "#4b555d",
+          "#66747f",
+          "#85939d",
+          "#a7b1b9",
+          "#c9cfd4",
+          "#ebedef"
         ]
       },
       "chart-paper": {
@@ -219,28 +574,28 @@
         "displayName": "Chart Paper",
         "canonical": "#f2f4f0",
         "tonalRamp": [
-          "#0a0c09",
-          "#242623",
-          "#41433f",
-          "#60625e",
-          "#81837f",
-          "#a4a6a2",
-          "#c8cac6",
-          "#edefeb"
+          "#1f231a",
+          "#38412f",
+          "#546147",
+          "#738461",
+          "#91a280",
+          "#b0bca4",
+          "#cfd6c7",
+          "#edf0ea"
         ]
       },
       "chart-paper-2": {
         "role": "neutral",
-        "displayName": "Chart Paper, lifted",
+        "displayName": "Chart Paper 2",
         "canonical": "#e8ebe5",
         "tonalRamp": [
-          "#0a0c08",
-          "#242621",
-          "#41433e",
-          "#60625d",
-          "#81837e",
-          "#a3a6a0",
-          "#c7cac4",
+          "#1f231b",
+          "#383f31",
+          "#545f49",
+          "#738264",
+          "#91a083",
+          "#b0baa6",
+          "#cfd5c8",
           "#edefeb"
         ]
       },
@@ -249,29 +604,29 @@
         "displayName": "Enamel Plate",
         "canonical": "#fbfcf9",
         "tonalRamp": [
-          "#0b0b0a",
-          "#252523",
-          "#414240",
-          "#61625f",
-          "#828380",
-          "#a4a5a3",
-          "#c8c9c7",
-          "#eeefec"
+          "#222914",
+          "#3e4b25",
+          "#5d7038",
+          "#7f994c",
+          "#9eb66d",
+          "#b9ca96",
+          "#d4dfbe",
+          "#eff3e7"
         ]
       },
       "enamel-plate-2": {
         "role": "neutral",
-        "displayName": "Enamel Plate, recessed",
+        "displayName": "Enamel Plate 2",
         "canonical": "#eceee8",
         "tonalRamp": [
-          "#0b0c08",
-          "#242621",
-          "#41433e",
-          "#60625d",
-          "#81837e",
-          "#a4a6a0",
-          "#c8cac4",
-          "#edefea"
+          "#20231a",
+          "#3b4130",
+          "#586148",
+          "#788462",
+          "#97a281",
+          "#b4bca4",
+          "#d1d6c7",
+          "#eef0ea"
         ]
       },
       "chart-ink": {
@@ -279,44 +634,44 @@
         "displayName": "Chart Ink",
         "canonical": "#172133",
         "tonalRamp": [
-          "#060b16",
-          "#1b2537",
-          "#374256",
-          "#566277",
-          "#768399",
-          "#98a6bd",
-          "#bfcadc",
-          "#ebeff5"
+          "#131b2a",
+          "#23324d",
+          "#344b74",
+          "#47669e",
+          "#6885bb",
+          "#92a7ce",
+          "#bcc9e1",
+          "#e6ebf4"
         ]
       },
       "chart-ink-2": {
         "role": "neutral",
-        "displayName": "Chart Ink, prose",
+        "displayName": "Chart Ink 2",
         "canonical": "#465163",
         "tonalRamp": [
-          "#070b12",
-          "#1e2532",
-          "#384253",
-          "#566274",
-          "#778396",
-          "#9ba6b6",
-          "#c2cad6",
-          "#eceff3"
+          "#191d24",
+          "#2e3642",
+          "#465163",
+          "#5f6e86",
+          "#7f8da4",
+          "#a2adbe",
+          "#c6cdd7",
+          "#eaecf0"
         ]
       },
       "chart-ink-3": {
         "role": "neutral",
-        "displayName": "Chart Ink, caption",
+        "displayName": "Chart Ink 3",
         "canonical": "#5b6574",
         "tonalRamp": [
-          "#080b11",
-          "#1f252f",
-          "#3a4350",
-          "#586271",
-          "#798392",
-          "#9da6b3",
-          "#c3cad3",
-          "#eceff2"
+          "#1b1e22",
+          "#31373f",
+          "#4a525e",
+          "#657081",
+          "#848f9f",
+          "#a6aeb9",
+          "#c9cdd4",
+          "#ebedef"
         ]
       },
       "graticule": {
@@ -324,224 +679,44 @@
         "displayName": "Graticule",
         "canonical": "#c9cec5",
         "tonalRamp": [
-          "#090c07",
-          "#232620",
-          "#3f443c",
-          "#5f635b",
-          "#7f847c",
-          "#a2a79e",
-          "#c6cbc2",
+          "#1e211c",
+          "#383d33",
+          "#535b4d",
+          "#727c69",
+          "#909b88",
+          "#afb7a9",
+          "#ced3ca",
           "#edefec"
         ]
       },
       "graticule-2": {
         "role": "neutral",
-        "displayName": "Graticule, strong",
+        "displayName": "Graticule 2",
         "canonical": "#a9afa6",
         "tonalRamp": [
-          "#090c08",
-          "#222720",
-          "#3f443c",
-          "#5e635b",
-          "#7f847c",
-          "#a1a79e",
-          "#c6cbc4",
-          "#edefed"
+          "#1e201d",
+          "#373b35",
+          "#535950",
+          "#71796d",
+          "#8f978c",
+          "#afb4ac",
+          "#ced1cc",
+          "#edeeec"
         ]
       },
-      "slate-ground": {
+      "warn-bg-orbit": {
         "role": "neutral",
-        "displayName": "Wet Slate",
-        "canonical": "#15191c",
+        "displayName": "Warn Bg Orbit",
+        "canonical": "#33270f",
         "tonalRamp": [
-          "#090c0e",
-          "#212629",
-          "#3e4346",
-          "#5d6266",
-          "#7e8387",
-          "#a0a6aa",
-          "#c5cacd",
-          "#edeff0"
-        ]
-      },
-      "slate-ground-2": {
-        "role": "neutral",
-        "displayName": "Wet Slate, lifted",
-        "canonical": "#1b2024",
-        "tonalRamp": [
-          "#090c0e",
-          "#21262a",
-          "#3d4347",
-          "#5c6267",
-          "#7d8388",
-          "#9fa6ab",
-          "#c5cace",
-          "#edeff0"
-        ]
-      },
-      "slate-plate": {
-        "role": "neutral",
-        "displayName": "Slate Plate",
-        "canonical": "#20262b",
-        "tonalRamp": [
-          "#080c0e",
-          "#20262b",
-          "#3c4348",
-          "#5b6268",
-          "#7c838a",
-          "#9fa6ad",
-          "#c4cacf",
-          "#edeff0"
-        ]
-      },
-      "slate-plate-2": {
-        "role": "neutral",
-        "displayName": "Slate Plate, raised",
-        "canonical": "#283036",
-        "tonalRamp": [
-          "#080c0f",
-          "#1f262b",
-          "#3b434a",
-          "#5a6369",
-          "#7a848b",
-          "#9da6ae",
-          "#c4cacf",
-          "#eceff1"
-        ]
-      },
-      "slate-ink": {
-        "role": "neutral",
-        "displayName": "Slate Ink",
-        "canonical": "#e6e9e4",
-        "tonalRamp": [
-          "#0a0c09",
-          "#242622",
-          "#40433f",
-          "#60625e",
-          "#81837f",
-          "#a3a6a1",
-          "#c7cac5",
-          "#edefec"
-        ]
-      },
-      "slate-ink-2": {
-        "role": "neutral",
-        "displayName": "Slate Ink, secondary",
-        "canonical": "#adb5b9",
-        "tonalRamp": [
-          "#080c0e",
-          "#202629",
-          "#3c4347",
-          "#5b6266",
-          "#7c8487",
-          "#9fa6aa",
-          "#c4cacd",
-          "#edeff0"
-        ]
-      },
-      "slate-ink-3": {
-        "role": "neutral",
-        "displayName": "Slate Ink, caption",
-        "canonical": "#8f989e",
-        "tonalRamp": [
-          "#080c0e",
-          "#20262a",
-          "#3b4348",
-          "#5a6368",
-          "#7b848a",
-          "#9ea6ac",
-          "#c4cace",
-          "#edeff0"
-        ]
-      },
-      "slate-rule": {
-        "role": "neutral",
-        "displayName": "Slate Rule",
-        "canonical": "#2f363c",
-        "tonalRamp": [
-          "#080c0e",
-          "#20262b",
-          "#3c4349",
-          "#5b6269",
-          "#7b838a",
-          "#9ea6ad",
-          "#c4cacf",
-          "#edeff0"
-        ]
-      },
-      "slate-rule-2": {
-        "role": "neutral",
-        "displayName": "Slate Rule, strong",
-        "canonical": "#414a51",
-        "tonalRamp": [
-          "#080c0f",
-          "#1f262b",
-          "#3b434a",
-          "#59636a",
-          "#7a848b",
-          "#9ea6ad",
-          "#c4cacf",
-          "#edeff0"
-        ]
-      },
-      "focus-slate": {
-        "role": "neutral",
-        "displayName": "Focus (on slate)",
-        "canonical": "#c3d0f5",
-        "tonalRamp": [
-          "#040821",
-          "#1b233f",
-          "#37415f",
-          "#556080",
-          "#7681a3",
-          "#98a4c7",
-          "#bbc8ed",
-          "#e9eefd"
-        ]
-      },
-      "warn-bg-paper": {
-        "role": "neutral",
-        "displayName": "Warn Bg Paper",
-        "canonical": "#f6ecd6",
-        "tonalRamp": [
-          "#110a00",
-          "#2c2413",
-          "#49412f",
-          "#69604d",
-          "#8a816e",
-          "#aea48f",
-          "#d2c8b3",
-          "#f7eeda"
-        ]
-      },
-      "warn-rule-paper": {
-        "role": "neutral",
-        "displayName": "Warn Rule Paper",
-        "canonical": "#c9a35a",
-        "tonalRamp": [
-          "#180600",
-          "#3c1c00",
-          "#5c3b00",
-          "#7e5a00",
-          "#a07c31",
-          "#c59f56",
-          "#e1c594",
-          "#f7eddc"
-        ]
-      },
-      "warn-ink-paper": {
-        "role": "neutral",
-        "displayName": "Warn Ink Paper",
-        "canonical": "#4a3410",
-        "tonalRamp": [
-          "#130900",
-          "#332103",
-          "#543d1a",
-          "#755d3a",
-          "#977e5a",
-          "#b8a180",
-          "#d7c7b0",
-          "#f3eee5"
+          "#2f240e",
+          "#57421a",
+          "#826326",
+          "#b18834",
+          "#cda556",
+          "#dbbe85",
+          "#e9d7b4",
+          "#f7f0e3"
         ]
       },
       "warn-bg-slate": {
@@ -549,51 +724,96 @@
         "displayName": "Warn Bg Slate",
         "canonical": "#3a2c12",
         "tonalRamp": [
-          "#110a01",
-          "#2f230b",
-          "#4e4025",
-          "#6e5f44",
-          "#908064",
-          "#b3a387",
-          "#d3c8b4",
-          "#f2eee7"
+          "#2f230e",
+          "#56411b",
+          "#806128",
+          "#af8536",
+          "#cba358",
+          "#dabc86",
+          "#e8d6b5",
+          "#f7f0e4"
         ]
       },
-      "warn-rule-slate": {
+      "warn-rule-dark": {
         "role": "neutral",
-        "displayName": "Warn Rule Slate",
+        "displayName": "Warn Rule Dark",
         "canonical": "#7a5a22",
         "tonalRamp": [
-          "#150800",
-          "#362000",
-          "#583c00",
-          "#7b5b23",
-          "#9c7d49",
-          "#bca075",
-          "#dac6a8",
-          "#f4ede3"
+          "#30230d",
+          "#584118",
+          "#846125",
+          "#b38432",
+          "#cfa253",
+          "#ddbc83",
+          "#ead6b3",
+          "#f7f0e3"
         ]
       },
-      "warn-ink-slate": {
+      "warn-ink-dark": {
         "role": "neutral",
-        "displayName": "Warn Ink Slate",
+        "displayName": "Warn Ink Dark",
         "canonical": "#f1d9a6",
         "tonalRamp": [
-          "#180600",
-          "#342100",
-          "#533f0b",
-          "#735e2e",
-          "#967f4f",
-          "#b9a271",
-          "#dec694",
-          "#f9edd4"
+          "#352708",
+          "#61470f",
+          "#916a17",
+          "#c6911f",
+          "#e1ae42",
+          "#eac576",
+          "#f2dbab",
+          "#faf2e0"
+        ]
+      },
+      "warn-bg-paper": {
+        "role": "neutral",
+        "displayName": "Warn Bg Paper",
+        "canonical": "#f6ecd6",
+        "tonalRamp": [
+          "#32260b",
+          "#5c4614",
+          "#8a681e",
+          "#bc8e29",
+          "#d8ac4b",
+          "#e3c37d",
+          "#eedab0",
+          "#f9f1e2"
+        ]
+      },
+      "warn-rule-paper": {
+        "role": "neutral",
+        "displayName": "Warn Rule Paper",
+        "canonical": "#c9a35a",
+        "tonalRamp": [
+          "#2e230f",
+          "#55411c",
+          "#7f6229",
+          "#ad8539",
+          "#c9a35a",
+          "#d8bd88",
+          "#e7d6b6",
+          "#f6f0e4"
+        ]
+      },
+      "warn-ink-paper": {
+        "role": "neutral",
+        "displayName": "Warn Ink Paper",
+        "canonical": "#4a3410",
+        "tonalRamp": [
+          "#32230b",
+          "#5c4114",
+          "#8a611e",
+          "#bd8529",
+          "#d8a24b",
+          "#e3bc7d",
+          "#eed6af",
+          "#f9f0e2"
         ]
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "The landing headline only."
+        "purpose": "Landing headline only."
       },
       "headline": {
         "displayName": "Headline",
@@ -601,105 +821,160 @@
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Register entries, route stops, the selected subdivision name."
+        "purpose": "Register entries, route stops, key heading, selected subdivision."
       },
       "reading": {
         "displayName": "Reading",
-        "purpose": "Measured values in the landing register, tabular numerals."
+        "purpose": "Measured values in the register, tabular."
       },
-      "reading-ops": {
-        "displayName": "Reading (ops)",
-        "purpose": "The selected reading on the map panel; 36px in the columns view, 26px when refused."
+      "station-served": {
+        "displayName": "Station Served",
+        "purpose": "The served reading in a station plot."
+      },
+      "station-field": {
+        "displayName": "Station Field",
+        "purpose": "Station plot fields: lead, baseline, outcome, name."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "Hero lede, max 33ch."
       },
       "body": {
         "displayName": "Body",
         "purpose": "Landing prose, max 64ch."
       },
       "body-ops": {
-        "displayName": "Body (ops)",
-        "purpose": "The working views; tables at 12.5px with tabular numerals."
+        "displayName": "Body Ops",
+        "purpose": "Working views body."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Buttons and selects."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "Product name in the top bar."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Control-group labels and panel section heads, sentence case."
+        "purpose": "Title block, provenance summary, panel heads."
       },
       "mono": {
         "displayName": "Mono",
-        "purpose": "Keyboard keys only."
+        "purpose": "Keyboard keys and the cited endpoint."
       }
-    },
-    "materials": [
-      {
-        "name": "chart-paper",
-        "selector": ":root[data-theme=\"light\"], :root[data-world=\"chart\"]",
-        "purpose": "The landing in every OS colour scheme, and the working views' light theme."
-      },
-      {
-        "name": "wet-slate",
-        "selector": ":root, :root[data-theme=\"dark\"]",
-        "purpose": "The default ops shell for the map, columns and volume views."
-      }
-    ],
-    "refusalHatch": {
-      "css": "repeating-linear-gradient(45deg,var(--hatch-ink) 0 2px,var(--hatch-bg) 2px 5px)",
-      "svg": "pattern rotated 45deg, 7px cell, --hatch-ink stroke 2.6 on --hatch-bg",
-      "purpose": "Refusal. A deliberate encoding of the product's most important state; never a colour token."
     },
     "shadows": [
       {
-        "name": "selection-bar",
-        "value": "inset 3px 0 0 var(--accent)",
-        "purpose": "The selected row in a queue or list, over the accent wash."
+        "name": "plate-rest",
+        "value": "inset 0 1px 0 var(--edge-hi), 0 1px 0 var(--edge-lo), 0 2px 5px -2px var(--shade)",
+        "purpose": "Every button at rest."
       },
       {
-        "name": "pressed-underline",
-        "value": "inset 0 -2px 0 var(--accent)",
-        "purpose": "A toggle in its pressed state."
+        "name": "plate-lift",
+        "value": "inset 0 1px 0 var(--edge-hi), 0 2px 0 var(--edge-lo), 0 7px 14px -6px var(--shade)",
+        "purpose": "Hover, with translateY(-1px)."
+      },
+      {
+        "name": "plate-sunk",
+        "value": "inset 0 2px 3px var(--shade-in), inset 0 -1px 0 var(--edge-hi)",
+        "purpose": "Active, with translateY(1px)."
+      },
+      {
+        "name": "toggle-pressed",
+        "value": "inset 0 2px 3px var(--shade-in), inset 0 -2px 0 var(--accent)",
+        "purpose": "A toggle that stays down, on the accent wash."
+      },
+      {
+        "name": "plate-primary",
+        "value": "inset 0 1px 0 rgba(255,255,255,.35), 0 1px 0 var(--edge-lo), 0 3px 8px -3px var(--shade)",
+        "purpose": "The accent action."
+      },
+      {
+        "name": "select",
+        "value": "inset 0 1px 0 var(--edge-hi), 0 1px 0 var(--edge-lo)",
+        "purpose": "Selects; no drop."
+      },
+      {
+        "name": "float",
+        "value": "inset 0 1px 0 var(--edge-hi), 0 6px 10px -6px var(--shade)",
+        "purpose": "Tooltips and the timeline strip."
+      },
+      {
+        "name": "float-titleblock",
+        "value": "inset 0 1px 0 var(--edge-hi), 0 8px 14px -8px var(--shade)",
+        "purpose": "The landing title block; the largest drop in the system."
+      },
+      {
+        "name": "selection-bar",
+        "value": "inset 3px 0 0 var(--accent)",
+        "purpose": "Selected row in a queue or list."
       },
       {
         "name": "swatch-hairline",
         "value": "inset 0 0 0 1px rgba(127,127,127,.35)",
-        "purpose": "Legend swatches and chips hold their edge on both grounds."
+        "purpose": "Legend swatches and station marks."
+      },
+      {
+        "name": "edge-tokens-orbit",
+        "value": "--edge-hi: rgba(232,228,255,.14); --edge-lo: rgba(0,0,0,.55); --shade: rgba(6,4,14,.6); --shade-in: rgba(0,0,0,.5)",
+        "purpose": "Night orbit light values."
+      },
+      {
+        "name": "edge-tokens-slate",
+        "value": "--edge-hi: rgba(255,255,255,.075); --edge-lo: rgba(0,0,0,.42); --shade: rgba(4,7,10,.55); --shade-in: rgba(0,0,0,.45)",
+        "purpose": "Wet-slate light values."
+      },
+      {
+        "name": "edge-tokens-paper",
+        "value": "--edge-hi: rgba(255,255,255,.95); --edge-lo: rgba(23,33,51,.16); --shade: rgba(23,33,51,.16); --shade-in: rgba(23,33,51,.18)",
+        "purpose": "Chart-paper light values."
       }
     ],
     "motion": [
       {
-        "name": "control",
+        "name": "plate-press",
+        "value": "transform .14s cubic-bezier(.2,.7,.2,1), box-shadow .14s ease; active .05s",
+        "purpose": "Lift and sink of machined plates."
+      },
+      {
+        "name": "state-color",
         "value": "background-color .15s ease, border-color .15s ease",
-        "purpose": "Buttons and controls."
+        "purpose": "Hover colour and border changes."
+      },
+      {
+        "name": "busy-hairline",
+        "value": "1.1s linear infinite",
+        "purpose": "Running 2px accent hairline on a busy plate; static under reduced motion."
+      },
+      {
+        "name": "intro",
+        "value": "orbit 0-2.4s, outline 1.0-2.5s, boundaries 2.3-2.9s, plotted 2.6-4.4s (ends ~4.6s)",
+        "purpose": "The one authored intro; skippable, absent under reduced motion."
+      },
+      {
+        "name": "arrive",
+        "value": "opacity/transform .8s cubic-bezier(.16,1,.3,1), stagger .12s/.24s/.45s, from translateY(10px)",
+        "purpose": "Hero copy and title block arriving with the planet; hidden only while .arriving is set."
       },
       {
         "name": "draw",
-        "value": "stroke-dashoffset 1.4s cubic-bezier(.3,.6,.2,1) .35s",
-        "purpose": "The served line drawing across the landing staffs."
+        "value": "stroke-dashoffset 1.4s cubic-bezier(.3,.6,.2,1) .25s",
+        "purpose": "Meteogram line draw; labels fade .5s at .9s."
       },
       {
-        "name": "rise",
-        "value": "transform 1s cubic-bezier(.2,.7,.2,1), staggered 80ms per staff",
-        "purpose": "Water rising up each staff to its reading."
-      },
-      {
-        "name": "fade",
-        "value": "opacity .5s ease .9s",
-        "purpose": "Readings, meniscus, baseline and notches arriving after the water."
-      },
-      {
-        "name": "reduced-motion",
-        "value": "all transitions and animations 0s",
-        "purpose": "Reduced motion and no-JS both show the final state."
+        "name": "lead-swap",
+        "value": "none",
+        "purpose": "Lead changes swap values instantly; never tween between days."
       }
     ],
     "breakpoints": [
       {
+        "name": "phone-narrow",
+        "value": "420px"
+      },
+      {
         "name": "phone",
-        "value": "480px"
-      },
-      {
-        "name": "register-stack",
-        "value": "560px"
-      },
-      {
-        "name": "gutter-narrow",
         "value": "640px"
       },
       {
@@ -711,149 +986,179 @@
         "value": "959px"
       },
       {
-        "name": "date-slider",
-        "value": "1380px"
+        "name": "case-stack",
+        "value": "1023px"
+      },
+      {
+        "name": "short-laptop",
+        "value": "max-height 820px"
+      },
+      {
+        "name": "short-no-legend",
+        "value": "max-height 680px"
+      },
+      {
+        "name": "container",
+        "value": "1240px"
       }
     ]
   },
   "components": [
     {
-      "name": "Button",
+      "name": "Machined Button",
       "kind": "button",
       "refersTo": "button",
-      "description": "The quiet default control on the ops shell: plate, hairline border, 3px corners.",
-      "html": "<button class=\"ds-btn\">Scrub</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 10px;border-radius:3px;border:1px solid #414a51;background:#20262b;color:#e6e9e4;font:13px system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}.ds-btn:hover{border-color:#8f989e}.ds-btn:active{transform:translateY(1px)}.ds-btn:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
+      "description": "Default control on every material: a lit plate that lifts, sinks and stays sunk when pressed.",
+      "html": "<button class=\"ds-btn\">Explore the verified case</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border-radius:3px;border:1px solid #3a3550;background:#1e1b2a;color:#ecebf4;font:13px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;cursor:pointer;box-shadow:inset 0 1px 0 rgba(232,228,255,.14),0 1px 0 rgba(0,0,0,.55),0 2px 5px -2px rgba(6,4,14,.6);transition:transform .14s cubic-bezier(.2,.7,.2,1),box-shadow .14s ease,border-color .15s ease}.ds-btn:hover{border-color:#9390a8;transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(232,228,255,.14),0 2px 0 rgba(0,0,0,.55),0 7px 14px -6px rgba(6,4,14,.6)}.ds-btn:active{transform:translateY(1px);transition-duration:.05s;box-shadow:inset 0 2px 3px rgba(0,0,0,.5),inset 0 -1px 0 rgba(232,228,255,.14)}.ds-btn:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
     },
     {
-      "name": "Pressed Toggle",
-      "kind": "button",
-      "refersTo": "button",
-      "description": "A toggle in its pressed state: accent wash, accent border, inset underline.",
-      "html": "<button class=\"ds-toggle\" aria-pressed=\"true\">Theme</button>",
-      "css": ".ds-toggle{min-height:30px;padding:5px 10px;border-radius:3px;border:1px solid #8fa6e8;background:rgba(143,166,232,.15);color:#e6e9e4;box-shadow:inset 0 -2px 0 #8fa6e8;font:13px system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;cursor:pointer}.ds-toggle:active{transform:translateY(1px)}.ds-toggle:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
-    },
-    {
-      "name": "Primary Action (chart paper)",
+      "name": "Primary Action",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The landing's primary action, gauge indigo on chart paper.",
-      "html": "<a class=\"ds-btn-primary\" href=\"#\">Open the Assam case</a>",
-      "css": ".ds-btn-primary{display:inline-flex;align-items:center;min-height:46px;padding:10px 20px;border-radius:3px;border:1px solid #27407a;background:#27407a;color:#ffffff;font:600 15.5px system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;text-decoration:none;transition:background-color .15s ease}.ds-btn-primary:hover{filter:brightness(1.08)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid #27407a;outline-offset:2px}"
+      "description": "The one accent action; 46px on the landing hero.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Enter the command centre</a>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;min-height:46px;padding:10px 20px;border-radius:3px;border:1px solid #8fa6e8;background:#8fa6e8;color:#0d1430;font:600 15.5px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;text-decoration:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 1px 0 rgba(0,0,0,.55),0 3px 8px -3px rgba(6,4,14,.6);transition:transform .14s cubic-bezier(.2,.7,.2,1),box-shadow .14s ease}.ds-btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 0 rgba(0,0,0,.55),0 9px 18px -7px rgba(6,4,14,.6)}.ds-btn-primary:active{transform:translateY(1px);box-shadow:inset 0 2px 4px rgba(0,0,0,.28),inset 0 -1px 0 rgba(255,255,255,.25)}.ds-btn-primary:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
     },
     {
-      "name": "Reading Select",
+      "name": "Lead Rail",
+      "kind": "custom",
+      "refersTo": "lead-rail-key",
+      "description": "A segmented bar of whole-day keys; the current day stays sunk, keys never lift.",
+      "html": "<div class=\"ds-rail\"><button>1</button><button>2</button><button class=\"on\">3</button><button>4</button><button>5</button></div>",
+      "css": ".ds-rail{display:grid;grid-template-columns:repeat(5,40px)}.ds-rail button{min-height:32px;margin-left:-1px;border:1px solid #3a3550;background:#1e1b2a;color:#ecebf4;font:600 13px Bahnschrift,'DIN Alternate','DIN 2014','Roboto Condensed','Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;border-radius:0;box-shadow:inset 0 1px 0 rgba(232,228,255,.14),0 1px 0 rgba(0,0,0,.55),0 2px 5px -2px rgba(6,4,14,.6)}.ds-rail button:first-child{margin-left:0;border-radius:3px 0 0 3px}.ds-rail button:last-child{border-radius:0 3px 3px 0}.ds-rail button:hover{border-color:#9390a8}.ds-rail button:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px;position:relative;z-index:2}.ds-rail button.on{position:relative;z-index:1;background:rgba(143,166,232,.13);border-color:#8fa6e8;box-shadow:inset 0 2px 3px rgba(0,0,0,.5),inset 0 -2px 0 #8fa6e8}"
+    },
+    {
+      "name": "Select",
       "kind": "input",
       "refersTo": "select",
-      "description": "Date and lead selects in the ops bar, in the signage face with tabular numerals.",
-      "html": "<label class=\"ds-grp\"><span>Lead</span><select class=\"ds-select\"><option>D04</option><option>D05</option></select></label>",
-      "css": ".ds-grp{display:inline-flex;align-items:center;gap:6px}.ds-grp span{font:600 12px Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif;letter-spacing:.02em;color:#adb5b9}.ds-select{min-height:30px;padding:4px 8px;border-radius:3px;border:1px solid #414a51;background:#20262b;color:#e6e9e4;font:600 14px Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif;font-variant-numeric:tabular-nums}.ds-select:hover{border-color:#8f989e}.ds-select:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
+      "description": "A plate select with top highlight and lower edge, no drop (slate).",
+      "html": "<select class=\"ds-select\"><option>Day 4</option><option>Day 5</option></select>",
+      "css": ".ds-select{min-height:30px;padding:4px 8px;border-radius:3px;border:1px solid #414a51;background:#20262b;color:#e6e9e4;font:600 14px Bahnschrift,'DIN Alternate','DIN 2014','Roboto Condensed','Arial Narrow',system-ui,sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.075),0 1px 0 rgba(0,0,0,.42)}.ds-select:hover{border-color:#8f989e}.ds-select:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
     },
     {
       "name": "View Navigation",
       "kind": "nav",
       "refersTo": "view-tab",
-      "description": "Wordmark plus the view list; the current view carries a 2px accent underline.",
-      "html": "<nav class=\"ds-nav\"><a class=\"ds-wm\" href=\"#\"><svg width=\"14\" height=\"20\" viewBox=\"0 0 14 20\" aria-hidden=\"true\"><rect width=\"14\" height=\"20\" rx=\"2\" fill=\"#8fa6e8\"/><path d=\"M4 4h6M4 4v12M4 10h4.5M4 16h6\" stroke=\"#15191c\" fill=\"none\" stroke-width=\"2\"/></svg>Forecast Bust Intelligence</a><a class=\"ds-tab\" href=\"#\">Overview</a><a class=\"ds-tab\" aria-current=\"page\" href=\"#\">Map</a><a class=\"ds-tab\" href=\"#\">Columns</a></nav>",
-      "css": ".ds-nav{display:flex;align-items:center;gap:2px;flex-wrap:wrap;background:#1b2024;padding:8px 14px}.ds-wm{display:inline-flex;align-items:center;gap:9px;margin-right:16px;color:#e6e9e4;text-decoration:none;font:600 15px Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif}.ds-tab{display:block;padding:6px 9px;border-radius:3px;color:#adb5b9;text-decoration:none;font:13px system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;border-bottom:2px solid transparent}.ds-tab:hover{color:#e6e9e4;background:rgba(143,166,232,.15)}.ds-tab[aria-current=page]{color:#e6e9e4;border-bottom-color:#8fa6e8;border-radius:3px 3px 0 0}.ds-tab:focus-visible,.ds-wm:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}"
+      "description": "The view list; the current view carries the accent underline (slate).",
+      "html": "<nav class=\"ds-views\"><a href=\"#\">Map</a><a href=\"#\" aria-current=\"page\">Columns</a><a href=\"#\">Volume</a></nav>",
+      "css": ".ds-views{display:flex;gap:2px;background:#15191c;padding:6px}.ds-views a{padding:6px 9px;border-radius:3px;color:#adb5b9;text-decoration:none;font:13px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;border-bottom:2px solid transparent}.ds-views a:hover{color:#e6e9e4;background:rgba(143,166,232,.15)}.ds-views a:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}.ds-views a[aria-current=page]{color:#e6e9e4;border-bottom-color:#8fa6e8;border-radius:3px 3px 0 0}"
     },
     {
-      "name": "Risk Legend",
+      "name": "Legend Chips",
       "kind": "chip",
-      "refersTo": "map-dock",
-      "description": "The map key: five viridis swatches and the refusal hatch, on a lifted slate ground.",
-      "html": "<div class=\"ds-dock\"><div class=\"ds-k\">Bust probability, served</div><div class=\"ds-legend\"><span><i class=\"ds-sw\" style=\"background:#440154\"></i>&lt;5%</span><span><i class=\"ds-sw\" style=\"background:#414487\"></i>5–10%</span><span><i class=\"ds-sw\" style=\"background:#2a788e\"></i>10–20%</span><span><i class=\"ds-sw\" style=\"background:#5ec962\"></i>20–35%</span><span><i class=\"ds-sw\" style=\"background:#fde725\"></i>&gt;35%</span><span><i class=\"ds-sw ds-hatch\"></i>refused</span></div></div>",
-      "css": ".ds-dock{background:#1b2024;border:1px solid #2f363c;border-radius:3px;padding:9px 11px;color:#adb5b9;font:12px system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}.ds-k{font:600 12px Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif;margin-bottom:6px}.ds-legend{display:flex;flex-wrap:wrap;gap:4px 14px}.ds-legend span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}.ds-sw{width:16px;height:12px;border-radius:2px;display:inline-block;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}.ds-hatch{background-image:repeating-linear-gradient(45deg,#e6e9e4 0 3px,#2a3136 3px 7px)}"
+      "refersTo": "risk-c0",
+      "description": "Viridis swatches with the hairline; refusal is the hatch.",
+      "html": "<ul class=\"ds-legend\"><li><i style=\"background:#440154\"></i>&lt;5%</li><li><i style=\"background:#2a788e\"></i>10-20</li><li><i style=\"background:#fde725\"></i>&gt;35%</li><li><i class=\"h\"></i>refused, not low risk</li></ul>",
+      "css": ".ds-legend{display:flex;gap:4px 10px;flex-wrap:wrap;list-style:none;margin:0;padding:8px;background:#16141f;color:#b7b4c9;font:12px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}.ds-legend li{display:inline-flex;align-items:center;gap:5px}.ds-legend i{width:14px;height:10px;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}.ds-legend i.h{background-image:repeating-linear-gradient(45deg,#e4e2ee 0 2px,#2b2738 2px 5px)}"
     },
     {
-      "name": "Review Queue",
-      "kind": "card",
-      "refersTo": "ops-panel-section",
-      "description": "A panel section with the ranked queue; the selected row carries the inset accent bar.",
-      "html": "<section class=\"ds-panel\"><h2>Review queue</h2><table class=\"ds-q\"><thead><tr><th>Region</th><th>Lead</th><th class=\"r\">Served</th></tr></thead><tbody><tr class=\"sel\" tabindex=\"0\"><td>Assam &amp; Meghalaya</td><td class=\"c\">D04</td><td class=\"r\"><i class=\"ds-chip\" style=\"background:#5ec962\"></i>31.2%</td></tr><tr tabindex=\"0\"><td>Bihar</td><td class=\"c\">D06</td><td class=\"r\"><i class=\"ds-chip\" style=\"background:#2a788e\"></i>14.8%</td></tr></tbody></table></section>",
-      "css": ".ds-panel{background:#1b2024;color:#e6e9e4;padding:14px 16px;border-bottom:1px solid #2f363c;font:14px/1.5 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}.ds-panel h2{margin:0 0 9px;font:600 13px Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif;letter-spacing:.02em;color:#adb5b9}.ds-q{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}.ds-q th,.ds-q td{text-align:left;padding:5px 6px;border-bottom:1px solid #2f363c}.ds-q th{color:#8f989e;font-weight:600;font-size:12px}.ds-q .r{text-align:right}.ds-q .c{font-family:Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif;font-weight:600}.ds-q tbody tr{cursor:pointer}.ds-q tbody tr:hover{background:rgba(143,166,232,.15)}.ds-q tr.sel{background:rgba(143,166,232,.15);box-shadow:inset 3px 0 0 #8fa6e8}.ds-q tbody tr:focus-visible{outline:2px solid #c3d0f5;outline-offset:-2px}.ds-chip{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}"
-    },
-    {
-      "name": "Gauge Staff",
+      "name": "Station Plot",
       "kind": "custom",
-      "refersTo": "gauge-staff",
-      "description": "The signature: an enamel plate with E-graduations, water to the served reading, ink meniscus, ochre baseline notch, review level in ink; a refused lead is a hatched ghost plate.",
-      "html": "<svg class=\"ds-staff\" viewBox=\"0 0 124 200\" width=\"124\" height=\"200\" role=\"img\" aria-label=\"D04: 31% served; D05 refused\"><defs><pattern id=\"dsh\" width=\"7\" height=\"7\" patternTransform=\"rotate(45)\" patternUnits=\"userSpaceOnUse\"><rect width=\"7\" height=\"7\" fill=\"#fbfcf9\"/><line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"7\" stroke=\"#172133\" stroke-width=\"2.6\"/></pattern></defs><g stroke=\"#c9cec5\"><line x1=\"0\" x2=\"124\" y1=\"20\" y2=\"20\"/><line x1=\"0\" x2=\"124\" y1=\"70\" y2=\"70\"/><line x1=\"0\" x2=\"124\" y1=\"120\" y2=\"120\"/><line x1=\"0\" x2=\"124\" y1=\"170\" y2=\"170\"/></g><rect x=\"20\" y=\"20\" width=\"32\" height=\"150\" rx=\"2\" fill=\"#fbfcf9\" stroke=\"#a9afa6\"/><g fill=\"#27407a\"><rect x=\"22\" y=\"20\" width=\"2\" height=\"12.5\"/><rect x=\"22\" y=\"20\" width=\"15\" height=\"2\"/><rect x=\"22\" y=\"25.5\" width=\"12\" height=\"2\"/><rect x=\"22\" y=\"30.5\" width=\"15\" height=\"2\"/><rect x=\"48\" y=\"45\" width=\"2\" height=\"12.5\"/><rect x=\"35\" y=\"45\" width=\"15\" height=\"2\"/><rect x=\"35\" y=\"50.5\" width=\"12\" height=\"2\"/><rect x=\"35\" y=\"55.5\" width=\"15\" height=\"2\"/><rect x=\"22\" y=\"70\" width=\"2\" height=\"12.5\"/><rect x=\"22\" y=\"70\" width=\"15\" height=\"2\"/><rect x=\"22\" y=\"75.5\" width=\"12\" height=\"2\"/><rect x=\"22\" y=\"80.5\" width=\"15\" height=\"2\"/><rect x=\"48\" y=\"95\" width=\"2\" height=\"12.5\"/><rect x=\"35\" y=\"95\" width=\"15\" height=\"2\"/><rect x=\"35\" y=\"100.5\" width=\"12\" height=\"2\"/><rect x=\"35\" y=\"105.5\" width=\"15\" height=\"2\"/></g><rect x=\"20\" y=\"77\" width=\"32\" height=\"93\" fill=\"#c5d0e4\" opacity=\".8\"/><rect x=\"19\" y=\"152\" width=\"34\" height=\"7\" fill=\"#fbfcf9\"/><rect x=\"19\" y=\"153.75\" width=\"34\" height=\"3.5\" fill=\"#172133\"/><line x1=\"15\" x2=\"57\" y1=\"77\" y2=\"77\" stroke=\"#172133\" stroke-width=\"2.6\"/><path d=\"M53 156 l7 -4.5 v9 z\" fill=\"#8d5a12\"/><rect x=\"74\" y=\"20\" width=\"32\" height=\"150\" rx=\"2\" fill=\"url(#dsh)\" stroke=\"#5b6574\"/><rect x=\"73\" y=\"152\" width=\"34\" height=\"7\" fill=\"#fbfcf9\"/><rect x=\"73\" y=\"153.75\" width=\"34\" height=\"3.5\" fill=\"#172133\"/><text x=\"36\" y=\"188\" text-anchor=\"middle\">D04</text><text x=\"90\" y=\"188\" text-anchor=\"middle\">D05</text><text x=\"90\" y=\"13\" text-anchor=\"middle\">refused</text></svg>",
-      "css": ".ds-staff{background:#f2f4f0;display:block}.ds-staff text{font:600 12px Bahnschrift,\"DIN Alternate\",\"DIN 2014\",\"Roboto Condensed\",\"Arial Narrow\",system-ui,sans-serif;fill:#172133;font-variant-numeric:tabular-nums}"
+      "refersTo": "station-plot",
+      "description": "Unboxed ink: served upper left, lead upper right, baseline lower left in ochre, outcome lower right, name beneath.",
+      "html": "<a class=\"ds-stn\" href=\"#\"><span class=\"s\">41%</span><span class=\"m\"></span><span class=\"l\">D4</span><span class=\"b\">base 18%</span><span class=\"o\">busted</span><span class=\"n\">Assam and Meghalaya</span></a>",
+      "css": ".ds-stn{display:inline-grid;grid-template-columns:auto 12px auto;column-gap:8px;align-items:center;padding:4px 6px 5px;background:#100e19;color:#ecebf4;text-decoration:none;border-top:1px solid #9390a8;font-family:Bahnschrift,'DIN Alternate','DIN 2014','Roboto Condensed','Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;transition:border-color .15s ease}.ds-stn:hover{border-top-color:#8fa6e8}.ds-stn:focus-visible{outline:2px solid #c3d0f5;outline-offset:2px}.ds-stn .s{grid-area:1/1;font-size:19px;font-weight:600;line-height:1.1}.ds-stn .m{grid-area:1/2/3/3;width:12px;height:12px;border-radius:50%;background:#fde725;box-shadow:inset 0 0 0 1px rgba(232,237,244,.55)}.ds-stn .l{grid-area:1/3;font-size:12.5px;font-weight:600;color:#b7b4c9}.ds-stn .b{grid-area:2/1;font-size:12px;color:#d9a24a}.ds-stn .o{grid-area:2/3;font-size:12px;font-weight:700}.ds-stn .n{grid-area:3/1/4/4;font-size:12.5px;color:#b7b4c9;margin-top:2px}"
+    },
+    {
+      "name": "Title Block",
+      "kind": "card",
+      "refersTo": "title-block",
+      "description": "A floating plate on the lifted void: what is plotted, when, and the lead rail.",
+      "html": "<div class=\"ds-tb\"><p class=\"t\"><span>Archive replay</span><span class=\"p\">plotted</span></p><p>Issued <b>14 Jun 2022</b> Valid <b>17 Jun 2022</b> Lead <b>D4</b></p></div>",
+      "css": ".ds-tb{width:360px;padding:12px 14px;background:#16141f;border:1px solid #3a3550;border-radius:3px;color:#b7b4c9;font:12.5px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;box-shadow:inset 0 1px 0 rgba(232,228,255,.14),0 8px 14px -8px rgba(6,4,14,.6)}.ds-tb p{margin:0 0 3px}.ds-tb .t{display:flex;justify-content:space-between;font-family:Bahnschrift,'DIN Alternate','DIN 2014','Roboto Condensed','Arial Narrow',system-ui,sans-serif;font-weight:600;letter-spacing:.04em;color:#ecebf4}.ds-tb .p{color:#9390a8;letter-spacing:.02em}.ds-tb b{font-family:Bahnschrift,'DIN Alternate','DIN 2014','Roboto Condensed','Arial Narrow',system-ui,sans-serif;font-weight:600;color:#ecebf4;font-variant-numeric:tabular-nums}"
     }
   ],
   "narrative": {
-    "northStar": "Taking a Reading",
-    "overview": "A forecast is read like a river gauge. Every subdivision gets a graduated staff, one mark per lead day, and the reading is taken where the served risk meets the scale. The system refuses the category default of a dark dashboard with equal stat cards around a glowing map.\n\nOne world, three materials, each with one job. **Chart paper** (cool off-white ground, blue-black ink, hairline graticules) is the ground the case is explained on: the landing, always, whatever the OS colour scheme, and the working views' light theme. **Wet-concrete slate** is the calm ops shell for working under time pressure: the map, the columns and the volume views, dark by default. **Gauge enamel** is the reading itself: white plates with E-shaped graduations in gauge indigo, the single accent, drawn on the landing staffs, the selected-reading staff on the map, and the 3-D lead staff in the columns view.\n\nDensity follows the material. The landing reads as a long, ruled document with generous rhythm; the ops shell is compact (14px body, 12-13px labels, hairline-divided panels) because a forecaster has about 45 minutes per cycle. Both are offline and system-font only; nothing loads from another origin.",
+    "northStar": "The Night Chart",
+    "overview": "Forecast reliability is plotted like a synoptic chart over the real planet. India is raised on the model's own 0.25-degree grid over a plotting globe in a graphite-indigo void, every column the served reading, and each subdivision is a plotted station whose fixed positions carry the served reading, the baseline, the lead and the observed outcome. The system refuses the dark dashboard of stat cards around a glowing map, and the light editorial page the landing used to be.\n\nOne world, four materials, each with one job. **Night orbit** is the landing in every OS colour scheme: the void, the globe, the raised land and cool-white plotting ink. **Wet-concrete slate** is the ops shell's default, calm and compact, for the map, columns and volume views. **Chart paper** is the ops shell's light theme, one attribute away. **Machined plate** is every control on every material: solid, lit from above, pressed in when used.\n\nDensity follows the material. The landing is a full-bleed scene and then a long ruled read with generous rhythm; the ops shell is compact (14px body, 12-13px labels, hairline-divided panels). Everything is system fonts and same-origin; the scene is rendered locally in WebGL with a 2-D canvas fallback.",
     "keyCharacteristics": [
-      "Three materials, one per job: chart paper explains, slate operates, enamel reads.",
-      "Gauge indigo is the only accent; risk lives only on the viridis ramp; refusal is a hatch, never a hue.",
+      "Four materials, one job each: night orbit persuades, slate operates, chart paper is the light ops theme, machined plate is every control.",
+      "Gauge periwinkle is the only accent on dark (gauge indigo on paper); risk lives only on the five viridis stops; refusal is a hatch, never a hue.",
+      "Station plots: unboxed ink in fixed positions, joined to their station by a leader.",
       "Stencilled DIN signage (Bahnschrift) for codes, readings and headings; system-ui for prose.",
-      "Flat: depth comes from ground, plate and hairline steps, never from drop shadows.",
-      "Hairline-ruled rows instead of boxes and cards."
+      "Lit, not flat: controls carry an edge highlight, a darker lower edge and a short ground-tinted shade; floating plates a defined edge and a short drop. No glass, no glow.",
+      "Whole units: the lead rail steps whole days and lead changes swap values without tweening."
     ],
     "rules": [
       {
         "name": "The Hatch-Not-Hue Rule",
-        "body": "Refusal is a 45-degree hatch of `--hatch-ink` on `--hatch-bg` (ink on plate), never a colour token and never a point on the risk ramp. A refused case busts 23.4% of the time against 3.4% for a scored one, so it must never read as quieter than a reading. This is a deliberate encoding, the product's most important state, not decoration.",
+        "body": "Refusal is a 45-degree hatch of `--hatch-ink` on `--hatch-bg` (2px ink, 3px ground), never a colour token and never a point on the risk ramp, on every material: legend swatch, table cell, map pattern, column texture.",
         "section": "colors"
       },
       {
         "name": "The One Ramp Rule",
-        "body": "Risk is drawn only with the five viridis stops, and nothing else uses them. Green-amber-red is the warning service's palette; this product issues no warnings.",
+        "body": "Risk is drawn only with the five viridis stops, and nothing else uses them. No red, amber or green danger paint.",
         "section": "colors"
       },
       {
-        "name": "The Single Indigo Rule",
-        "body": "Gauge indigo is the only accent. The baseline's ochre is a data series that is always doubled by shape, and the outcome rust appears only as the Observed-view fill. A third hue needs a data series to carry, not a mood.",
+        "name": "The Single Accent Rule",
+        "body": "Periwinkle (indigo on paper) is the only accent. Ochre is a data series always doubled by shape; rust is only the Observed-view fill.",
         "section": "colors"
       },
       {
-        "name": "The Review-Level Rule",
-        "body": "No danger paint. Staffs carry a review level (0.0909) painted in ink across every staff, and the copy says \"review level\", never \"danger level\".",
+        "name": "The Doubled Baseline Rule",
+        "body": "The baseline is never ochre alone: it is dashed as a line, notched on a scale, and placed lower left in a station plot.",
         "section": "colors"
       },
       {
         "name": "The Signage Numerals Rule",
-        "body": "Subdivision codes (D01-D10), lead codes, percentages, scale numerals and headings are set in the signage face with tabular numerals. Prose never is.",
+        "body": "Subdivision codes, lead days, percentages, dates in the title block, scale numerals and headings are set in the signage face with tabular numerals. Prose never is.",
         "section": "typography"
       },
       {
         "name": "The System Fonts Rule",
-        "body": "No `@font-face`, no webfont, no external origin. Off Windows the signage voice falls back to its nearest cousin; that is accepted.",
+        "body": "No `@font-face`, no webfont, no external origin. Off Windows the signage falls back to its nearest cousin. A self-hosted DIN-class face is an open owner question, not a decision.",
         "section": "typography"
       },
       {
-        "name": "The Rules-Not-Boxes Rule",
-        "body": "Lists of facts are hairline-ruled rows (the measured register, the three bust conditions joined by \"and\", the route through the views, tables), not cards or tiles.",
+        "name": "The Whole Units Rule",
+        "body": "The lead rail is ten equal keys, Day 1 to Day 10, and never shows a value between days; grids step in whole cells.",
         "section": "layout"
       },
       {
-        "name": "The Flat Slate Rule",
-        "body": "Nothing floats. Overlays on the 3-D stage and the map key sit on a lifted ground with a hairline border; the help dialog sits on a dark scrim (rgba(10,13,16,.72)), not a shadow.",
+        "name": "The Rules-Not-Boxes Rule",
+        "body": "Lists of facts are hairline-ruled rows (the register, the three bust conditions joined by \"and\", the route, the provenance list, tables), never cards or tiles.",
+        "section": "layout"
+      },
+      {
+        "name": "The Short Shade Rule",
+        "body": "A drop is at most 0 8px 14px with a negative spread, tinted to the ground. No wide diffuse shadow, no blur behind a plate, no glow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat-When-Disabled Rule",
+        "body": "Disabled is flat (no shade, no lift, 50% opacity); busy keeps the plate and runs a 2px accent hairline along its lower edge (1.1s loop, static under reduced motion).",
+        "section": "elevation"
+      },
+      {
+        "name": "The Level Bar Rule",
+        "body": "A segmented bar is one plate: its keys sink when pressed but never lift on hover.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** set the landing on chart paper (`data-world=\"chart\"`) in every OS colour scheme; dark slate belongs to the working views and their Theme toggle.",
-      "**Do** draw refusal as the hatch (`--hatch-ink` on `--hatch-bg`) everywhere it appears: map pattern, column texture, legend swatch, ghost plate, table cell.",
-      "**Do** declare the viridis stops `--c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725` first in each Operate page's own `:root{` block, identical across pages.",
-      "**Do** alias page-local names to the shared tokens in `web/fbi.css` so the light theme stays one attribute away.",
-      "**Do** set codes, readings and headings in the signage face with tabular numerals.",
-      "**Do** carry the baseline by dash and notch as well as ochre, and carry outcomes by ink weight.",
-      "**Do** separate content with one-pixel rules and tonal steps.",
-      "**Do** make motion an enhancement that reduced motion and no-JS both skip."
+      "**Do** set the landing on night orbit (`data-world=\"orbit\"`) in every OS colour scheme; slate and chart paper belong to the working views and their Theme toggle.",
+      "**Do** give every control the machined plate: edge highlight, darker lower edge, short ground-tinted shade; lift 1px on hover, sink on press, stay sunk when pressed, flat when disabled.",
+      "**Do** float tooltips, the title block and the timeline strip on a defined 1px edge with a drop no larger than 0 8px 14px.",
+      "**Do** plot stations as unboxed ink in the fixed positions, with a leader to the station.",
+      "**Do** draw refusal as the hatch everywhere it appears.",
+      "**Do** declare `--c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725` first in each page's own `:root{` block, identical across pages.",
+      "**Do** carry the baseline by dash, notch or position as well as ochre, and outcomes by ink weight.",
+      "**Do** step the lead rail in whole days and swap values without tweening.",
+      "**Do** keep text visible whenever motion does not run."
     ],
     "donts": [
-      "**Don't** add a colour token for refusal (no `--ood:`), or put refusal on the risk ramp.",
-      "**Don't** use red, amber or green danger paint, or say \"danger level\".",
-      "**Don't** introduce a second accent; gauge indigo is the only one.",
+      "**Don't** add a colour token for refusal or put refusal on the risk ramp.",
+      "**Don't** use red, amber or green danger paint.",
+      "**Don't** introduce a second accent.",
+      "**Don't** use glass, backdrop blur, glows or wide diffuse shadows.",
+      "**Don't** box station plots in cards, or put facts in equal stat tiles; use ruled rows.",
       "**Don't** load a webfont, use `@font-face`, or reference any external origin.",
-      "**Don't** add a build step or a framework; the pages are native CSS, inline SVG and vendored scripts.",
-      "**Don't** use drop shadows or glows for depth.",
-      "**Don't** put a section in equal stat cards or tiles; use ruled rows.",
-      "**Don't** put kickers or eyebrows above headings, or number items that are not a sequence.",
-      "**Don't** use glyph characters as icons; label controls with words, and draw the few marks that are needed as ruled SVG strokes."
+      "**Don't** lift a key out of a segmented bar on hover.",
+      "**Don't** tween readings between lead days, or show a value between whole days.",
+      "**Don't** put kickers or eyebrows above headings.",
+      "**Don't** use glyph characters as icons; label controls with words (arrows inside `kbd` name keys, they are not icons)."
     ]
   }
 }
