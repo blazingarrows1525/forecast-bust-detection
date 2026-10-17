@@ -2471,3 +2471,53 @@ at Day 9.
 - `scripts/fetch_release_artifacts.py` pins both.
 - Store v0.2.0 is regenerable with `fit_combiner.py --base xgboost` and
   `generate_bulletins.py --base xgboost`.
+
+---
+
+## D-038 — The landing becomes a night orbit with India plotted on the model's grid; every reading gains its provenance — LOCKED
+
+**The owner's brief** (2026-10-17): "make them feel the website in real
+life", building the frontend master prompt as written; questions waived.
+The prompt pins a dark, locally rendered globe with India in focus, a short
+skippable sequence, solid tactile controls and no glass. The Impeccable
+direction roll (seed `1601c50a`) assigned a synoptic station-plot chart,
+fused with that pinned material. The full record is the surface brief
+(`.impeccable/surfaces/web-landing-html.md`) and
+`docs/FRONTEND_IMMERSIVE_REPORT.md`.
+
+**What changed:**
+- **The landing** draws India raised on the model's own 0.25-degree grid
+  (`/api/voxel-grid`), one column per cell, each the served reading for one
+  issue date and lead day (`/api/risk-cube`). Nothing is interpolated between
+  cells or days; refused cells are hatched at a fixed height; missing readings
+  say "no reading". A 2-D canvas fallback draws the same cells.
+- **Controls** are machined plates across every view (raised, lifted on hover,
+  pressed, selected, disabled, busy). The retired "flat, no shadows" rule is
+  replaced; DESIGN.md is rewritten from the build.
+- **The working views** gain lead-day playback in the command centre, a hover
+  outline, a damped focus on a clicked column, a WebGL fallback to the map,
+  and an idle volume that stops redrawing. `/api/metrics` adds `ood_threshold`
+  and `generated_at` to its `served` block, read from the store's meta, so
+  "Why this number?" can show a row's distance against the refusal threshold.
+
+**A truth rule the review caught.** The first build lit the reading with the
+widest served-over-baseline gap: Day 9, 76.5% against 24.3%. That forecast
+**held**, so the page answered "Which one?" with a false alarm. The hero now
+lights the widest gap among the leads that **busted** (Day 4, 52.3% against
+11.2%), every station plot shows its outcome, and the case text still states
+the overall widest gap and says plainly that it held.
+
+**Measured, not assumed:**
+- Landing scene: 6 draw calls, about 110,000 triangles, 5,107 cells. GPU
+  resources unchanged after 30 lead changes.
+- Command centre baseline: 344 draw calls at 1.31 ms per frame on the
+  owner's GPU, so instancing was not justified and was not done.
+- The volume now idles without input instead of raymarching every frame.
+
+**Not done, and why:**
+- **Self-hosted display face.** A review proposed one. It conflicts with the
+  system-fonts rule (PRODUCT.md, `tests/test_web_pages.py`), so it is the
+  owner's call.
+- **Illustrative Coriolis/physics layer.** It is optional in the prompt. The
+  archive has no wind fields, and a moving particle layer beside real risk
+  would invite being read as data. Proposed only.

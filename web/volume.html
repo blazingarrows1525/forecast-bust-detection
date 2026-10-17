@@ -263,6 +263,14 @@ let grid = null, cube = null, edgeBits = null;
 let pickTarget = null, pickMaterial = null, pickScene = null;
 let pickPending = null, lastPick = 0;
 let frames = 0, fpsClock = performance.now(), lastFrame = performance.now();
+// An idle volume is not redrawn: the march is the most expensive frame in the
+// product, and nothing in it moves by itself. Any input keeps frames coming
+// for a moment; a flight, an easing focus or a moving camera keep them coming
+// for as long as they last. New data wakes it too (mount).
+let wakeUntil = performance.now() + 4000, lastPose = "";
+const wake = (ms = 1500) => { wakeUntil = Math.max(wakeUntil, performance.now() + ms); };
+["pointermove", "pointerdown", "wheel", "keydown", "input", "change", "click", "resize", "focusin"]
+  .forEach((ev) => addEventListener(ev, () => wake(), { passive: true, capture: true }));
 
 // THE view state. Explore tools and the fly-through both write here; the
 // renderer only reads it. The fly-through is therefore a script over the same
@@ -843,6 +851,7 @@ function buildTexture(grid, cube) {
 }
 
 function mount(v) {
+  wake(2000);
   if (frame) { scene.remove(frame); frame = null; }
   if (volumeMesh) {
     scene.remove(volumeMesh);
@@ -1408,6 +1417,18 @@ function animate() {
   tickFlight(now);
 
   const { theta, phi, r, target } = view;
+  const pose = `${theta}|${phi}|${r}|${target.x}|${target.y}|${target.z}|${view.focusGoal}|${view.hover}`;
+  const moving = pose !== lastPose || Math.abs(view.focusGoal - view.focus) > 1e-3;
+  lastPose = pose;
+  if (!moving && !flight.active && !pickPending && now > wakeUntil) {
+    if (frames || $("perf").dataset.idle !== "1") {
+      $("perf").textContent = `idle, not redrawing · ${renderer.info.render.calls} draw calls`;
+      $("perf").dataset.idle = "1";
+    }
+    frames = 0; fpsClock = now;
+    return;
+  }
+  $("perf").dataset.idle = "0";
   camera.position.set(
     target.x + r * Math.cos(phi) * Math.cos(theta),
     target.y + r * Math.sin(phi),

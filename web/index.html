@@ -879,6 +879,7 @@ async function select(rid){
     if(r.actual_bust!=null) html += ` · <b>${r.actual_bust? "BUSTED":"did not bust"}</b>`;
     html += "</div>";
   }
+  html += FBI.provenance(r, SERVED);
   document.getElementById("selReasons").innerHTML = html;
 
   const rc=document.getElementById("regimeCard");
@@ -924,9 +925,13 @@ function markQueue(){
     tr.classList.toggle("sel", tr.dataset.rid === cur.selected && +tr.dataset.lead === cur.lead));
 }
 
+let SERVED = null;
 async function loadMetrics(){
   try{
     const m = await (await fetch(API+"/api/metrics")).json();
+    SERVED = m.served || null;
+    // A reading selected before this arrived is re-rendered with its provenance.
+    if (cur.selected) select(cur.selected);
     const band = m.decision_band || [];
     let h="<table><thead><tr><th>Predictor</th><th class='r'>AUROC</th><th class='r'>Brier</th></tr></thead><tbody>";
     band.slice().sort((a,b)=>b.auroc-a.auroc).forEach(r=>{
