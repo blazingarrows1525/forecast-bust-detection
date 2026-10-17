@@ -1,10 +1,12 @@
 /* Forecast Bust Intelligence: the shared world.
 
-   Three materials, one per job (DESIGN.md, docs/DESIGN_DECISIONS.md):
-     chart paper   the explanatory ground (landing), cool off-white, blue-black ink
+   Materials, one per job (DESIGN.md, docs/DESIGN_DECISIONS.md):
+     night orbit   the landing: a graphite-indigo void, the globe, India raised
+                   on the model's grid, station plots in cool-white ink
      wet concrete  the ops shell (map, columns, volume), slate
-     gauge enamel  the reading: plates with E-graduations in gauge indigo,
-                   the one accent
+     chart paper   the ops shell's light theme, cool off-white, blue-black ink
+     machined plate every control: solid, lit from above, pressed in when used
+   Gauge periwinkle/indigo is the one accent.
 
    Risk colour is NOT here. The five viridis stops live in each page's own
    :root{ block, first in the file, because tests/test_web_pages.py reads them
@@ -35,9 +37,30 @@
   --focus:#c3d0f5;
   --warn-bg:#3a2c12; --warn-rule:#7a5a22; --warn-ink:#f1d9a6;
   --water:#33415f;
+  /* Machined plates: light from above, a darker lower edge, a shade tinted to
+     the ground rather than black. */
+  --edge-hi:rgba(255,255,255,.075); --edge-lo:rgba(0,0,0,.42);
+  --shade:rgba(4,7,10,.55); --shade-in:rgba(0,0,0,.45);
 }
 
-/* Chart paper: the landing by default, and the working views' light theme. */
+/* Night orbit: the landing, in every OS colour scheme (direction contract,
+   OWN-WORLD). A void tinted graphite-indigo, never pure black. */
+:root[data-world="orbit"]{
+  color-scheme: dark;
+  --ground:#0a0e16; --ground-2:#0f1420; --plate:#171e2b; --plate-2:#1f2837;
+  --ink:#e8edf4; --ink-2:#b0bacb; --ink-3:#8b97ab;
+  --rule:#1e2635; --rule-2:#303c52;
+  --accent:#8fa6e8; --accent-ink:#0d1430; --accent-wash:rgba(143,166,232,.13);
+  --base:#d9a24a; --outcome:#e0a274;
+  --hatch-ink:#dfe5ee; --hatch-bg:#252e3d;
+  --focus:#c3d0f5;
+  --warn-bg:#33270f; --warn-rule:#7a5a22; --warn-ink:#f1d9a6;
+  --water:#33415f;
+  --edge-hi:rgba(220,230,255,.09); --edge-lo:rgba(0,0,0,.5);
+  --shade:rgba(2,4,12,.6); --shade-in:rgba(0,0,0,.5);
+}
+
+/* Chart paper: the working views' light theme. */
 :root[data-theme="light"], :root[data-world="chart"]{
   color-scheme: light;
   --ground:#f2f4f0; --ground-2:#e8ebe5; --plate:#fbfcf9; --plate-2:#eceee8;
@@ -50,12 +73,14 @@
   --focus:#27407a;
   --warn-bg:#f6ecd6; --warn-rule:#c9a35a; --warn-ink:#4a3410;
   --water:#c5d0e4;
+  --edge-hi:rgba(255,255,255,.95); --edge-lo:rgba(23,33,51,.16);
+  --shade:rgba(23,33,51,.16); --shade-in:rgba(23,33,51,.18);
 }
-/* The landing stays on chart paper whatever the OS scheme: the onset chart IS
-   its world (direction contract, OWN-WORLD). The dark theme belongs to the
-   working views, which carry their own toggle. */
 
 *{box-sizing:border-box}
+/* hidden means hidden: the control styles below set display, which would
+   otherwise beat the browser's own [hidden] rule. */
+[hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-text);
   -webkit-font-smoothing:antialiased;scrollbar-color:var(--rule-2) transparent}
@@ -77,21 +102,49 @@ code{font-family:var(--font-mono);font-size:.92em}
 .views a:hover{color:var(--ink);background:var(--accent-wash)}
 .views a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent);border-radius:var(--r) var(--r) 0 0}
 
-/* ---- controls -------------------------------------------------------------- */
+/* ---- controls: machined plates -------------------------------------------
+   Every control is a solid plate lit from above: a one-pixel highlight on its
+   top edge, a darker lower edge, a short shade tinted to the ground. Hover
+   lifts it a pixel, pressing sinks it (the highlight moves inside, the shade
+   goes), a pressed toggle stays sunk with the accent underline, disabled is
+   flat, and busy draws a running hairline. No glass, no blur, no glow. */
 .btn,button,select,input[type=range]{font:inherit}
-.btn,button{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+.btn,button{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;
   min-height:30px;padding:5px 10px;border-radius:var(--r);border:1px solid var(--rule-2);
   background:var(--plate);color:var(--ink);font-size:13px;cursor:pointer;text-decoration:none;
-  white-space:nowrap;transition:background-color .15s ease,border-color .15s ease}
-.btn:hover,button:hover{border-color:var(--ink-3)}
-.btn:active,button:active{transform:translateY(1px)}
+  white-space:nowrap;
+  box-shadow:inset 0 1px 0 var(--edge-hi),0 1px 0 var(--edge-lo),0 2px 5px -2px var(--shade);
+  transition:transform .14s cubic-bezier(.2,.7,.2,1),box-shadow .14s ease,
+             background-color .15s ease,border-color .15s ease}
+.btn:hover,button:hover{border-color:var(--ink-3);transform:translateY(-1px);
+  box-shadow:inset 0 1px 0 var(--edge-hi),0 2px 0 var(--edge-lo),0 7px 14px -6px var(--shade)}
+.btn:active,button:active{transform:translateY(1px);transition-duration:.05s;
+  box-shadow:inset 0 2px 3px var(--shade-in),inset 0 -1px 0 var(--edge-hi)}
 button.active,button[aria-pressed="true"]{background:var(--accent-wash);border-color:var(--accent);
-  color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
-.btn.primary:hover{filter:brightness(1.08)}
-button:disabled{opacity:.55;cursor:default}
+  color:var(--ink);transform:none;
+  box-shadow:inset 0 2px 3px var(--shade-in),inset 0 -2px 0 var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 1px 0 var(--edge-lo),0 3px 8px -3px var(--shade)}
+.btn.primary:hover{filter:brightness(1.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 0 var(--edge-lo),0 9px 18px -7px var(--shade)}
+.btn.primary:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.28),inset 0 -1px 0 rgba(255,255,255,.25)}
+button:disabled,button:disabled:hover,.btn[aria-disabled="true"]{opacity:.5;cursor:default;transform:none;
+  border-color:var(--rule-2);box-shadow:none}
+/* Busy: a hairline runs along the plate's lower edge while a request is out. */
+[aria-busy="true"].btn,button[aria-busy="true"]{cursor:progress}
+[aria-busy="true"].btn::after,button[aria-busy="true"]::after{content:"";position:absolute;left:6px;right:6px;
+  bottom:3px;height:2px;border-radius:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent) 0 0/40% 100% no-repeat;
+  animation:busy 1.1s linear infinite}
+@keyframes busy{from{background-position:-40% 0}to{background-position:140% 0}}
+/* A segmented bar is one plate: its keys sink when pressed but never lift out
+   of line with their neighbours. */
+.seg button:hover{transform:none;box-shadow:inset 0 1px 0 var(--edge-hi),0 1px 0 var(--edge-lo),0 2px 5px -2px var(--shade)}
+.seg button.active:hover,.seg button[aria-pressed="true"]:hover{box-shadow:inset 0 2px 3px var(--shade-in),inset 0 -2px 0 var(--accent)}
 select{min-height:30px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--rule-2);
-  background:var(--plate);color:var(--ink);font-size:13px}
+  background:var(--plate);color:var(--ink);font-size:13px;
+  box-shadow:inset 0 1px 0 var(--edge-hi),0 1px 0 var(--edge-lo)}
+select:hover{border-color:var(--ink-3)}
 input[type=range]{accent-color:var(--accent)}
 
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -130,5 +183,7 @@ textarea,input{caret-color:var(--accent)}
 @media (prefers-reduced-motion: reduce){
   html{scroll-behavior:auto}
   .btn,button,.views a{transition:none}
-  .btn:active,button:active{transform:none}
+  .btn:hover,button:hover,.btn:active,button:active{transform:none}
+  [aria-busy="true"].btn::after,button[aria-busy="true"]::after{animation:none;
+    background:var(--accent);opacity:.6}
 }

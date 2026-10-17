@@ -7,40 +7,46 @@ related_targets: ["web/index.html","web/command.html","web/volume.html"]
 
 ## Surface
 
-Landing page (`web/landing.html`), mode Persuade; the world also governs the three Operate surfaces (`index.html`, `command.html`, `volume.html`) through type, palette, density and one signature move only.
+Landing page (`web/landing.html`), mode Persuade. The world reaches the three Operate surfaces (`index.html`, `command.html`, `volume.html`) through the shared control material (solid machined plates with raised, pressed, selected, disabled and busy states) and the station-plot reading, never through the cinematic scene.
 
-Audience: technical evaluators and duty forecasters, both strongly (PRODUCT.md). Job: understand within seconds that this predicts forecast failure, believe it through the real Assam case and registered evidence, then open the case in the working views.
+Audience: technical evaluators and duty forecasters, both strongly (PRODUCT.md). Job: within seconds, see that this predicts which issued forecast is about to fail; believe it through the real Assam case and registered evidence; enter the command centre on that case.
+
+Owner brief (2026-10-17): "make them feel the website in real life"; the frontend master prompt pins a dark, atmospheric, locally rendered globe with India in focus, a 3-6 s skippable sequence (outline, boundaries, data-backed risk layer, headline, actions), solid tactile controls and no glass, and "a modern scientific instrument with cinematic art direction". Questions were waived by the owner ("just start building").
 
 ## Direction contract
 
-THESIS: A forecast is read like a river gauge. Every subdivision gets a graduated staff, one mark per lead day, and the reading is taken where the served risk meets the scale. Refuses the category default: a dark dashboard of equal stat cards around a glowing map.
+THESIS: Forecast reliability plotted like a synoptic chart over the real planet: every subdivision is a plotted station whose glyph carries the served reading, the baseline, the lead and the outcome in fixed positions, plotted from the archive over a night-side Earth. Refuses the dark dashboard of stat cards around a glowing map, and its light editorial opposite (the retired chart-paper landing).
 
-OWN-WORLD: Chart-paper ground (cool off-white, never cream) with blue-black chart ink and hairline graticules for the explanatory surface; wet-concrete slate for the ops shell. Enamel staffs with E-shaped graduations in gauge indigo, the single accent. Risk on the viridis ramp only; refusal is a hatched ghost plate. Stencilled signage numerals (Bahnschrift) for codes D01-D10 and readings. No boxes, no greys between ink, plate and ramp.
+OWN-WORLD: Night orbit: a deep graphite-indigo void, never pure black; a dark ocean globe with a fine graticule and a cool atmospheric limb; India alone raised on the model's own 0.25 degree grid, lit by one low key light; risk only on the five viridis stops, rising as columns; refusal a hatch, never a hue. Station plots in cool-white plotting ink with signage numerals; one accent, gauge periwinkle; the ensemble baseline stays ochre and dashed. Controls are solid machined plates lit from above: a top highlight, a darker lower edge, a pressed state that inverts them.
 
-STORY: The visitor sees a real forecast that looked fine while its reliability failed, learns what a bust is and that unknown is not safe, sees measured evidence with intervals, then opens the same case on the map.
+STORY: The visitor watches the planet turn to India, the chart get plotted subdivision by subdivision for one real issue date, and one station stand out as the forecast about to fail. They read what a bust is, that unknown is not safe and the measured evidence with intervals, then enter the command centre on the same reading.
 
-FIRST VIEWPORT: Left, in the chart ink: product name, a two-line headline, one sentence, primary action "Open the Assam case" and secondary "Explore the map". Right and dominant: ten gauge staffs D10 to D01 for Assam & Meghalaya valid 17 June 2022, the served reading on each staff, the baseline as a second mark, refused leads as hatched plates, the model line in segments.
+FIRST VIEWPORT: Full-bleed WebGL scene at 100dvh. India fills the right 60%, tilted toward the viewer, the Earth's limb curving behind it. Left column over empty void: headline "A forecast is about to fail. Which one?", one sentence, primary "Enter the command centre", secondary "Explore the verified case". Station plots tag the highest readings with leader lines. Bottom right, the chart's title block: replay label, issue and valid dates, and the lead rail (Day 1 to Day 10, play). A Skip intro control while the sequence runs.
 
-FORM: River Gauge Staff, own grounded list position 7 (fused with the onset-chart ground and the ops shell at the user's direction), seed key 61afe369.
+FORM: Synoptic station-plot chart over a night-side planet; grounded list position 6 of 7; seed key 1601c50a. Fused with the brief-pinned orbit and atmosphere material, which the brief fixes and the roll does not override.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-## Translations (named)
+## Raises (from the dealt challengers)
 
-- Display face: the brief pins system fonts (no @font-face, offline). Bahnschrift, the platform's DIN signage face, carries the gauge lettering; fallbacks "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui.
-- Danger paint: gauge staffs carry red/yellow danger levels; dropped for the CVD-tested ramp. Copy says "review level", never "danger level".
-- Combined worlds (user, 2026-10-05): onset chart = ground and geography; gauge staff = the reading; category standard = the ops shell.
-- Baseline series colour: the ensemble-spread baseline keeps its ochre (`--base`) as a data-series colour, not an accent. It is inherited from the shipped product, the case prose colour-keys "ensemble spread fell" to it, and it is also carried by shape (dash and notch), so it never depends on hue alone. Outcomes ("bust") are carried in ink weight, not a second hue, except on the map's Observed view, where a fill needs a colour.
-- Landing theme: chart paper in every OS colour scheme (finish review 2026-10-05, GROUND). The dark theme belongs to the working views and their toggle.
-
-## Roll record
-
-`impeccable concept-seed --scope direction --mode persuade` (2026-10-05): seed `61afe369`, assigned grounded position 7, River Gauge Staff. Decision page `serve-question` keys `01d0ffbb` (timed out) and `47fe9ab3`; the user answered in chat: "all 3 of them combined".
-
-## Finish review
-
-Round 1 (impeccable-finish-reviewer, 2026-10-05): disposition `fix`, eight material fixes (landing ground, painted review band, enamel and water, glyph icons, decorative numbering, palette, legend units, column view on phones).
+- Cracktro scroller queue (declined): only rear layers move; the reading plane (text, station plots, the lead rail) holds dead still while it is read.
+- Cutting-bench select rail (competitive, clarity): the lead rail snaps to whole days and never shows a value between them; the day you left is marked when you return.
+- Cyclorama dawn (competitive, identification): the sequence stops on named states (orbit, outline, boundaries, plotted), never a continuous fade that ends nowhere.
+- Memory quilt (declined): every reading carries its provenance seam (issue date, valid date, lead, source endpoint) beside it.
+- Generative parametric identity (declined): one source drives the scene; the case reading chosen by the data, not a decorative seed, sets the framing and the lit station.
+- Menhera pastel (declined): repeat in whole units; grids and timelines step in whole cells and whole days.
 
 ## Signature move
 
-Taking a reading: a staff's level is the served bust probability for that subdivision and lead; the review level (0.0909) is a painted mark on every staff. Appears on the landing case, the 2-D queue register, and as the 3-D command-centre staffs.
+Plotting the chart: on entry the stations are plotted in rank order, column by column, from `/api/risk-cube`; the lead rail re-plots the same issue date at another lead day by swapping to the archive's own values, never tweening through values the model did not give.
+
+## Translations (named)
+
+- Brief "Earth curvature or globe": no offline basemap exists, so the globe is a plotting sphere (ocean, graticule, limb) and India is the only land drawn, because it is the only land the product has data for.
+- Brief CTA labels ("ENTER COMMAND CENTRE", "EXPLORE A VERIFIED HISTORICAL CASE"): set in sentence case; the command centre is the 3-D columns view, as PRODUCT.md names it.
+- Display face: system fonts only (no @font-face); Bahnschrift carries the plotted numerals and headings.
+- Theme: the landing is dark in every OS scheme (night orbit); the working views keep their own theme toggle.
+
+## Roll record
+
+`impeccable concept-seed --scope direction --mode persuade` (2026-10-17): seed `1601c50a`, assigned grounded position 6, synoptic station-plot chart. Grounded list by resonance: 1 geostationary full-disk image (the brief's literal reading), 2 raised-relief museum model of India, 3 monsoon onset isochrone chart, 4 Doppler radar scope, 5 ensemble plume diagram, 6 synoptic station-plot chart, 7 broadcast weather-bulletin map. Owner waived the decision page; build path code-led (no image generation available).
