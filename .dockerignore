@@ -9,11 +9,19 @@ data/interim/*.gpkg
 data/interim/weights_*.parquet
 data/interim/truth_subdivision_daily.parquet
 
-# Docs, study materials and rendered PDFs are not part of the runtime.
+# Docs, study materials and rendered PDFs are not part of the runtime, except
+# the documents the research assistant answers from (see the Dockerfile).
 docs/
 notebooks/
 *.md
 !README.md
+!LOGIC.md
+!FRONTEND_LOGIC.md
+!DECISIONS.md
+!PRODUCT.md
+!docs/PROJECT_GUIDE.md
+!docs/USING_THE_VIEWS.md
+!docs/RESEARCH_ASSISTANT.md
 
 # Source control, CI and IaC.
 .git/

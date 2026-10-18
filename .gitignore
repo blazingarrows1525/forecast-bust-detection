@@ -45,3 +45,7 @@ Untitled*.ipynb
 artifacts/frontend/
 .impeccable/review/
 .impeccable/questions/
+
+# Local screenshots and scene measurements (scripts/capture_screenshots.py,
+# scripts/measure_scenes.py). CI uploads its own as workflow artifacts.
+artifacts/

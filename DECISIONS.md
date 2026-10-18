@@ -2521,3 +2521,65 @@ the overall widest gap and says plainly that it held.
 - **Illustrative Coriolis/physics layer.** It is optional in the prompt. The
   archive has no wind fields, and a moving particle layer beside real risk
   would invite being read as data. Proposed only.
+
+---
+
+## D-039 — The research assistant ships opt-in on free models, and archive facts never pass through a model — LOCKED
+
+**Context.** A parallel round on branch `live-path-pby8cg`, written before
+D-038 merged and numbered D-038 there, built a web-grounded research assistant
+and a second frontend round. The assistant was put to the owner before any
+code. It merged; the frontend round did not (see "Not merged").
+
+**Decided.**
+- **Opt-in.** The assistant needs `FBD_GENAI_ENABLED=1` and `FBD_RESEARCH=1`,
+  and web search a third opt-in, `FBD_RESEARCH_WEB=1`. With them off the routes
+  do not exist, so the air-gap job still holds.
+- **Archive facts are templates.** A reading's status, probability, tier,
+  reasons and forecast-minus-observed arithmetic are read from the store and
+  written from templates, with no model involved. This applies D-019's finding
+  (a model narrated a scored row as refused) to the new feature by
+  construction, rather than by a phrase list.
+- **The model only synthesises sources.** Web and documentation answers are
+  validated whole. Citation ids must be ones the server issued for the
+  request. Any number the cited sources do not contain, or any directive,
+  withholds the prose, and the user sees "Unable to verify" and the sources.
+  A date the model was given (today's, or a source's published or retrieved
+  date) counts as grounded.
+- **Free models only** (owner, 2026-10-18):
+  - primary: Gemini `gemini-3.8-flash`, free tier, 20 requests a day (enough,
+    per the owner);
+  - fallback: OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`, with its
+    reasoning off;
+  - search: Tavily.
+  Stale or partial evidence is answered with its limitations, not replaced by
+  a clarification question.
+
+**Not merged.** The same round's frontend changes overlapped D-038's on the
+same pages:
+- tactile controls;
+- a lead timeline;
+- live map/columns sync;
+- its own "Why this number?";
+- an archive-replay badge;
+- columns instancing;
+- a chart-paper landing with a 3-D opening.
+
+D-038's frontend, already merged, is kept. The "Ask" link and the helpers
+`assistant.html` needs (`FBI.esc`, `FBI.tips`, `FBI.REDUCED`) were added to it.
+The unmerged round is preserved on branch `frontend-round-chart-paper` for a
+separate decision.
+
+**Established live (2026-10-18).** Real Tavily, Gemini and OpenRouter calls,
+the live eval, the built image with the deployment variables, and the page in
+a browser. Gemini 3.8 Flash itself is not yet scored: its daily allowance was
+spent before the free-model runs.
+
+**Evidence.**
+- `docs/assistant-provider-decision.md` (live runs 1 to 3 and the fixes after
+  them), `docs/RESEARCH_ASSISTANT.md`, `docs/DEPLOY.md`.
+- `tests/test_research_assistant.py`: 73 tests, including mutation-checked
+  injection, citation and date guards.
+- `tests/test_image_contents.py`: every document the assistant reads is in
+  the image.
+- `scripts/evaluate_assistant.py`: 22/22 cases in mock mode.

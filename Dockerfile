@@ -53,6 +53,13 @@ COPY --chown=fbd:fbd web/ /app/web/
 COPY --chown=fbd:fbd config/ /app/config/
 COPY --chown=fbd:fbd scripts/replay_demo.py /app/scripts/
 
+# The research assistant answers method and how-to questions from these
+# documents, read from the app root (research/pipeline.py, _DOC_FILES). Without
+# them every such question answered "Nothing in the project's documents
+# matches". tests/test_image_contents.py fails if one is not COPYd here.
+COPY --chown=fbd:fbd README.md LOGIC.md FRONTEND_LOGIC.md DECISIONS.md PRODUCT.md /app/
+COPY --chown=fbd:fbd docs/PROJECT_GUIDE.md docs/USING_THE_VIEWS.md docs/RESEARCH_ASSISTANT.md /app/docs/
+
 # Precomputed artifacts: bulletins, metrics, evidence tables, and the geo
 # assets that replace the GeoPackage + geo stack.
 COPY --chown=fbd:fbd data/artifacts/ /app/data/artifacts/

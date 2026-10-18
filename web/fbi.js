@@ -86,8 +86,72 @@ const FBI = (() => {
       rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + `</dl></details>`;
   }
 
+  // ------------------------------------------------------------ helpers
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+
+  // ----------------------------------------------------------- tooltips
+  // One shared plate. A `title` on a control is lifted into data-tip so the
+  // browser's own tooltip (slow, unstyled, never on keyboard focus) does not
+  // double it; the text stays in the accessible description.
+  let tipEl = null, tipTimer = null, tipFor = null;
+  function placeTip(target) {
+    const r = target.getBoundingClientRect(), t = tipEl.getBoundingClientRect();
+    let x = r.left + r.width / 2 - t.width / 2;
+    x = Math.max(8, Math.min(window.innerWidth - t.width - 8, x));
+    let y = r.bottom + 8;
+    if (y + t.height > window.innerHeight - 8) y = r.top - t.height - 8;
+    tipEl.style.left = Math.round(x) + "px";
+    tipEl.style.top = Math.round(Math.max(8, y)) + "px";
+  }
+  function showTip(target) {
+    const text = target.getAttribute("data-tip");
+    if (!text) return;
+    if (!tipEl) {
+      tipEl = document.createElement("div");
+      tipEl.className = "fbi-tip"; tipEl.id = "fbi-tip"; tipEl.setAttribute("role", "tooltip");
+      document.body.appendChild(tipEl);
+    }
+    tipEl.textContent = text;
+    tipFor = target;
+    target.setAttribute("aria-describedby", "fbi-tip");
+    placeTip(target);
+    tipEl.classList.add("on");
+  }
+  function hideTip() {
+    clearTimeout(tipTimer);
+    if (tipFor) tipFor.removeAttribute("aria-describedby");
+    tipFor = null;
+    if (tipEl) tipEl.classList.remove("on");
+  }
+  function tips(root) {
+    (root || document).querySelectorAll("button[title], .btn[title], a[title]").forEach((el) => {
+      el.setAttribute("data-tip", el.getAttribute("title"));
+      el.removeAttribute("title");
+    });
+  }
+  document.addEventListener("pointerover", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (!t || t === tipFor) return;
+    hideTip();
+    if (e.pointerType === "touch") return;     // touch never depends on hover
+    tipTimer = setTimeout(() => showTip(t), 180);
+  });
+  document.addEventListener("pointerout", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (t && !t.contains(e.relatedTarget)) hideTip();
+  });
+  document.addEventListener("focusin", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    hideTip();
+    if (t && t.matches(":focus-visible")) showTip(t);
+  });
+  document.addEventListener("focusout", hideTip);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideTip(); }, true);
+  window.addEventListener("scroll", hideTip, true);
+
   read();
-  return { read, write, relink, query, provenance, get state() { return { ...state }; } };
+  return { read, write, relink, query, provenance, esc, tips, REDUCED,
+           get state() { return { ...state }; } };
 })();
 
 document.addEventListener("DOMContentLoaded", () => FBI.relink());
