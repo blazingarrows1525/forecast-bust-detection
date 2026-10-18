@@ -1726,7 +1726,8 @@ src/fbd/
   quality/    escalation.py (tiers), drift.py        | explain/reasons.py (SHAP→text)
   ood/        detector.py (Mahalanobis)              | obs/metrics.py (Prometheus)
   genai/      agent.py, client.py, settings.py, tools.py (default-OFF assistant)
-web/          index.html, landing.html, command.html, volume.html, vendor/
+web/          index.html, landing.html (+ orbit.js), command.html, volume.html,
+              fbi.css (tokens, plates), fbi.js (URL context, provenance), vendor/
 scripts/      fetch_*, build_*, train_model, fit_combiner, generate_bulletins,
               precompute_geo_assets, precompute_voxel_grid, promote, audit_*, plot_*, monitor_drift
 docs/         DEPLOY.md, FIGURES.md, FRONTEND_BUILT.md, PROJECT_GUIDE.md (this),
@@ -6267,24 +6268,69 @@ at Day 9.
 - Store v0.2.0 is regenerable with `fit_combiner.py --base xgboost` and
   `generate_bulletins.py --base xgboost`.
 
-#### D-038 — The landing opens on chart paper in 3-D; the research assistant ships opt-in, and archive facts never pass through a model — LOCKED
+---
 
-**Context.** This round's brief asked for a dark globe landing and a
-web-grounded AI assistant. Both conflicted with standing decisions: the
-landing is chart paper in every OS scheme, and the product serves offline by
-default with narration off (D-019). Both were put to the owner before any code.
+#### D-038 — The landing becomes a night orbit with India plotted on the model's grid; every reading gains its provenance — LOCKED
+
+**The owner's brief** (2026-10-17): "make them feel the website in real
+life", building the frontend master prompt as written; questions waived.
+The prompt pins a dark, locally rendered globe with India in focus, a short
+skippable sequence, solid tactile controls and no glass. The Impeccable
+direction roll (seed `1601c50a`) assigned a synoptic station-plot chart,
+fused with that pinned material. The full record is the surface brief
+(`.impeccable/surfaces/web-landing-html.md`) and
+`docs/FRONTEND_IMMERSIVE_REPORT.md`.
+
+**What changed:**
+- **The landing** draws India raised on the model's own 0.25-degree grid
+  (`/api/voxel-grid`), one column per cell, each the served reading for one
+  issue date and lead day (`/api/risk-cube`). Nothing is interpolated between
+  cells or days; refused cells are hatched at a fixed height; missing readings
+  say "no reading". A 2-D canvas fallback draws the same cells.
+- **Controls** are machined plates across every view (raised, lifted on hover,
+  pressed, selected, disabled, busy). The retired "flat, no shadows" rule is
+  replaced; DESIGN.md is rewritten from the build.
+- **The working views** gain lead-day playback in the command centre, a hover
+  outline, a damped focus on a clicked column, a WebGL fallback to the map,
+  and an idle volume that stops redrawing. `/api/metrics` adds `ood_threshold`
+  and `generated_at` to its `served` block, read from the store's meta, so
+  "Why this number?" can show a row's distance against the refusal threshold.
+
+**A truth rule the review caught.** The first build lit the reading with the
+widest served-over-baseline gap: Day 9, 76.5% against 24.3%. That forecast
+**held**, so the page answered "Which one?" with a false alarm. The hero now
+lights the widest gap among the leads that **busted** (Day 4, 52.3% against
+11.2%), every station plot shows its outcome, and the case text still states
+the overall widest gap and says plainly that it held.
+
+**Measured, not assumed:**
+- Landing scene: 6 draw calls, about 110,000 triangles, 5,107 cells. GPU
+  resources unchanged after 30 lead changes.
+- Command centre baseline: 344 draw calls at 1.31 ms per frame on the
+  owner's GPU, so instancing was not justified and was not done.
+- The volume now idles without input instead of raymarching every frame.
+
+**Not done, and why:**
+- **Self-hosted display face.** A review proposed one. It conflicts with the
+  system-fonts rule (PRODUCT.md, `tests/test_web_pages.py`), so it is the
+  owner's call.
+- **Illustrative Coriolis/physics layer.** It is optional in the prompt. The
+  archive has no wind fields, and a moving particle layer beside real risk
+  would invite being read as data. Proposed only.
+
+---
+
+#### D-039 — The research assistant ships opt-in on free models, and archive facts never pass through a model — LOCKED
+
+**Context.** A parallel round on branch `live-path-pby8cg`, written before
+D-038 merged and numbered D-038 there, built a web-grounded research assistant
+and a second frontend round. The assistant was put to the owner before any
+code. It merged; the frontend round did not (see "Not merged").
 
 **Decided.**
-- **Landing.** It stays on chart paper, and a skippable real-time opening is
-  drawn on that paper: India plotted north to south; every subdivision's
-  served probability rises from `/api/risk-cube`; refusals stand hatched at
-  full scale height. The labelled reading is the widest model-over-baseline
-  gap **among the leads that busted**, and the caption says so. The first
-  draft labelled the widest gap overall, which in store v0.3.0 is a forecast
-  that held: an answer to "which one will fail?" that did not fail.
-- **Assistant.** It needs `FBD_GENAI_ENABLED=1` and `FBD_RESEARCH=1`, and web
-  search a third opt-in, `FBD_RESEARCH_WEB=1`. With them off the routes do not
-  exist, so the air-gap job still holds.
+- **Opt-in.** The assistant needs `FBD_GENAI_ENABLED=1` and `FBD_RESEARCH=1`,
+  and web search a third opt-in, `FBD_RESEARCH_WEB=1`. With them off the routes
+  do not exist, so the air-gap job still holds.
 - **Archive facts are templates.** A reading's status, probability, tier,
   reasons and forecast-minus-observed arithmetic are read from the store and
   written from templates, with no model involved. This applies D-019's finding
@@ -6293,18 +6339,46 @@ default with narration off (D-019). Both were put to the owner before any code.
 - **The model only synthesises sources.** Web and documentation answers are
   validated whole. Citation ids must be ones the server issued for the
   request. Any number the cited sources do not contain, or any directive,
-  withholds the prose. The user then sees "Unable to verify" and the sources.
+  withholds the prose, and the user sees "Unable to verify" and the sources.
+  A date the model was given (today's, or a source's published or retrieved
+  date) counts as grounded.
+- **Free models only** (owner, 2026-10-18):
+  - primary: Gemini `gemini-3.8-flash`, free tier, 20 requests a day (enough,
+    per the owner);
+  - fallback: OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`, with its
+    reasoning off;
+  - search: Tavily.
+  Stale or partial evidence is answered with its limitations, not replaced by
+  a clarification question.
 
-**Not established.** No real web search or hosted-LLM call has been made (no
-key; hosts unreachable from the build container). The provider choice in
-`docs/assistant-provider-decision.md` is a default, not a measured winner.
+**Not merged.** The same round's frontend changes overlapped D-038's on the
+same pages:
+- tactile controls;
+- a lead timeline;
+- live map/columns sync;
+- its own "Why this number?";
+- an archive-replay badge;
+- columns instancing;
+- a chart-paper landing with a 3-D opening.
+
+D-038's frontend, already merged, is kept. The "Ask" link and the helpers
+`assistant.html` needs (`FBI.esc`, `FBI.tips`, `FBI.REDUCED`) were added to it.
+The unmerged round is preserved on branch `frontend-round-chart-paper` for a
+separate decision.
+
+**Established live (2026-10-18).** Real Tavily, Gemini and OpenRouter calls,
+the live eval, the built image with the deployment variables, and the page in
+a browser. Gemini 3.8 Flash itself is not yet scored: its daily allowance was
+spent before the free-model runs.
 
 **Evidence.**
-- `docs/IMMERSIVE_FRONTEND_AND_ASSISTANT_REPORT.md`.
-- `tests/test_research_assistant.py`: 55 tests, including mutation-checked
-  injection and citation guards.
-- `scripts/evaluate_assistant.py`: 19/19 cases in mock mode.
-- Columns now draws in 7 calls instead of 344 (`scripts/measure_scenes.py`).
+- `docs/assistant-provider-decision.md` (live runs 1 to 3 and the fixes after
+  them), `docs/RESEARCH_ASSISTANT.md`, `docs/DEPLOY.md`.
+- `tests/test_research_assistant.py`: 73 tests, including mutation-checked
+  injection, citation and date guards.
+- `tests/test_image_contents.py`: every document the assistant reads is in
+  the image.
+- `scripts/evaluate_assistant.py`: 22/22 cases in mock mode.
 
 ---
 
@@ -8357,18 +8431,15 @@ clear. The landing page has the opposite job and may breathe.
 
 ---
 
-#### 7. What already exists, and what is missing
+#### 7. What exists (updated 2026-10-18, D-038)
 
 | | state |
 |---|---|
-| 2-D dashboard (`web/index.html`) | works: Leaflet map, date slider, lead picker, model/baseline/truth toggles, selected-region card, regime card, review queue, legend |
-| 3-D risk cube (`web/command.html`) | works: three.js r128, geometry merged for a 4.9× draw-call reduction (1,669 → 343) |
-| **Landing page** | **does not exist** |
-| **Dark mode** | **does not exist** |
-| **Keyboard navigation** | **does not exist** |
-| **Animated lead-time scrub** | **does not exist** (the endpoint for it does) |
-| **Divergence chart** | **does not exist** — highest value per line of code |
-| **Override UI** | endpoint exists; no interface |
+| 2-D map (`web/index.html`) | works: Leaflet map, date slider, lead picker, served/baseline/observed views, selected reading with "Why this number?", regime card, review queue, legend, override record, keyboard shortcuts, scrub, opt-in date-matched imagery |
+| Command centre (`web/command.html`) | works: three.js r128 columns (344 draw calls, 1.3 ms/frame measured), hover outline, damped focus, lead-day playback, "Why this number?", WebGL fallback to the map |
+| Risk volume (`web/volume.html`) | works: raymarched, nearest-sampled, fly-through, idles without input |
+| Landing (`web/landing.html`, `web/orbit.js`) | works: night orbit, India on the model's grid, station plots, lead rail, meteogram, register; 2-D fallback |
+| Dark and light themes | the working views toggle; the landing is dark |
 | Figures | `docs/figures/reliability.{png,svg}`, `earned_refusal.{png,svg}` |
 
 ---
@@ -9548,34 +9619,40 @@ moved onto the existing headline step.
 
 ```yaml
 name: Forecast Bust Intelligence
-description: Reads issued rainfall forecasts over India like a river gauge and flags the ones likely to bust.
+description: Plots the reliability of issued rainfall forecasts over India like a synoptic chart and flags the ones likely to bust.
 colors:
+  gauge-periwinkle: "#8fa6e8"
   gauge-indigo: "#27407a"
-  gauge-indigo-slate: "#8fa6e8"
-  indigo-ink-on-slate: "#0e1530"
-  indigo-ink-on-paper: "#ffffff"
-  baseline-ochre: "#8d5a12"
-  baseline-ochre-slate: "#d9a24a"
-  outcome-rust: "#7a4126"
-  outcome-rust-slate: "#e0a274"
-  water-paper: "#c5d0e4"
-  water-slate: "#33415f"
+  accent-ink-orbit: "#0d1430"
+  accent-ink-slate: "#0e1530"
+  accent-ink-paper: "#ffffff"
+  baseline-ochre: "#d9a24a"
+  baseline-ochre-paper: "#8d5a12"
+  outcome-rust: "#e0a274"
+  outcome-rust-paper: "#7a4126"
+  focus-pale: "#c3d0f5"
   risk-c0: "#440154"
   risk-c1: "#414487"
   risk-c2: "#2a788e"
   risk-c3: "#5ec962"
   risk-c4: "#fde725"
-  risk-ramp-c3a: "#22a884"
-  risk-ramp-c3b: "#7ad151"
-  chart-paper: "#f2f4f0"
-  chart-paper-2: "#e8ebe5"
-  enamel-plate: "#fbfcf9"
-  enamel-plate-2: "#eceee8"
-  chart-ink: "#172133"
-  chart-ink-2: "#465163"
-  chart-ink-3: "#5b6574"
-  graticule: "#c9cec5"
-  graticule-2: "#a9afa6"
+  orbit-void: "#100e19"
+  orbit-void-2: "#16141f"
+  orbit-plate: "#1e1b2a"
+  orbit-plate-2: "#272435"
+  plotting-ink: "#ecebf4"
+  plotting-ink-2: "#b7b4c9"
+  plotting-ink-3: "#9390a8"
+  orbit-rule: "#25212f"
+  orbit-rule-2: "#3a3550"
+  orbit-hatch-ink: "#e4e2ee"
+  orbit-hatch-bg: "#2b2738"
+  globe-ocean: "#141633"
+  globe-deep: "#05040e"
+  globe-graticule: "#363a6c"
+  globe-limb: "#6d80e4"
+  land: "#2d2a3f"
+  land-no-reading: "#3d3a52"
   slate-ground: "#15191c"
   slate-ground-2: "#1b2024"
   slate-plate: "#20262b"
@@ -9585,20 +9662,29 @@ colors:
   slate-ink-3: "#8f989e"
   slate-rule: "#2f363c"
   slate-rule-2: "#414a51"
-  focus-slate: "#c3d0f5"
+  chart-paper: "#f2f4f0"
+  chart-paper-2: "#e8ebe5"
+  enamel-plate: "#fbfcf9"
+  enamel-plate-2: "#eceee8"
+  chart-ink: "#172133"
+  chart-ink-2: "#465163"
+  chart-ink-3: "#5b6574"
+  graticule: "#c9cec5"
+  graticule-2: "#a9afa6"
+  warn-bg-orbit: "#33270f"
+  warn-bg-slate: "#3a2c12"
+  warn-rule-dark: "#7a5a22"
+  warn-ink-dark: "#f1d9a6"
   warn-bg-paper: "#f6ecd6"
   warn-rule-paper: "#c9a35a"
   warn-ink-paper: "#4a3410"
-  warn-bg-slate: "#3a2c12"
-  warn-rule-slate: "#7a5a22"
-  warn-ink-slate: "#f1d9a6"
 typography:
   display:
     fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
-    fontSize: "clamp(38px, 3.7vw, 54px)"
+    fontSize: "clamp(40px, 4.4vw, 66px)"
     fontWeight: 600
-    lineHeight: 1.04
-    letterSpacing: "-0.012em"
+    lineHeight: 1.03
+    letterSpacing: "-0.016em"
   headline:
     fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
     fontSize: "clamp(26px, 2.6vw, 36px)"
@@ -9616,32 +9702,23 @@ typography:
     fontWeight: 600
     lineHeight: 1
     fontFeature: "\"tnum\""
-  reading-ops:
+  station-served:
     fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
-    fontSize: "40px"
+    fontSize: "19px"
     fontWeight: 600
-    lineHeight: 1
+    lineHeight: 1.1
+    fontFeature: "\"tnum\""
+  station-field:
+    fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
+    fontSize: "12.5px"
+    fontWeight: 600
+    lineHeight: 1.3
     fontFeature: "\"tnum\""
   lede:
     fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
-    fontSize: "clamp(17px, 1.45vw, 19px)"
+    fontSize: "clamp(17px, 1.4vw, 19.5px)"
     fontWeight: 400
     lineHeight: 1.55
-  hud-title:
-    fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
-    fontSize: "17px"
-    fontWeight: 600
-    lineHeight: 1.2
-  wordmark:
-    fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
-    fontSize: "15px"
-    fontWeight: 600
-    letterSpacing: "0.01em"
-  register-note:
-    fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
-    fontSize: "15px"
-    fontWeight: 400
-    lineHeight: 1.5
   body:
     fontFamily: "system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
     fontSize: "16px"
@@ -9657,14 +9734,14 @@ typography:
     fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.3
-  panel-head:
+  wordmark:
     fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
-    fontSize: "13px"
+    fontSize: "15px"
     fontWeight: 600
-    letterSpacing: "0.02em"
+    letterSpacing: "0.01em"
   label:
     fontFamily: "Bahnschrift, \"DIN Alternate\", \"DIN 2014\", \"Roboto Condensed\", \"Arial Narrow\", system-ui, sans-serif"
-    fontSize: "12px"
+    fontSize: "12.5px"
     fontWeight: 600
     letterSpacing: "0.02em"
   mono:
@@ -9674,7 +9751,7 @@ typography:
 rounded:
   r: "3px"
   swatch: "2px"
-  hairline: "1px"
+  station: "0px"
 spacing:
   shell-y: "8px"
   shell-x: "14px"
@@ -9682,46 +9759,61 @@ spacing:
   panel-x: "16px"
   gutter: "24px"
   gutter-narrow: "16px"
-  section: "84px"
-  section-narrow: "60px"
+  section: "92px"
+  section-narrow: "64px"
+  topbar: "60px"
 components:
   button:
+    backgroundColor: "{colors.orbit-plate}"
+    textColor: "{colors.plotting-ink}"
+    rounded: "{rounded.r}"
+    padding: "5px 10px"
+    height: "30px"
+  button-primary:
+    backgroundColor: "{colors.gauge-periwinkle}"
+    textColor: "{colors.accent-ink-orbit}"
+    rounded: "{rounded.r}"
+    padding: "10px 20px"
+    height: "46px"
+  button-slate:
     backgroundColor: "{colors.slate-plate}"
     textColor: "{colors.slate-ink}"
     rounded: "{rounded.r}"
     padding: "5px 10px"
     height: "30px"
-  button-primary:
-    backgroundColor: "{colors.gauge-indigo}"
-    textColor: "{colors.indigo-ink-on-paper}"
+  lead-rail-key:
+    backgroundColor: "{colors.orbit-plate}"
+    textColor: "{colors.plotting-ink}"
+    typography: "{typography.label}"
     rounded: "{rounded.r}"
-    padding: "10px 20px"
-    height: "46px"
-  button-primary-slate:
-    backgroundColor: "{colors.gauge-indigo-slate}"
-    textColor: "{colors.indigo-ink-on-slate}"
-    rounded: "{rounded.r}"
-    padding: "5px 10px"
-    height: "30px"
+    padding: "4px 0"
+    height: "32px"
   select:
     backgroundColor: "{colors.slate-plate}"
     textColor: "{colors.slate-ink}"
     rounded: "{rounded.r}"
     padding: "4px 8px"
     height: "30px"
+  title-block:
+    backgroundColor: "{colors.orbit-void-2}"
+    textColor: "{colors.plotting-ink-2}"
+    rounded: "{rounded.r}"
+    padding: "12px 14px"
+    width: "408px"
+  tooltip:
+    backgroundColor: "{colors.orbit-plate}"
+    textColor: "{colors.plotting-ink}"
+    rounded: "{rounded.r}"
+    padding: "8px 11px"
+  station-plot:
+    textColor: "{colors.plotting-ink}"
+    typography: "{typography.station-served}"
+    rounded: "{rounded.station}"
+    padding: "4px 6px 5px"
   view-tab:
     textColor: "{colors.slate-ink-2}"
     rounded: "{rounded.r}"
     padding: "6px 9px"
-  ops-panel-section:
-    backgroundColor: "{colors.slate-ground-2}"
-    textColor: "{colors.slate-ink}"
-    padding: "14px 16px"
-  map-dock:
-    backgroundColor: "{colors.slate-ground-2}"
-    textColor: "{colors.slate-ink-2}"
-    rounded: "{rounded.r}"
-    padding: "9px 11px"
   kbd:
     backgroundColor: "{colors.slate-plate}"
     textColor: "{colors.slate-ink}"
@@ -9732,165 +9824,199 @@ components:
 
 ### Design System: Forecast Bust Intelligence
 
-Rationale, the direction roll and every rule conflict are recorded in `docs/DESIGN_DECISIONS.md`; this file describes the system as built. The shared tokens live in `web/fbi.css` as CSS custom properties (`--ground`, `--plate`, `--ink`, `--rule`, `--accent`, `--base`, `--outcome`, `--water`, `--hatch-ink`, `--hatch-bg`, `--focus`, `--warn-*`, `--font-sign`, `--font-text`, `--font-mono`, `--r`), re-valued per material; the hex values above are those custom properties resolved for each material.
+This file describes the system as built. The shared tokens live in `web/fbi.css` as CSS custom properties (`--ground`, `--ground-2`, `--plate`, `--plate-2`, `--ink`..`--ink-3`, `--rule`, `--rule-2`, `--accent`, `--accent-ink`, `--accent-wash`, `--base`, `--outcome`, `--hatch-ink`, `--hatch-bg`, `--focus`, `--warn-*`, `--water`, `--edge-hi`, `--edge-lo`, `--shade`, `--shade-in`, `--font-sign`, `--font-text`, `--font-mono`, `--r`), re-valued per material by `:root[data-world="orbit"]`, `:root` / `[data-theme="dark"]` and `[data-theme="light"]`. The hex values above are those properties resolved per material; the globe and land colours are page-local to `web/landing.html`, and the five risk stops are declared first in each page's own `:root{` block.
 
 #### Overview
 
-**Creative North Star: "Taking a Reading"**
+**Creative North Star: "The Night Chart"**
 
-A forecast is read like a river gauge. Every subdivision gets a graduated staff, one mark per lead day, and the reading is taken where the served risk meets the scale. The system refuses the category default of a dark dashboard with equal stat cards around a glowing map.
+Forecast reliability is plotted like a synoptic chart over the real planet. India is raised on the model's own 0.25-degree grid over a plotting globe in a graphite-indigo void, every column the served reading, and each subdivision is a plotted station whose fixed positions carry the served reading, the baseline, the lead and the observed outcome. The system refuses the dark dashboard of stat cards around a glowing map, and the light editorial page the landing used to be.
 
-One world, three materials, each with one job. **Chart paper** (cool off-white ground, blue-black ink, hairline graticules) is the ground the case is explained on: the landing, always, whatever the OS colour scheme, and the working views' light theme. **Wet-concrete slate** is the calm ops shell for working under time pressure: the map, the columns and the volume views, dark by default. **Gauge enamel** is the reading itself: white plates with E-shaped graduations in gauge indigo, the single accent, drawn on the landing staffs, the selected-reading staff on the map, and the 3-D lead staff in the columns view.
+One world, four materials, each with one job. **Night orbit** is the landing in every OS colour scheme: the void, the globe, the raised land and cool-white plotting ink. **Wet-concrete slate** is the ops shell's default, calm and compact, for the map, columns and volume views. **Chart paper** is the ops shell's light theme, one attribute away. **Machined plate** is every control on every material: solid, lit from above, pressed in when used.
 
-Density follows the material. The landing reads as a long, ruled document with generous rhythm; the ops shell is compact (14px body, 12-13px labels, hairline-divided panels) because a forecaster has about 45 minutes per cycle. Both are offline and system-font only; nothing loads from another origin.
+Density follows the material. The landing is a full-bleed scene and then a long ruled read with generous rhythm; the ops shell is compact (14px body, 12-13px labels, hairline-divided panels). Everything is system fonts and same-origin; the scene is rendered locally in WebGL with a 2-D canvas fallback.
 
 **Key Characteristics:**
-- Three materials, one per job: chart paper explains, slate operates, enamel reads.
-- Gauge indigo is the only accent; risk lives only on the viridis ramp; refusal is a hatch, never a hue.
+- Four materials, one job each: night orbit persuades, slate operates, chart paper is the light ops theme, machined plate is every control.
+- Gauge periwinkle is the only accent on dark (gauge indigo on paper); risk lives only on the five viridis stops; refusal is a hatch, never a hue.
+- Station plots: unboxed ink in fixed positions, joined to their station by a leader.
 - Stencilled DIN signage (Bahnschrift) for codes, readings and headings; system-ui for prose.
-- Flat: depth comes from ground, plate and hairline steps, never from drop shadows.
-- Hairline-ruled rows instead of boxes and cards.
+- Lit, not flat: controls carry an edge highlight, a darker lower edge and a short ground-tinted shade; floating plates a defined edge and a short drop. No glass, no glow.
+- Whole units: the lead rail steps whole days and lead changes swap values without tweening.
 
 #### Colors
 
-A cool, low-chroma pair of grounds (chart paper and slate) carrying one indigo accent, one ochre data series and a colour-vision-tested viridis ramp for risk.
+A cool graphite-indigo void and two ops grounds carrying one periwinkle accent, one ochre data series and a colour-vision-tested viridis ramp for risk.
 
 ##### Primary
-- **Gauge Indigo** (`gauge-indigo` on chart paper, `gauge-indigo-slate` on slate; `--accent`): the E-graduations on every enamel staff, the served-reading line, the primary action, the current-view underline, pressed toggles, the selected-row bar, links and selection. Its text partner (`--accent-ink`) is `indigo-ink-on-paper` on paper and `indigo-ink-on-slate` on slate. A translucent wash (`--accent-wash`: indigo at 9% on paper, 15% on slate) marks hover and the live row.
+- **Gauge Periwinkle** (`gauge-periwinkle`; `--accent` on night orbit and slate): the primary action, the second line of the headline ("Which one?"), pressed toggles and their underline, the current-view underline, the selected-row bar, links, selection, station hover rule, and the busy hairline. Its text partner is `accent-ink-orbit` / `accent-ink-slate`. A wash (`--accent-wash`, periwinkle at 13% on orbit, 15% on slate) marks hover and the live row.
+- **Gauge Indigo** (`gauge-indigo`; `--accent` on chart paper): the same role on the light theme, with `accent-ink-paper`.
 
 ##### Secondary
-- **Baseline Ochre** (`baseline-ochre` / `baseline-ochre-slate`; `--base`): the ensemble-spread baseline, and only that. It is a data-series colour, not an accent, and it always travels with a shape: a dashed line (6 5) and a notch beside the staff.
+- **Baseline Ochre** (`baseline-ochre` on dark, `baseline-ochre-paper` on paper; `--base`): the ensemble-spread baseline and only that. It always travels with a shape: a dashed line (6 5 on the meteogram), a notch on interval scales, and the fixed lower-left position in a station plot.
 
 ##### Tertiary
-- **Outcome Rust** (`outcome-rust` / `outcome-rust-slate`; `--outcome`): the observed-bust fill on the map's Observed view, where a fill needs a colour. Everywhere else an outcome is carried by ink weight.
-- **Gauge Water** (`water-paper` / `water-slate`; `--water`): the translucent surface (opacity .8) that rises up an enamel staff to the served reading; the graduations show faintly through it.
-- **Risk Ramp** (`risk-c0` to `risk-c4`; `--c0`..`--c4`): viridis, five stops, the only encoding of risk. Declared first in each Operate page's own `:root{` block and identical across `index.html` and `command.html`.
+- **Outcome Rust** (`outcome-rust` / `outcome-rust-paper`; `--outcome`): the observed-bust fill on the map's Observed view, where a fill needs a colour. Everywhere else an outcome is carried by ink weight.
+- **Risk Ramp** (`risk-c0`..`risk-c4`; `--c0`..`--c4`): viridis, five stops, the only encoding of risk: the raised columns on the globe, the station marks, the meteogram, the legend.
 
 ##### Neutral
-- **Chart Paper** (`chart-paper`, `chart-paper-2`; `--ground`, `--ground-2`): the landing ground and the light theme's shell.
-- **Enamel Plate** (`enamel-plate`, `enamel-plate-2`; `--plate`, `--plate-2`): staff plates, controls, label backings on paper.
-- **Chart Ink** (`chart-ink`, `chart-ink-2`, `chart-ink-3`; `--ink`..`--ink-3`): headings and readings, prose, captions and scale numerals.
-- **Graticule** (`graticule`, `graticule-2`; `--rule`, `--rule-2`): one-pixel rules, graticule lines, control borders.
-- **Wet Slate** (`slate-ground`, `slate-ground-2`, `slate-plate`, `slate-plate-2`): the ops shell ground, its bars and panels, and its controls.
-- **Slate Ink** (`slate-ink`, `slate-ink-2`, `slate-ink-3`) and **Slate Rule** (`slate-rule`, `slate-rule-2`): text and hairlines on slate.
-- **Warning** (`warn-*`): the stale-data banner and the dismiss-a-refusal warning only. An ochre-brown note, not an alarm.
-- **Focus** (`focus-slate` on slate; gauge indigo on paper; `--focus`): the 2px focus outline.
+- **Graphite-Indigo Void** (`orbit-void`, `orbit-void-2`): the landing ground, never pure black; the lifted void backs the title block and the top-bar scrim.
+- **Night Plate** (`orbit-plate`, `orbit-plate-2`): controls, tooltips and the key plot on the landing.
+- **Plotting Ink** (`plotting-ink`, `-2`, `-3`): headings and readings, prose and fields, captions and secondary labels on the landing.
+- **Night Rule** (`orbit-rule`, `orbit-rule-2`): section hairlines and control borders on the landing.
+- **Plotting Globe** (`globe-ocean`, `globe-deep`, `globe-graticule`, `globe-limb`): the ocean sphere shading to its dark side, the 10-degree graticule and the thin atmospheric limb. `land` is the raised grid's base, `land-no-reading` a cell with no served value.
+- **Wet Slate** (`slate-ground`..`slate-rule-2`): the ops shell's default ground, panels, controls, ink and hairlines.
+- **Chart Paper** (`chart-paper`..`graticule-2`): the ops shell's light theme.
+- **Focus** (`focus-pale` on dark; gauge indigo on paper): the 2px focus outline.
+- **Warning** (`warn-*`): the stale-data banner and the override warning only; an ochre-brown note, not an alarm.
 
 ##### Named Rules
-**The Hatch-Not-Hue Rule.** Refusal is a 45-degree hatch of `--hatch-ink` on `--hatch-bg` (ink on plate), never a colour token and never a point on the risk ramp. A refused case busts 23.4% of the time against 3.4% for a scored one, so it must never read as quieter than a reading. This is a deliberate encoding, the product's most important state, not decoration.
+**The Hatch-Not-Hue Rule.** Refusal is a 45-degree hatch of `--hatch-ink` on `--hatch-bg` (2px ink, 3px ground), never a colour token and never a point on the risk ramp, on every material: legend swatch, table cell, map pattern, column texture.
 
-**The One Ramp Rule.** Risk is drawn only with the five viridis stops, and nothing else uses them. Green-amber-red is the warning service's palette; this product issues no warnings.
+**The One Ramp Rule.** Risk is drawn only with the five viridis stops, and nothing else uses them. No red, amber or green danger paint.
 
-**The Single Indigo Rule.** Gauge indigo is the only accent. The baseline's ochre is a data series that is always doubled by shape, and the outcome rust appears only as the Observed-view fill. A third hue needs a data series to carry, not a mood.
+**The Single Accent Rule.** Periwinkle (indigo on paper) is the only accent. Ochre is a data series always doubled by shape; rust is only the Observed-view fill.
 
-**The Review-Level Rule.** No danger paint. Staffs carry a review level (0.0909) painted in ink across every staff, and the copy says "review level", never "danger level".
+**The Doubled Baseline Rule.** The baseline is never ochre alone: it is dashed as a line, notched on a scale, and placed lower left in a station plot.
 
 #### Typography
 
 **Display Font:** Bahnschrift (with "DIN Alternate", "DIN 2014", "Roboto Condensed", "Arial Narrow", system-ui)
 **Body Font:** system-ui (with -apple-system, "Segoe UI", Roboto)
-**Label/Mono Font:** ui-monospace (with "Cascadia Mono", Consolas), for keys only
+**Label/Mono Font:** ui-monospace (with "Cascadia Mono", Consolas), for keys and the source endpoint only
 
-**Character:** Stencilled DIN signage, the lettering on a gauge staff, set against a plain system text face. The signage carries everything you read off a scale; the system face carries everything you read as prose.
+**Character:** Stencilled DIN signage, the lettering of a plotted chart and a gauge staff, against a plain system text face. Signage carries everything read off a scale; the system face carries prose.
 
 ##### Hierarchy
-- **Display** (600, clamp(38px, 3.7vw, 54px), 1.04, -0.012em, balanced): the landing headline only.
+- **Display** (600, clamp(40px, 4.4vw, 66px), 1.03, -0.016em, balanced): the landing headline only, max 11.5em; on short laptops clamp(36px, 3.7vw, 54px), on narrow screens clamp(34px, 8.6vw, 52px).
 - **Headline** (600, clamp(26px, 2.6vw, 36px), 1.12): landing section heads.
-- **Title** (600, 18px, 1.3): register entries, route stops, the selected subdivision name on the ops panels.
-- **Reading** (600, clamp(30px, 3.2vw, 42px), 1, tabular numerals): measured values in the landing register. On the ops panels the selected reading is 40px on the map and 36px in the columns view; a refused reading drops to 26px.
-- **Body** (400, 16px, 1.62, max 64ch): landing prose, set in `chart-ink-2` with emphasis in `chart-ink`. The lede is clamp(17px, 1.45vw, 19px) at 34ch.
-- **Body Ops** (400, 14px, 1.5): the working views. Tables are 12.5px with tabular numerals.
-- **Label** (600, 12-13px, 0.02em, sentence case): control-group labels and panel section heads on the ops shell.
-- **Mono** (11px, 1): keyboard keys only.
+- **Title** (600, 18px, 1.3): register entries, route stops, the key plot heading, the selected subdivision on ops panels.
+- **Reading** (600, clamp(30px, 3.2vw, 42px), 1, tabular): measured values in the register.
+- **Station served** (600, 19px, tabular): the served reading in a station plot; its fields (lead, baseline, outcome, name) are 12-12.5px.
+- **Lede** (400, clamp(17px, 1.4vw, 19.5px), 1.55, max 33ch).
+- **Body** (400, 16px, 1.62, max 64ch): landing prose in ink-2, emphasis in ink. **Body Ops** (14px, 1.5) on the working views; tables 14px tabular with 12.5px heads.
+- **Label** (600, 12.5px, 0.02em, sentence case): title block, provenance summary, panel heads.
+- **Mono** (11px): keyboard keys and the cited endpoint.
 
 ##### Named Rules
-**The Signage Numerals Rule.** Subdivision codes (D01-D10), lead codes, percentages, scale numerals and headings are set in the signage face with tabular numerals. Prose never is.
+**The Signage Numerals Rule.** Subdivision codes, lead days, percentages, dates in the title block, scale numerals and headings are set in the signage face with tabular numerals. Prose never is.
 
-**The System Fonts Rule.** No `@font-face`, no webfont, no external origin. Off Windows the signage voice falls back to its nearest cousin; that is accepted.
+**The System Fonts Rule.** No `@font-face`, no webfont, no external origin. Off Windows the signage falls back to its nearest cousin. A self-hosted DIN-class face is an open owner question, not a decision.
 
 #### Layout
 
-**Landing (chart paper):** a centred column, max 1240px, 24px gutters (16px under 640px). The first viewport is a two-column grid (1fr text, 1.18fr figure; gap 28px 44px) filling the viewport under a 56px top bar; the figure, ten staffs D10 to D01, is the dominant element at min(74vh, 620px). Below 960px it stacks to one column with the figure at 430px (400px under 480px). The long read is a sequence of sections 84px tall in padding (60px under 640px), each separated by a hairline. Prose holds to 64ch.
+**Landing first viewport (night orbit):** a full-bleed scene at 100dvh. The WebGL canvas fills the hero; on screens 960px and wider the camera is offset so India sits right of centre and a falloff from the void (solid to 30%, clear by 47%) keeps the left column at full contrast. The top bar (60px) floats over the scene on a scrim, not a panel. The text column sits at 60px + 17vh (7vh on short screens) in a 1240px centred wrap with 24px gutters: headline, lede, two actions. The title block sits bottom left under the actions, 24px from the edges, max 408px; Skip intro sits bottom right while the intro runs. Station plots float in the void above India, right of the headline, as many as the band holds. Below 960px the hero stacks: copy, then the scene at 62svh (min 360px), then the title block in flow.
 
-**Ops shell (slate):** a full-height grid: the map or 3-D stage takes the remaining width, a fixed right panel (384px on the map, 360px on the columns) scrolls independently, and a full-width top bar holds the wordmark, reading controls (date, lead, region), view toggles and the view nav. Bar padding 8px 14px; panel sections 14px 16px, divided by hairlines. Under 900px the page scrolls: the stage sits on top at about 60vh (min 320-340px) and the panel follows below it. The date slider hides below 1380px.
+**Landing long read:** sections of 92px padding (64px under 640px) separated by hairlines; prose to 64ch. The case section is a 1.25fr / .75fr grid (one column under 1024px) holding the meteogram (440px tall, 380px on phones) and the station key.
 
-**Context travels in the URL.** Date, lead and region ride in the query string and every carried link keeps them, so a reading opened on one view is the reading opened on the next.
+**Ops shell (slate / chart paper):** a full-height grid with the stage filling the remaining width and a fixed right panel (384px on the map, 360px on the columns) scrolling independently; a top bar of wordmark, reading controls and the view nav at 8px 14px; panel sections 14px 16px divided by hairlines. Under 900px the stage goes on top and the panel follows.
+
+**Context travels in the URL.** Date, lead and region ride in the query string; every carried link keeps them, so the landing's primary action opens the command centre on the plotted reading.
 
 ##### Named Rules
-**The Rules-Not-Boxes Rule.** Lists of facts are hairline-ruled rows (the measured register, the three bust conditions joined by "and", the route through the views, tables), not cards or tiles.
+**The Whole Units Rule.** The lead rail is ten equal keys, Day 1 to Day 10, and never shows a value between days; grids step in whole cells.
+
+**The Rules-Not-Boxes Rule.** Lists of facts are hairline-ruled rows (the register, the three bust conditions joined by "and", the route, the provenance list, tables), never cards or tiles.
 
 #### Elevation & Depth
 
-Flat. Depth is tonal: ground, a slightly lifted ground for bars and panels, and plate for controls, each step separated by a one-pixel rule. There are no drop shadows anywhere; the map tooltip explicitly removes Leaflet's. The only shadows are inset marks that carry state.
+Lit, short and tinted. Depth comes from four tonal steps (ground, lifted ground, plate, plate-2) separated by one-pixel rules, and from a single light source above: every control carries a 1px top highlight (`--edge-hi`), a darker 1px lower edge (`--edge-lo`) and a short shade tinted to the ground (`--shade`), never black and never wide. Floating plates take a defined edge plus a short drop. The scene's only light is its own: one low key light on the land and the atmospheric limb.
 
 ##### Shadow Vocabulary
-- **Selection bar** (`box-shadow: inset 3px 0 0 var(--accent)`): the selected row in a queue or list, with the accent wash behind it.
-- **Pressed underline** (`box-shadow: inset 0 -2px 0 var(--accent)`): a toggle in its pressed state.
-- **Swatch hairline** (`box-shadow: inset 0 0 0 1px rgba(127,127,127,.35)`): legend swatches and chips, so the palest ramp stop holds its edge on paper and on slate.
+- **Plate at rest** (`box-shadow: inset 0 1px 0 var(--edge-hi), 0 1px 0 var(--edge-lo), 0 2px 5px -2px var(--shade)`): every button.
+- **Plate lifted** (`inset 0 1px 0 var(--edge-hi), 0 2px 0 var(--edge-lo), 0 7px 14px -6px var(--shade)` with `translateY(-1px)`): hover.
+- **Plate sunk** (`inset 0 2px 3px var(--shade-in), inset 0 -1px 0 var(--edge-hi)` with `translateY(1px)`): active.
+- **Pressed toggle** (`inset 0 2px 3px var(--shade-in), inset 0 -2px 0 var(--accent)` on the accent wash): a toggle that stays down.
+- **Primary plate** (`inset 0 1px 0 rgba(255,255,255,.35), 0 1px 0 var(--edge-lo), 0 3px 8px -3px var(--shade)`): the accent action; hover brightens 8% and deepens the drop.
+- **Select** (`inset 0 1px 0 var(--edge-hi), 0 1px 0 var(--edge-lo)`): no drop.
+- **Floating plate** (`inset 0 1px 0 var(--edge-hi), 0 6px 10px -6px var(--shade)`; title block `0 8px 14px -8px`): tooltips, the title block, the timeline strip.
+- **Selection bar** (`inset 3px 0 0 var(--accent)`): the selected row in a queue or list.
+- **Swatch hairline** (`inset 0 0 0 1px rgba(127,127,127,.35)`): legend swatches and station marks.
 
 ##### Named Rules
-**The Flat Slate Rule.** Nothing floats. Overlays on the 3-D stage and the map key sit on a lifted ground with a hairline border; the help dialog sits on a dark scrim (rgba(10,13,16,.72)), not a shadow.
+**The Short Shade Rule.** A drop is at most 0 8px 14px with a negative spread, tinted to the ground. No wide diffuse shadow, no blur behind a plate, no glow.
+
+**The Flat-When-Disabled Rule.** Disabled is flat (no shade, no lift, 50% opacity); busy keeps the plate and runs a 2px accent hairline along its lower edge (1.1s loop, static under reduced motion).
+
+**The Level Bar Rule.** A segmented bar is one plate: its keys sink when pressed but never lift on hover.
 
 #### Shapes
 
-Nearly square. Controls, panels, tooltips and the map key share one small radius (3px, `--r`); swatches, chips, staff plates and label backings use 2px. Segmented controls fuse into one bar by dropping inner radii and overlapping borders by a pixel. Keys are drawn as keycaps with a 2px bottom border. The recurring silhouette is the gauge staff: a tall narrow plate with E-shaped graduations alternating sides, one E per ten percent, the plate's own numeral beside each where the plate is wide enough.
+Nearly square. Controls, panels, tooltips and the title block share one small radius (3px); swatches use 2px; station plots are unboxed (0) with only a 1px rule along their top. Segmented bars fuse by dropping inner radii and overlapping borders a pixel. Keys are keycaps with a 2px bottom border. The recurring silhouettes are the raised grid column (cells meeting edge to edge, no gaps) and the station plot: a round risk mark with four fields around it and a leader line to its station.
 
 #### Components
 
 ##### Buttons
-Quiet, compact controls that let the reading speak.
+Solid machined plates that respond like keys.
 - **Shape:** gently squared (3px).
-- **Default:** plate background, ink text, 1px `--rule-2` border, 30px min height, 5px 10px padding, 13px text.
-- **Hover / Focus:** the border darkens to `--ink-3` (150ms ease); pressed nudges down 1px; focus is a 2px `--focus` outline offset 2px.
-- **Pressed toggle:** accent wash with an accent border and the pressed underline.
-- **Primary:** gauge indigo fill, `--accent-ink` text, weight 600; hover brightens 8%. On the landing the actions grow to 46px with 10px 20px padding and 15.5px text.
-- **Segmented:** adjacent buttons fused into one bar, outer corners only rounded.
+- **Default:** plate, ink text, 1px `--rule-2` border, 30px min height (44px on coarse pointers), 5px 10px, 13px text, plate-at-rest shading.
+- **Hover / Active / Focus:** border to `--ink-3`, lift 1px (140ms, cubic-bezier(.2,.7,.2,1)); active sinks 1px in 50ms; focus is a 2px `--focus` outline offset 2px.
+- **Pressed toggle:** accent wash, accent border, stays sunk with the accent underline.
+- **Primary:** accent fill, `--accent-ink` text, 600. On the landing hero both actions grow to 46px, 10px 20px, 15.5px.
+- **Disabled / Busy:** see Elevation & Depth.
 
 ##### Chips
-- **Style:** a 10px ramp square (2px radius) with the swatch hairline, inline before a value. Legend swatches are 16x12 (14x11 on the columns view); the refused swatch is the hatch.
+- **Style:** legend swatches 14x10 (2px radius) with the swatch hairline; the refused swatch is the hatch; "no reading" is the land-no-reading tone.
 
 ##### Cards / Containers
 - **Corner Style:** 3px.
-- **Background:** the lifted ground (`--ground-2`) on the ops shell; the landing has no containers, only ruled rows.
-- **Shadow Strategy:** none (see Elevation & Depth).
-- **Border:** 1px `--rule`.
-- **Internal Padding:** 14px 16px for panel sections, 9px 11px for the map key, 6px 9px for stage overlays.
+- **Background:** the lifted ground (`--ground-2`) for the title block, panels and timeline; plate for tooltips and the key plot.
+- **Shadow Strategy:** floating plate (see Elevation & Depth); panels in the ops shell sit in flow without a drop.
+- **Border:** 1px `--rule-2` on floating plates, `--rule` between panel sections.
+- **Internal Padding:** 12px 14px title block, 8px 11px tooltip, 14px 16px panel sections, 6px 8px timeline.
 
 ##### Inputs / Fields
-- **Style:** plate background, 1px `--rule-2` border, 3px radius; selects are 30px tall with 4px 8px padding. Reading selects (date, lead) use the signage face at 14px, weight 600, tabular. Range inputs take the accent colour.
+- **Style:** plate, 1px `--rule-2` border, 3px, top highlight and lower edge; selects 30px with 4px 8px. Range inputs take the accent; carets are the accent.
 - **Focus:** the 2px focus outline.
-- **Error / Warning:** the override warning is a warm note (`--warn-bg`, `--warn-rule`, `--warn-ink`); the override reason is required and never prefilled.
+- **Error / Warning:** the override warning is a warm note (`--warn-bg`, `--warn-rule`, `--warn-ink`).
 
 ##### Navigation
-- **Style:** the wordmark (a small indigo plate struck with one E graduation, and the product name in the signage face, 15px, 600) and the view list (13px, `--ink-2`).
+- **Style:** the wordmark (signage, 15px, 600) and the view list (13px, `--ink-2`, 6px 9px).
 - **States:** hover lifts the text to ink on the accent wash; the current view carries a 2px accent underline.
-- **Mobile:** the bar wraps; on the ops shell the nav takes its own full-width row.
+- **Landing:** the bar floats on a void scrim over the scene. **Mobile:** the bar stays on one row on the landing (12.5px links); on the ops shell it wraps.
 
-##### Gauge Staff (signature)
-One enamel plate per forecast. The served bust probability is the water level on the staff; the ink meniscus (2.6px, 4px on the live reading) marks the reading; the baseline is a dashed ochre line with a notch beside each staff; the review level is a band painted in ink across every staff; a refused lead is a hatched ghost plate at full height with no reading on it, and the served line breaks there rather than bridging it. Chart-paper graticules run behind at every ten percent. Below each staff: the lead code, then the observed outcome in ink weight (bold "bust", regular "held"). On enter the line draws (1.4s), water rises (1s, staggered 80ms per staff) and labels fade in; with reduced motion, or without JS, everything is already in its final state.
+##### Station Plot (signature)
+Unboxed ink on the chart, read in fixed positions around a 12px round risk mark: served reading upper left (signage 19px, 600), lead upper right (12.5px, ink-2), baseline lower left in ochre, observed outcome lower right (bold ink "busted", regular ink-2 "held"), subdivision name beneath (12.5px, up to two lines). A refused station's mark is the hatch and its served field reads "refused"; the baseline field is labelled "base" as well as ochre. A 1px `--ink-3` rule runs along its top (accent on hover). A ground-coloured text halo keeps every figure legible over the limb or the stars. Each plot sits in the void above the land with a 1.2px `--ink-2` leader to a 1.8px ink ring at its station. The station key in the case section draws the same convention at 30px on a plate.
+
+##### Raised Grid Globe (signature)
+A plotting sphere (ocean, 10-degree graticule, atmospheric limb) with India alone raised on the model's 0.25-degree grid, each column's height and colour the served reading, cells meeting edge to edge. Hover outlines a subdivision and shows a floating tooltip; drag turns the globe with inertia. Without WebGL a 2-D canvas draws the same reading flat.
+
+##### Title Block and Lead Rail (signature)
+The chart's title block: "Archive replay" and the intro phase, issue / valid / lead dates in signage, the lead rail, the legend and the cited endpoint. The rail is a segmented bar of ten whole-day keys (32px, signage, tabular) plus Play; the current day is the pressed key. A lead change swaps every column and station to the archive's own values without tweening.
+
+##### Meteogram
+The ten forecasts for one day as plotted stations on a time axis, longest lead left: served reading as the station, the baseline as a dashed ochre line (6 5), the review level as a dotted ink line (2 3), outcome by ink weight; each station links into the command centre at that lead. Labels carry a ground stroke halo.
+
+##### Provenance ("Why this number?")
+A disclosure under the reasons: a signage summary (12.5px) opening a ruled definition list of issue date, valid date, lead and source endpoint; missing values are italic ink-3.
+
+##### Motion
+One authored intro of about 4.6 s in named stops: orbit (0-2.4 s), outline (coast drawn from 1.0 s), boundaries (2.3-2.9 s), plotted (columns rise 2.6-4.4 s). The headline, lede, actions and title block arrive with it (0.8 s, staggered .12 s / .24 s / .45 s). Skip intro finishes it at once; under reduced motion it never runs. The arriving state exists only while a class is set that a frame or timer removes, so text is never left hidden. The meteogram line draws in 1.4 s, labels fade at .9 s; both are already final without JS or with reduced motion.
 
 #### Do's and Don'ts
 
 ##### Do:
-- **Do** set the landing on chart paper (`data-world="chart"`) in every OS colour scheme; dark slate belongs to the working views and their Theme toggle.
-- **Do** draw refusal as the hatch (`--hatch-ink` on `--hatch-bg`) everywhere it appears: map pattern, column texture, legend swatch, ghost plate, table cell.
-- **Do** declare the viridis stops `--c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725` first in each Operate page's own `:root{` block, identical across pages.
-- **Do** alias page-local names to the shared tokens in `web/fbi.css` so the light theme stays one attribute away.
-- **Do** set codes, readings and headings in the signage face with tabular numerals.
-- **Do** carry the baseline by dash and notch as well as ochre, and carry outcomes by ink weight.
-- **Do** separate content with one-pixel rules and tonal steps.
-- **Do** make motion an enhancement that reduced motion and no-JS both skip.
+- **Do** set the landing on night orbit (`data-world="orbit"`) in every OS colour scheme; slate and chart paper belong to the working views and their Theme toggle.
+- **Do** give every control the machined plate: edge highlight, darker lower edge, short ground-tinted shade; lift 1px on hover, sink on press, stay sunk when pressed, flat when disabled.
+- **Do** float tooltips, the title block and the timeline strip on a defined 1px edge with a drop no larger than 0 8px 14px.
+- **Do** plot stations as unboxed ink in the fixed positions, with a leader to the station.
+- **Do** draw refusal as the hatch everywhere it appears.
+- **Do** declare `--c0:#440154; --c1:#414487; --c2:#2a788e; --c3:#5ec962; --c4:#fde725` first in each page's own `:root{` block, identical across pages.
+- **Do** carry the baseline by dash, notch or position as well as ochre, and outcomes by ink weight.
+- **Do** step the lead rail in whole days and swap values without tweening.
+- **Do** keep text visible whenever motion does not run.
 
 ##### Don't:
-- **Don't** add a colour token for refusal (no `--ood:`), or put refusal on the risk ramp.
-- **Don't** use red, amber or green danger paint, or say "danger level".
-- **Don't** introduce a second accent; gauge indigo is the only one.
+- **Don't** add a colour token for refusal or put refusal on the risk ramp.
+- **Don't** use red, amber or green danger paint.
+- **Don't** introduce a second accent.
+- **Don't** use glass, backdrop blur, glows or wide diffuse shadows.
+- **Don't** box station plots in cards, or put facts in equal stat tiles; use ruled rows.
 - **Don't** load a webfont, use `@font-face`, or reference any external origin.
-- **Don't** add a build step or a framework; the pages are native CSS, inline SVG and vendored scripts.
-- **Don't** use drop shadows or glows for depth.
-- **Don't** put a section in equal stat cards or tiles; use ruled rows.
-- **Don't** put kickers or eyebrows above headings, or number items that are not a sequence.
-- **Don't** use glyph characters as icons; label controls with words, and draw the few marks that are needed as ruled SVG strokes.
+- **Don't** lift a key out of a segmented bar on hover.
+- **Don't** tween readings between lead days, or show a value between whole days.
+- **Don't** put kickers or eyebrows above headings.
+- **Don't** use glyph characters as icons; label controls with words (arrows inside `kbd` name keys, they are not icons).
 
 ---
 
@@ -10192,94 +10318,106 @@ what the product does today and nothing it does not.
 
 | view | page | what it is for |
 |---|---|---|
-| Case | `/landing.html` | The Assam & Meghalaya case (17 June 2022), the method, and the measured results |
+| Case | `/landing.html` | The Assam & Meghalaya case (June 2022) on the model's own grid, the method, and the measured results |
 | Map | `/` | Every subdivision for one issue date and lead day, the review queue, the reasons, and the override record. The precise, 2-D view. |
-| Columns | `/command.html` | All ten lead days at once, stacked over the map in 3-D: Day 1 at the ground, Day 10 at the top |
+| Columns | `/command.html` | All ten lead days at once, stacked over the map in 3-D: Day 1 at the ground, Day 10 at the top, with the ranked review list beside it |
 | Volume | `/volume.html` | Longitude × latitude × lead day, raymarched and nearest-sampled |
 | Ask | `/assistant.html` | The research assistant, when the operator has enabled it |
 
 Every view carries the same reading in its address (`?date=…&lead=…&region=…`),
-so a reading opened on one view is the reading opened on the next.
+and the links between views keep it, so a reading opened on one view is the
+reading opened on the next. "Ask" carries it too: the assistant then offers to
+explain that reading.
 
-#### Archive replay
+#### Lead-day playback: playing through the lead days (timeline)
 
-The badge "Archive replay" means the screen is showing the 2021–2022 archive,
-with each issue date treated as if it were today. Nothing on these screens is a
-live feed. Hover the badge to see the archive's date range.
+- **Columns:** the playback strip has **Step** (one lead day in the play
+  direction), **Play**, **Reverse** (play from Day 10 toward Day 1), a speed
+  menu (**Slow**, **Normal**, **Fast**) and **Reset lead** (back to the lead day
+  the view opened on). The strip shows the lead day on screen and its valid
+  date.
+- **Map:** **Scrub** (or the space bar) runs the lead days from Day 10 to Day 1.
+- **Case:** the lead rail under the scene has a button per day, Day 1 to
+  Day 10, and **Play**. Inside the rail the arrow keys step whole days.
 
-#### Lead timeline: playing through the lead days
-
-The strip under the header on the Map and Columns views steps through the ten
-lead days, longest lead on the left:
-
-- **Play / Pause** (or the space bar) steps one lead day at a time.
-- **Toward the event / Away from the event** sets the direction.
-- **1× / 2× / 0.5×** sets the speed.
-- **Reset** stops and returns to the lead shown before you pressed Play.
-- Selecting **D10 … D01** jumps straight to that lead.
-
-The timeline only ever shows real lead days; nothing is drawn between them.
-Playback pauses when the tab is hidden. The valid date of the lead on screen is
-shown at the end of the strip.
+Only real lead days are shown; nothing is drawn between them.
 
 #### Keyboard shortcuts
 
-| key | Map | Columns |
-|---|---|---|
-| ← → | lead day | lead day |
-| ↑ ↓ | issue date | issue date |
-| space | play / pause the lead days | play / pause the lead days |
-| m / b / v | served / spread baseline / observed | |
-| i | satellite imagery for the valid date (off by default) | |
-| t | light / dark | |
-| / | jump to a subdivision | |
-| r | | reset the camera |
-| f | | bring the top review-queue column to the centre |
-| ? | all shortcuts | |
-| Esc | clear the selection | clear the selection |
+| key | Map | Columns | Volume |
+|---|---|---|---|
+| ← → | lead day | lead day | slice through the lead days |
+| ↑ ↓ | issue date | issue date | |
+| space | scrub Day 10 → Day 1 | | start or stop the fly-through |
+| m / b | served / spread baseline | | |
+| v | observed outcome | | |
+| i | satellite imagery for the valid date (off by default) | | |
+| t | light / dark | | |
+| / | jump to a subdivision | | |
+| r | | reset the camera | |
+| s | | | switch between one slice and the full volume |
+| Tab, Enter | open a review-queue row | | |
+| Esc | clear the selection, or close | clear the selection | clear the hover and focus |
 
-#### Selecting a subdivision, and keeping views in step
+On the Map, **?** lists the shortcuts.
 
-Select a subdivision on the map, in the review queue, or with the jump list. On
-Columns, select a column; hovering a column outlines it and names its reading.
+#### Selecting a subdivision
 
-When the Map and Columns are open side by side (two tabs or windows of the same
-site), they follow each other: selecting a subdivision or changing the lead or
-issue date on one changes the other. This uses the browser's own channel
-between tabs and sends nothing over the network.
+- **Map:** click a subdivision, open a row in the review queue, or use the jump
+  list (**/**).
+- **Columns:** hover a column to outline it and see its reading, and click it
+  to focus the camera on it. **Focus the top case** brings the first
+  review-queue column to the centre.
+- **Case:** hover a plotted cell for its reading; click it to open that
+  reading on Columns. Drag to turn the scene.
 
 #### "Why this number?"
 
-Under a selected reading, **Why this number?** opens the record behind it: the
-served number and its two ingredients (the model alone and the ensemble spread),
-the spread baseline, the interval, the review tier and what it means, the
-distance from training data used by the refusal detector, the issue and valid
-dates, the store version, the base model, how the reasons were computed, the
-clock (archive replay), data quality and the API address the row came from.
-Anything the build does not provide is shown as "not provided by this build",
-never guessed.
+Under a selected reading on the Map and on Columns, **Why this number?** opens
+the record behind it:
+- its source;
+- the issue date, valid date and lead day;
+- the store version and build date, and the base model;
+- how the served number and the reasons are made;
+- the reading's distance from the training data against the refusal threshold,
+  and what that check covers;
+- the review tier and the data quality.
+
+Anything the build does not provide says "unavailable", never a guess.
 
 #### Refused readings
 
 A hatched (striped) subdivision or column is a refusal: the atmospheric state
 was unlike anything in training, so the system declined to give a number. It is
 unknown, elevated risk, not a low reading. Refused days busted 23.3% of the
-time in the held-out year against 3.4% for scored ones.
+time against 3.4% for scored ones.
 
-#### Render quality on Columns
+#### Override a flag: Dismiss flag or Escalate (Map)
 
-The **Quality** menu on Columns sets the pixel density: auto (chosen from what
-the device reports), high, balanced, low, or **2-D map only**, which opens the
-same reading on the map. The legend panel shows the current draw calls,
-triangles and pixel ratio. If the browser cannot start WebGL, the view says so
-and offers the map, which shows every value the 3-D view does.
+On the Map, a selected reading has **Dismiss flag** and **Escalate**. Each
+needs a written reason of at least three characters, which is recorded
+permanently. A public, read-only deployment refuses overrides.
 
-#### The landing opening
+#### Volume
 
-The first screen of the Case page draws India, raises every subdivision's
-served risk as a column from the archive, and labels one reading. Any click,
-key or scroll finishes it at once; **Skip intro** does the same. With reduced
-motion set in the operating system it starts finished.
+**Review boundary** outlines, on the sliced day, the cells at or above the
+cost-optimal review threshold. **Refusals** shows or hides the refused cells,
+and **Fly-through** (or the space bar) moves through the lead days. The view
+stops redrawing when nothing moves.
+
+#### Rendering on weaker devices
+
+Columns picks a lower quality automatically on a weaker machine; `?quality=low`
+forces it, and `?quality=high` asks for the full one. The Case scene has four
+tiers, `?quality=high`, `balanced`, `low` and `2d`, where `2d` draws the same
+cells on a flat canvas. Nothing about the data changes with the tier. If the
+browser cannot start WebGL, Columns sends the reading to the Map, which shows
+every value the 3-D view does, and Volume says so and links to the column view.
+
+#### The opening
+
+The Case page opens with a short sequence over India. **Skip intro** ends it at
+once. With reduced motion set in the operating system, it starts finished.
 
 ---
 
@@ -10292,6 +10430,13 @@ motion set in the operating system it starts finished.
 **Date:** 2026-10-18. **Brief:** the two master prompts of this round (premium 3-D
 frontend, sections 1–19; web-grounded research assistant, section 20).
 **Branch:** `live-path-pby8cg`.
+
+> **Status after merging with `master` (2026-10-18).** Only the research
+> assistant half of this report merged (D-039). The frontend half overlapped
+> PR #26 (D-038) on the same pages and did not merge. D-038's frontend is
+> served, with the assistant's "Ask" link added. This round's frontend is
+> preserved on branch `frontend-round-chart-paper`. The frontend sections below
+> describe that branch, not what is served.
 
 Labels are used exactly: **IMPLEMENTED** (in the code), **TESTED** (a test or a
 recorded browser run proves it), **UNVERIFIED** (written, not proven here),
@@ -12417,30 +12562,28 @@ curl http://localhost:8912/api/health
 2026-10-06 version. **Updated 2026-10-18** with section 0 below; sections 1–7
 are unchanged and still true.
 
-#### 0. Round of 2026-10-18: immersive frontend and research assistant
+#### 0. Round of 2026-10-18: research assistant (PR #27)
 
-Branch `live-path-pby8cg` (pushed; no PR opened). Full report:
-`docs/IMMERSIVE_FRONTEND_AND_ASSISTANT_REPORT.md`; decision D-038.
+Branch `live-path-pby8cg`, PR
+[#27](https://github.com/blazingarrows1525/forecast-bust-detection/pull/27),
+merged up to `master` after PR #26. Decision D-039. Live record:
+`docs/assistant-provider-decision.md`. Deployment: `docs/DEPLOY.md`, "The
+research assistant on Render".
 
 | item | status |
 |---|---|
-| Tactile control states, lead timeline, live map/columns sync, "Why this number?", archive-replay badge | implemented & verified (browser runs, tests) |
-| Columns instancing: 344 draw calls to 7 | implemented & verified (`scripts/measure_scenes.py`) |
-| Landing: question-first hero, 3-D opening on chart paper, reduced-motion and no-WebGL paths | implemented & verified |
-| Research assistant (`/assistant.html`, `src/fbd/genai/research/`) | implemented & verified against mocks and the real store; **off by default** |
-| Real web search / hosted LLM | **implemented & verified** live on 2026-10-18 with free models only: Tavily, Gemini `gemini-3.8-flash` (20 requests a day free), OpenRouter `nvidia/nemotron-3-super-120b-a12b:free` as fallback. Results and open items: `docs/assistant-provider-decision.md` |
+| Research assistant (`/assistant.html`, `src/fbd/genai/research/`), "Ask" in every view's navigation | implemented & verified; **off by default** |
+| Real web search and hosted LLMs, free models only: Tavily; Gemini `gemini-3.8-flash` (20 requests a day free); OpenRouter `nvidia/nemotron-3-super-120b-a12b:free` as fallback | implemented & verified live on 2026-10-18; Gemini 3.8 Flash not yet scored |
+| The assistant in the built image, with the Render variables | implemented & verified locally; **not verified on Render itself** |
+| This round's own frontend (tactile controls, lead timeline, view sync, its "Why this number?", archive-replay badge, columns instancing, chart-paper landing) | **not merged**: it overlapped PR #26 (D-038) on the same pages. D-038's frontend is kept. Preserved on branch `frontend-round-chart-paper` |
 | Atmospheric / Coriolis layer | **designed only**: the archive has no wind field |
 
-Tests: 482 passed, 4 skipped (full suite, no torch in that environment); CI's
-list 439 passed, 2 skipped. Every capture is clean at five viewports.
+Tests: TESTS_LINE
 
-**Needs you.** Review the opening on the demo machine; decide whether to open a
-PR from `live-path-pby8cg`. For the assistant: Gemini's 20 free requests a day
-are enough (no paid tier); dates the model was given count as grounded; stale
-sources give an answer with limitations, not a clarification question. To
-deploy on Render, follow `docs/DEPLOY.md`, "The research assistant on Render":
-an image from this branch (or `master` after a merge), plus the listed
-variables. Re-run the live eval once Gemini's daily allowance resets.
+**Needs you.**
+- Merge PR #27, or deploy the branch image `:live-path-pby8cg`, as `docs/DEPLOY.md` says.
+- Decide whether anything from `frontend-round-chart-paper` should be ported onto D-038's pages.
+- Re-run the live eval once Gemini's daily allowance resets.
 
 **Purpose:** start a new session and continue exactly where this one
 stopped.

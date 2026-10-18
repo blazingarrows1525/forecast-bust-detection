@@ -458,7 +458,18 @@ def _served() -> dict | None:
             # and what the refusal detector does and does not check.
             "base_model": meta.get("base_model"),
             "reasons_method": meta.get("reasons_method"),
-            "ood_inputs": meta.get("ood_inputs")}
+            "ood_inputs": meta.get("ood_inputs"),
+            # The distance above which a row is refused, so a page can show a
+            # row's ood_distance against it; and when the store was built.
+            "ood_threshold": _float_or_none(meta.get("ood_threshold")),
+            "generated_at": meta.get("generated_at")}
+
+
+def _float_or_none(v) -> float | None:
+    try:
+        return float(v) if v is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _refusal_rates() -> dict | None:

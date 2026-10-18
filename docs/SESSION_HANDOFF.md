@@ -4,30 +4,28 @@
 2026-10-06 version. **Updated 2026-10-18** with section 0 below; sections 1–7
 are unchanged and still true.
 
-## 0. Round of 2026-10-18: immersive frontend and research assistant
+## 0. Round of 2026-10-18: research assistant (PR #27)
 
-Branch `live-path-pby8cg` (pushed; no PR opened). Full report:
-`docs/IMMERSIVE_FRONTEND_AND_ASSISTANT_REPORT.md`; decision D-038.
+Branch `live-path-pby8cg`, PR
+[#27](https://github.com/blazingarrows1525/forecast-bust-detection/pull/27),
+merged up to `master` after PR #26. Decision D-039. Live record:
+`docs/assistant-provider-decision.md`. Deployment: `docs/DEPLOY.md`, "The
+research assistant on Render".
 
 | item | status |
 |---|---|
-| Tactile control states, lead timeline, live map/columns sync, "Why this number?", archive-replay badge | implemented & verified (browser runs, tests) |
-| Columns instancing: 344 draw calls to 7 | implemented & verified (`scripts/measure_scenes.py`) |
-| Landing: question-first hero, 3-D opening on chart paper, reduced-motion and no-WebGL paths | implemented & verified |
-| Research assistant (`/assistant.html`, `src/fbd/genai/research/`) | implemented & verified against mocks and the real store; **off by default** |
-| Real web search / hosted LLM | **implemented & verified** live on 2026-10-18 with free models only: Tavily, Gemini `gemini-3.8-flash` (20 requests a day free), OpenRouter `nvidia/nemotron-3-super-120b-a12b:free` as fallback. Results and open items: `docs/assistant-provider-decision.md` |
+| Research assistant (`/assistant.html`, `src/fbd/genai/research/`), "Ask" in every view's navigation | implemented & verified; **off by default** |
+| Real web search and hosted LLMs, free models only: Tavily; Gemini `gemini-3.8-flash` (20 requests a day free); OpenRouter `nvidia/nemotron-3-super-120b-a12b:free` as fallback | implemented & verified live on 2026-10-18; Gemini 3.8 Flash not yet scored |
+| The assistant in the built image, with the Render variables | implemented & verified locally; **not verified on Render itself** |
+| This round's own frontend (tactile controls, lead timeline, view sync, its "Why this number?", archive-replay badge, columns instancing, chart-paper landing) | **not merged**: it overlapped PR #26 (D-038) on the same pages. D-038's frontend is kept. Preserved on branch `frontend-round-chart-paper` |
 | Atmospheric / Coriolis layer | **designed only**: the archive has no wind field |
 
-Tests: 482 passed, 4 skipped (full suite, no torch in that environment); CI's
-list 439 passed, 2 skipped. Every capture is clean at five viewports.
+Tests: TESTS_LINE
 
-**Needs you.** Review the opening on the demo machine; decide whether to open a
-PR from `live-path-pby8cg`. For the assistant: Gemini's 20 free requests a day
-are enough (no paid tier); dates the model was given count as grounded; stale
-sources give an answer with limitations, not a clarification question. To
-deploy on Render, follow `docs/DEPLOY.md`, "The research assistant on Render":
-an image from this branch (or `master` after a merge), plus the listed
-variables. Re-run the live eval once Gemini's daily allowance resets.
+**Needs you.**
+- Merge PR #27, or deploy the branch image `:live-path-pby8cg`, as `docs/DEPLOY.md` says.
+- Decide whether anything from `frontend-round-chart-paper` should be ported onto D-038's pages.
+- Re-run the live eval once Gemini's daily allowance resets.
 
 **Purpose:** start a new session and continue exactly where this one
 stopped.

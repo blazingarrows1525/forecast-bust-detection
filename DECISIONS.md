@@ -2472,24 +2472,69 @@ at Day 9.
 - Store v0.2.0 is regenerable with `fit_combiner.py --base xgboost` and
   `generate_bulletins.py --base xgboost`.
 
-## D-038 — The landing opens on chart paper in 3-D; the research assistant ships opt-in, and archive facts never pass through a model — LOCKED
+---
 
-**Context.** This round's brief asked for a dark globe landing and a
-web-grounded AI assistant. Both conflicted with standing decisions: the
-landing is chart paper in every OS scheme, and the product serves offline by
-default with narration off (D-019). Both were put to the owner before any code.
+## D-038 — The landing becomes a night orbit with India plotted on the model's grid; every reading gains its provenance — LOCKED
+
+**The owner's brief** (2026-10-17): "make them feel the website in real
+life", building the frontend master prompt as written; questions waived.
+The prompt pins a dark, locally rendered globe with India in focus, a short
+skippable sequence, solid tactile controls and no glass. The Impeccable
+direction roll (seed `1601c50a`) assigned a synoptic station-plot chart,
+fused with that pinned material. The full record is the surface brief
+(`.impeccable/surfaces/web-landing-html.md`) and
+`docs/FRONTEND_IMMERSIVE_REPORT.md`.
+
+**What changed:**
+- **The landing** draws India raised on the model's own 0.25-degree grid
+  (`/api/voxel-grid`), one column per cell, each the served reading for one
+  issue date and lead day (`/api/risk-cube`). Nothing is interpolated between
+  cells or days; refused cells are hatched at a fixed height; missing readings
+  say "no reading". A 2-D canvas fallback draws the same cells.
+- **Controls** are machined plates across every view (raised, lifted on hover,
+  pressed, selected, disabled, busy). The retired "flat, no shadows" rule is
+  replaced; DESIGN.md is rewritten from the build.
+- **The working views** gain lead-day playback in the command centre, a hover
+  outline, a damped focus on a clicked column, a WebGL fallback to the map,
+  and an idle volume that stops redrawing. `/api/metrics` adds `ood_threshold`
+  and `generated_at` to its `served` block, read from the store's meta, so
+  "Why this number?" can show a row's distance against the refusal threshold.
+
+**A truth rule the review caught.** The first build lit the reading with the
+widest served-over-baseline gap: Day 9, 76.5% against 24.3%. That forecast
+**held**, so the page answered "Which one?" with a false alarm. The hero now
+lights the widest gap among the leads that **busted** (Day 4, 52.3% against
+11.2%), every station plot shows its outcome, and the case text still states
+the overall widest gap and says plainly that it held.
+
+**Measured, not assumed:**
+- Landing scene: 6 draw calls, about 110,000 triangles, 5,107 cells. GPU
+  resources unchanged after 30 lead changes.
+- Command centre baseline: 344 draw calls at 1.31 ms per frame on the
+  owner's GPU, so instancing was not justified and was not done.
+- The volume now idles without input instead of raymarching every frame.
+
+**Not done, and why:**
+- **Self-hosted display face.** A review proposed one. It conflicts with the
+  system-fonts rule (PRODUCT.md, `tests/test_web_pages.py`), so it is the
+  owner's call.
+- **Illustrative Coriolis/physics layer.** It is optional in the prompt. The
+  archive has no wind fields, and a moving particle layer beside real risk
+  would invite being read as data. Proposed only.
+
+---
+
+## D-039 — The research assistant ships opt-in on free models, and archive facts never pass through a model — LOCKED
+
+**Context.** A parallel round on branch `live-path-pby8cg`, written before
+D-038 merged and numbered D-038 there, built a web-grounded research assistant
+and a second frontend round. The assistant was put to the owner before any
+code. It merged; the frontend round did not (see "Not merged").
 
 **Decided.**
-- **Landing.** It stays on chart paper, and a skippable real-time opening is
-  drawn on that paper: India plotted north to south; every subdivision's
-  served probability rises from `/api/risk-cube`; refusals stand hatched at
-  full scale height. The labelled reading is the widest model-over-baseline
-  gap **among the leads that busted**, and the caption says so. The first
-  draft labelled the widest gap overall, which in store v0.3.0 is a forecast
-  that held: an answer to "which one will fail?" that did not fail.
-- **Assistant.** It needs `FBD_GENAI_ENABLED=1` and `FBD_RESEARCH=1`, and web
-  search a third opt-in, `FBD_RESEARCH_WEB=1`. With them off the routes do not
-  exist, so the air-gap job still holds.
+- **Opt-in.** The assistant needs `FBD_GENAI_ENABLED=1` and `FBD_RESEARCH=1`,
+  and web search a third opt-in, `FBD_RESEARCH_WEB=1`. With them off the routes
+  do not exist, so the air-gap job still holds.
 - **Archive facts are templates.** A reading's status, probability, tier,
   reasons and forecast-minus-observed arithmetic are read from the store and
   written from templates, with no model involved. This applies D-019's finding
@@ -2498,15 +2543,43 @@ default with narration off (D-019). Both were put to the owner before any code.
 - **The model only synthesises sources.** Web and documentation answers are
   validated whole. Citation ids must be ones the server issued for the
   request. Any number the cited sources do not contain, or any directive,
-  withholds the prose. The user then sees "Unable to verify" and the sources.
+  withholds the prose, and the user sees "Unable to verify" and the sources.
+  A date the model was given (today's, or a source's published or retrieved
+  date) counts as grounded.
+- **Free models only** (owner, 2026-10-18):
+  - primary: Gemini `gemini-3.8-flash`, free tier, 20 requests a day (enough,
+    per the owner);
+  - fallback: OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`, with its
+    reasoning off;
+  - search: Tavily.
+  Stale or partial evidence is answered with its limitations, not replaced by
+  a clarification question.
 
-**Not established.** No real web search or hosted-LLM call has been made (no
-key; hosts unreachable from the build container). The provider choice in
-`docs/assistant-provider-decision.md` is a default, not a measured winner.
+**Not merged.** The same round's frontend changes overlapped D-038's on the
+same pages:
+- tactile controls;
+- a lead timeline;
+- live map/columns sync;
+- its own "Why this number?";
+- an archive-replay badge;
+- columns instancing;
+- a chart-paper landing with a 3-D opening.
+
+D-038's frontend, already merged, is kept. The "Ask" link and the helpers
+`assistant.html` needs (`FBI.esc`, `FBI.tips`, `FBI.REDUCED`) were added to it.
+The unmerged round is preserved on branch `frontend-round-chart-paper` for a
+separate decision.
+
+**Established live (2026-10-18).** Real Tavily, Gemini and OpenRouter calls,
+the live eval, the built image with the deployment variables, and the page in
+a browser. Gemini 3.8 Flash itself is not yet scored: its daily allowance was
+spent before the free-model runs.
 
 **Evidence.**
-- `docs/IMMERSIVE_FRONTEND_AND_ASSISTANT_REPORT.md`.
-- `tests/test_research_assistant.py`: 55 tests, including mutation-checked
-  injection and citation guards.
-- `scripts/evaluate_assistant.py`: 19/19 cases in mock mode.
-- Columns now draws in 7 calls instead of 344 (`scripts/measure_scenes.py`).
+- `docs/assistant-provider-decision.md` (live runs 1 to 3 and the fixes after
+  them), `docs/RESEARCH_ASSISTANT.md`, `docs/DEPLOY.md`.
+- `tests/test_research_assistant.py`: 73 tests, including mutation-checked
+  injection, citation and date guards.
+- `tests/test_image_contents.py`: every document the assistant reads is in
+  the image.
+- `scripts/evaluate_assistant.py`: 22/22 cases in mock mode.

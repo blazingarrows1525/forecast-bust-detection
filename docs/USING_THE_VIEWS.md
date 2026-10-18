@@ -8,91 +8,103 @@ what the product does today and nothing it does not.
 
 | view | page | what it is for |
 |---|---|---|
-| Case | `/landing.html` | The Assam & Meghalaya case (17 June 2022), the method, and the measured results |
+| Case | `/landing.html` | The Assam & Meghalaya case (June 2022) on the model's own grid, the method, and the measured results |
 | Map | `/` | Every subdivision for one issue date and lead day, the review queue, the reasons, and the override record. The precise, 2-D view. |
-| Columns | `/command.html` | All ten lead days at once, stacked over the map in 3-D: Day 1 at the ground, Day 10 at the top |
+| Columns | `/command.html` | All ten lead days at once, stacked over the map in 3-D: Day 1 at the ground, Day 10 at the top, with the ranked review list beside it |
 | Volume | `/volume.html` | Longitude × latitude × lead day, raymarched and nearest-sampled |
 | Ask | `/assistant.html` | The research assistant, when the operator has enabled it |
 
 Every view carries the same reading in its address (`?date=…&lead=…&region=…`),
-so a reading opened on one view is the reading opened on the next.
+and the links between views keep it, so a reading opened on one view is the
+reading opened on the next. "Ask" carries it too: the assistant then offers to
+explain that reading.
 
-## Archive replay
+## Lead-day playback: playing through the lead days (timeline)
 
-The badge "Archive replay" means the screen is showing the 2021–2022 archive,
-with each issue date treated as if it were today. Nothing on these screens is a
-live feed. Hover the badge to see the archive's date range.
+- **Columns:** the playback strip has **Step** (one lead day in the play
+  direction), **Play**, **Reverse** (play from Day 10 toward Day 1), a speed
+  menu (**Slow**, **Normal**, **Fast**) and **Reset lead** (back to the lead day
+  the view opened on). The strip shows the lead day on screen and its valid
+  date.
+- **Map:** **Scrub** (or the space bar) runs the lead days from Day 10 to Day 1.
+- **Case:** the lead rail under the scene has a button per day, Day 1 to
+  Day 10, and **Play**. Inside the rail the arrow keys step whole days.
 
-## Lead timeline: playing through the lead days
-
-The strip under the header on the Map and Columns views steps through the ten
-lead days, longest lead on the left:
-
-- **Play / Pause** (or the space bar) steps one lead day at a time.
-- **Toward the event / Away from the event** sets the direction.
-- **1× / 2× / 0.5×** sets the speed.
-- **Reset** stops and returns to the lead shown before you pressed Play.
-- Selecting **D10 … D01** jumps straight to that lead.
-
-The timeline only ever shows real lead days; nothing is drawn between them.
-Playback pauses when the tab is hidden. The valid date of the lead on screen is
-shown at the end of the strip.
+Only real lead days are shown; nothing is drawn between them.
 
 ## Keyboard shortcuts
 
-| key | Map | Columns |
-|---|---|---|
-| ← → | lead day | lead day |
-| ↑ ↓ | issue date | issue date |
-| space | play / pause the lead days | play / pause the lead days |
-| m / b / v | served / spread baseline / observed | |
-| i | satellite imagery for the valid date (off by default) | |
-| t | light / dark | |
-| / | jump to a subdivision | |
-| r | | reset the camera |
-| f | | bring the top review-queue column to the centre |
-| ? | all shortcuts | |
-| Esc | clear the selection | clear the selection |
+| key | Map | Columns | Volume |
+|---|---|---|---|
+| ← → | lead day | lead day | slice through the lead days |
+| ↑ ↓ | issue date | issue date | |
+| space | scrub Day 10 → Day 1 | | start or stop the fly-through |
+| m / b | served / spread baseline | | |
+| v | observed outcome | | |
+| i | satellite imagery for the valid date (off by default) | | |
+| t | light / dark | | |
+| / | jump to a subdivision | | |
+| r | | reset the camera | |
+| s | | | switch between one slice and the full volume |
+| Tab, Enter | open a review-queue row | | |
+| Esc | clear the selection, or close | clear the selection | clear the hover and focus |
 
-## Selecting a subdivision, and keeping views in step
+On the Map, **?** lists the shortcuts.
 
-Select a subdivision on the map, in the review queue, or with the jump list. On
-Columns, select a column; hovering a column outlines it and names its reading.
+## Selecting a subdivision
 
-When the Map and Columns are open side by side (two tabs or windows of the same
-site), they follow each other: selecting a subdivision or changing the lead or
-issue date on one changes the other. This uses the browser's own channel
-between tabs and sends nothing over the network.
+- **Map:** click a subdivision, open a row in the review queue, or use the jump
+  list (**/**).
+- **Columns:** hover a column to outline it and see its reading, and click it
+  to focus the camera on it. **Focus the top case** brings the first
+  review-queue column to the centre.
+- **Case:** hover a plotted cell for its reading; click it to open that
+  reading on Columns. Drag to turn the scene.
 
 ## "Why this number?"
 
-Under a selected reading, **Why this number?** opens the record behind it: the
-served number and its two ingredients (the model alone and the ensemble spread),
-the spread baseline, the interval, the review tier and what it means, the
-distance from training data used by the refusal detector, the issue and valid
-dates, the store version, the base model, how the reasons were computed, the
-clock (archive replay), data quality and the API address the row came from.
-Anything the build does not provide is shown as "not provided by this build",
-never guessed.
+Under a selected reading on the Map and on Columns, **Why this number?** opens
+the record behind it:
+- its source;
+- the issue date, valid date and lead day;
+- the store version and build date, and the base model;
+- how the served number and the reasons are made;
+- the reading's distance from the training data against the refusal threshold,
+  and what that check covers;
+- the review tier and the data quality.
+
+Anything the build does not provide says "unavailable", never a guess.
 
 ## Refused readings
 
 A hatched (striped) subdivision or column is a refusal: the atmospheric state
 was unlike anything in training, so the system declined to give a number. It is
 unknown, elevated risk, not a low reading. Refused days busted 23.3% of the
-time in the held-out year against 3.4% for scored ones.
+time against 3.4% for scored ones.
 
-## Render quality on Columns
+## Override a flag: Dismiss flag or Escalate (Map)
 
-The **Quality** menu on Columns sets the pixel density: auto (chosen from what
-the device reports), high, balanced, low, or **2-D map only**, which opens the
-same reading on the map. The legend panel shows the current draw calls,
-triangles and pixel ratio. If the browser cannot start WebGL, the view says so
-and offers the map, which shows every value the 3-D view does.
+On the Map, a selected reading has **Dismiss flag** and **Escalate**. Each
+needs a written reason of at least three characters, which is recorded
+permanently. A public, read-only deployment refuses overrides.
 
-## The landing opening
+## Volume
 
-The first screen of the Case page draws India, raises every subdivision's
-served risk as a column from the archive, and labels one reading. Any click,
-key or scroll finishes it at once; **Skip intro** does the same. With reduced
-motion set in the operating system it starts finished.
+**Review boundary** outlines, on the sliced day, the cells at or above the
+cost-optimal review threshold. **Refusals** shows or hides the refused cells,
+and **Fly-through** (or the space bar) moves through the lead days. The view
+stops redrawing when nothing moves.
+
+## Rendering on weaker devices
+
+Columns picks a lower quality automatically on a weaker machine; `?quality=low`
+forces it, and `?quality=high` asks for the full one. The Case scene has four
+tiers, `?quality=high`, `balanced`, `low` and `2d`, where `2d` draws the same
+cells on a flat canvas. Nothing about the data changes with the tier. If the
+browser cannot start WebGL, Columns sends the reading to the Map, which shows
+every value the 3-D view does, and Volume says so and links to the column view.
+
+## The opening
+
+The Case page opens with a short sequence over India. **Skip intro** ends it at
+once. With reduced motion set in the operating system, it starts finished.

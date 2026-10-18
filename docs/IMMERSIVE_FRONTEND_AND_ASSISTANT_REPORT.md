@@ -4,6 +4,13 @@
 frontend, sections 1–19; web-grounded research assistant, section 20).
 **Branch:** `live-path-pby8cg`.
 
+> **Status after merging with `master` (2026-10-18).** Only the research
+> assistant half of this report merged (D-039). The frontend half overlapped
+> PR #26 (D-038) on the same pages and did not merge. D-038's frontend is
+> served, with the assistant's "Ask" link added. This round's frontend is
+> preserved on branch `frontend-round-chart-paper`. The frontend sections below
+> describe that branch, not what is served.
+
 Labels are used exactly: **IMPLEMENTED** (in the code), **TESTED** (a test or a
 recorded browser run proves it), **UNVERIFIED** (written, not proven here),
 **PROPOSED** (not built).

@@ -332,18 +332,15 @@ clear. The landing page has the opposite job and may breathe.
 
 ---
 
-## 7. What already exists, and what is missing
+## 7. What exists (updated 2026-10-18, D-038)
 
 | | state |
 |---|---|
-| 2-D dashboard (`web/index.html`) | works: Leaflet map, date slider, lead picker, model/baseline/truth toggles, selected-region card, regime card, review queue, legend |
-| 3-D risk cube (`web/command.html`) | works: three.js r128, geometry merged for a 4.9× draw-call reduction (1,669 → 343) |
-| **Landing page** | **does not exist** |
-| **Dark mode** | **does not exist** |
-| **Keyboard navigation** | **does not exist** |
-| **Animated lead-time scrub** | **does not exist** (the endpoint for it does) |
-| **Divergence chart** | **does not exist** — highest value per line of code |
-| **Override UI** | endpoint exists; no interface |
+| 2-D map (`web/index.html`) | works: Leaflet map, date slider, lead picker, served/baseline/observed views, selected reading with "Why this number?", regime card, review queue, legend, override record, keyboard shortcuts, scrub, opt-in date-matched imagery |
+| Command centre (`web/command.html`) | works: three.js r128 columns (344 draw calls, 1.3 ms/frame measured), hover outline, damped focus, lead-day playback, "Why this number?", WebGL fallback to the map |
+| Risk volume (`web/volume.html`) | works: raymarched, nearest-sampled, fly-through, idles without input |
+| Landing (`web/landing.html`, `web/orbit.js`) | works: night orbit, India on the model's grid, station plots, lead rail, meteogram, register; 2-D fallback |
+| Dark and light themes | the working views toggle; the landing is dark |
 | Figures | `docs/figures/reliability.{png,svg}`, `earned_refusal.{png,svg}` |
 
 ---

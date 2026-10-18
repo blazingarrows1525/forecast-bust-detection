@@ -491,6 +491,7 @@ $("#jump").onclick = () => { atBottom = true; scrollLatest(); $("#jump").hidden 
 
 // --------------------------------------------------------------- boot
 (async () => {
+  FBI.tips();   // this page's controls use the shared tooltip plate; other views keep native titles
   readContext();
   if (ctx) {
     try {
