@@ -101,6 +101,11 @@ class ResearchSettings:
     #: An explicitly configured second backend. Empty means no fallback.
     fallback: str = field(default_factory=lambda: os.environ.get("FBD_ASSISTANT_FALLBACK", ""))
     allow_paid: bool = field(default_factory=lambda: _flag("FBD_ASSISTANT_ALLOW_PAID"))
+    #: True when a trusted outbound proxy (Claude Code Network secrets, an API
+    #: gateway) injects auth headers for the configured hosts, so the keys never
+    #: reach this process. The code then neither checks for a local key nor
+    #: sends an auth header; see providers._proxy_auth.
+    proxy_auth: bool = field(default_factory=lambda: _flag("FBD_ASSISTANT_PROXY_AUTH"))
 
     # Budgets: every one is a hard cap, enforced in the pipeline.
     max_searches: int = field(default_factory=lambda: _int("FBD_RESEARCH_MAX_SEARCHES", 2))
@@ -136,15 +141,22 @@ class ResearchSettings:
         def row(s: ProviderSpec | None) -> dict | None:
             if s is None:
                 return None
+            has_local_key = (s.key() is not None) if s.key_env else None
+            auth = "proxy" if (not s.key()) and self.proxy_auth and s.key_env else (
+                "local-env" if has_local_key else "none")
             return {"provider": s.name, "model": s.model(), "tier": s.tier,
-                    "key_configured": (s.key() is not None) if s.key_env else None,
+                    "key_configured": has_local_key, "auth": auth,
                     "data_note": s.data_note}
 
+        search_key = bool(os.environ.get("TAVILY_API_KEY")) if self.web else None
         return {
             "enabled": self.enabled,
             "web_search": self.web,
             "search_provider": self.search_provider if self.web else None,
-            "search_key_configured": bool(os.environ.get("TAVILY_API_KEY")) if self.web else None,
+            "search_key_configured": search_key,
+            "search_auth": ("proxy" if (self.web and not search_key and self.proxy_auth)
+                            else ("local-env" if search_key else "none")) if self.web else None,
+            "proxy_auth": self.proxy_auth,
             "llm": row(primary),
             "llm_known": primary is not None,
             "fallback": row(fb),

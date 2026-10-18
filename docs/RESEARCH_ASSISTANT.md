@@ -59,6 +59,11 @@ Rules that hold on every path:
 The assistant is off by default and the routes do not exist until enabled.
 
 ```bash
+# the Claude Code cloud environment -- keys in Network secrets, nothing in code
+FBD_GENAI_ENABLED=1 FBD_RESEARCH=1 FBD_RESEARCH_WEB=1 \
+  FBD_ASSISTANT_LLM=gemini FBD_ASSISTANT_FALLBACK=openrouter FBD_ASSISTANT_PROXY_AUTH=1 \
+  PYTHONPATH=src python -m uvicorn fbd.api.app:app --app-dir src --port 8912
+
 # archive and document answers only: no key, no network, no model
 FBD_GENAI_ENABLED=1 FBD_RESEARCH=1 FBD_ASSISTANT_LLM=none \
   PYTHONPATH=src python -m uvicorn fbd.api.app:app --app-dir src --port 8912
@@ -99,6 +104,7 @@ says whether each key is set and never prints one.
 | `FBD_RESEARCH_RPM` / `_RPD` | 6 / 60 | per-client limits |
 | `FBD_RESEARCH_GLOBAL_RPD` | 400 | global daily cap |
 | `FBD_RESEARCH_ALLOWED_ORIGINS` | empty | other web origins allowed to call chat; by default only the site's own pages may (403 otherwise) |
+| `FBD_ASSISTANT_PROXY_AUTH` | off | **set to `1` when the keys live in Claude Code's Network secrets** (or any outbound proxy that injects auth headers). The code then neither checks for a local key nor sends an auth header; the proxy adds the right one for the host, and the key never reaches this process. |
 
 Provider choice, free-tier limits and data terms: `docs/assistant-provider-decision.md`.
 

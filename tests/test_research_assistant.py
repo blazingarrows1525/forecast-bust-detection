@@ -262,6 +262,68 @@ def test_provider_failure_uses_only_an_explicit_fallback():
     assert ans2["fallback_used"] is False and ans2["retrieval_status"] in ("partial", "unable_to_verify")
 
 
+def test_proxy_auth_mode_sends_no_auth_header_and_needs_no_env_var(monkeypatch):
+    """With FBD_ASSISTANT_PROXY_AUTH=1, the code trusts an outbound proxy to add
+    the auth header, so the key never reaches this process. The three providers
+    accept the request and send no auth header; without the flag, each refuses."""
+    import urllib.request
+
+    from fbd.genai.research import providers
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+
+    sent: list[dict] = []
+
+    class _Resp:
+        def __init__(self, body): self._body = body
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return self._body
+
+    def fake_open(req, timeout):
+        sent.append(dict(req.headers))
+        if "generativelanguage" in req.full_url:
+            body = json.dumps({"candidates": [{"content": {"parts": [{"text": "ok"}]}}]}).encode()
+        elif "tavily" in req.full_url:
+            body = json.dumps({"results": [{"url": "https://x.example/", "title": "t"}]}).encode()
+        else:
+            body = json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()
+        return _Resp(body)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_open)
+    gemini = providers.GeminiLLM(PROVIDERS["gemini"])
+    openr = providers.OpenAICompatLLM(PROVIDERS["openrouter"])
+    tavily = providers.TavilySearch(None)
+
+    assert not gemini.available()[0] and not openr.available()[0] and not tavily.available()[0], \
+        "without the flag or an env var, every provider refuses"
+
+    monkeypatch.setenv("FBD_ASSISTANT_PROXY_AUTH", "1")
+    assert gemini.available()[0] and "proxy" in gemini.available()[1]
+    assert openr.available()[0] and tavily.available()[0]
+
+    gemini.generate("s", "u")
+    openr.generate("s", "u")
+    tavily.search("q")
+    for headers in sent:
+        canonical = {k.lower() for k in headers}
+        assert "authorization" not in canonical, "proxy mode must not send a Bearer header; the proxy injects it"
+        assert "x-goog-api-key" not in canonical, "proxy mode must not send Google's key header; the proxy injects it"
+    assert len(sent) == 3
+
+
+def test_describe_shows_which_auth_route_each_provider_takes(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+    monkeypatch.setenv("FBD_ASSISTANT_PROXY_AUTH", "1")
+    d = settings(llm="gemini", web=True, search_provider="tavily").describe()
+    assert d["proxy_auth"] is True and d["llm"]["auth"] == "proxy" and d["search_auth"] == "proxy"
+    monkeypatch.setenv("GEMINI_API_KEY", "AQ.FAKE")
+    d = settings(llm="gemini").describe()
+    assert d["llm"]["auth"] == "local-env" and d["llm"]["key_configured"] is True
+
+
 def test_paid_fallback_needs_explicit_consent(monkeypatch):
     paid = PROVIDERS["gemini"].__class__(**{**PROVIDERS["gemini"].__dict__, "name": "paidx", "tier": "paid"})
     monkeypatch.setitem(PROVIDERS, "paidx", paid)

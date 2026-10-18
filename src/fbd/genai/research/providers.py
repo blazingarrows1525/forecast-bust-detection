@@ -34,6 +34,18 @@ BREAK_AFTER = 3
 BREAK_FOR = 60.0
 
 
+def _proxy_auth() -> bool:
+    """True when a trusted outbound proxy injects auth headers for us.
+
+    Set ``FBD_ASSISTANT_PROXY_AUTH=1`` when the keys live in Claude Code's
+    Network secrets panel (or an equivalent gateway). The code then neither
+    checks for a local key nor sends an auth header; the proxy adds the right
+    header for the host, and the key never reaches this process.
+    """
+    import os
+    return os.environ.get("FBD_ASSISTANT_PROXY_AUTH", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 class ProviderFailure(RuntimeError):
     def __init__(self, provider: str, code: str, message: str, retryable: bool):
         super().__init__(f"{provider}: {message}")
@@ -123,18 +135,23 @@ class TavilySearch:
         self.key = key
 
     def available(self) -> tuple[bool, str]:
-        return (True, "ready") if self.key else (False, "TAVILY_API_KEY is not set on the server")
+        if self.key:
+            return True, "ready"
+        if _proxy_auth():
+            return True, "ready (auth injected by the Claude Code proxy)"
+        return False, "TAVILY_API_KEY is not set on the server"
 
     def search(self, query: str, *, max_results: int = 5, topic: str = "general",
                include_domains: list[str] | None = None, deadline: float | None = None) -> list[dict]:
-        if not self.key:
+        if not self.key and not _proxy_auth():
             raise ProviderFailure(self.name, "no_key", "TAVILY_API_KEY is not set on the server", False)
         payload = {"query": query[:400], "search_depth": "basic", "max_results": max(1, min(max_results, 10)),
                    "topic": topic if topic in ("general", "news") else "general",
                    "include_answer": False, "include_raw_content": False}
         if include_domains:
             payload["include_domains"] = include_domains[:20]
-        data = _post_json(self.name, self.URL, payload, {"Authorization": f"Bearer {self.key}"}, 15.0, deadline)
+        headers = {"Authorization": f"Bearer {self.key}"} if self.key else {}
+        data = _post_json(self.name, self.URL, payload, headers, 15.0, deadline)
         out = []
         for r in data.get("results") or []:
             if isinstance(r, dict) and isinstance(r.get("url"), str):
@@ -173,21 +190,26 @@ class GeminiLLM:
         self.spec = spec
 
     def available(self) -> tuple[bool, str]:
-        return (True, "ready") if self.spec.key() else (False, f"{self.spec.key_env} is not set on the server")
+        if self.spec.key():
+            return True, "ready"
+        if _proxy_auth():
+            return True, "ready (auth injected by the Claude Code proxy)"
+        return False, f"{self.spec.key_env} is not set on the server"
 
     def generate(self, system: str, user: str, *, max_tokens: int = 1200, deadline: float | None = None) -> LLMResult:
         key = self.spec.key()
-        if not key:
+        if not key and not _proxy_auth():
             raise ProviderFailure(self.spec.name, "no_key", f"{self.spec.key_env} is not set on the server", False)
         model = self.spec.model()
         t0 = time.monotonic()
+        headers = {"x-goog-api-key": key} if key else {}
         data = _post_json(
             self.spec.name, f"{self.spec.base_url}/models/{model}:generateContent",
             {"systemInstruction": {"parts": [{"text": system}]},
              "contents": [{"role": "user", "parts": [{"text": user}]}],
              "generationConfig": {"temperature": 0.2, "maxOutputTokens": max_tokens,
                                   "responseMimeType": "application/json"}},
-            {"x-goog-api-key": key}, 40.0, deadline)
+            headers, 40.0, deadline)
         cands = data.get("candidates") or []
         parts = ((cands[0] or {}).get("content") or {}).get("parts") or [] if cands else []
         text = "".join(p.get("text", "") for p in parts if isinstance(p, dict))
@@ -207,20 +229,25 @@ class OpenAICompatLLM:
         self.spec = spec
 
     def available(self) -> tuple[bool, str]:
-        return (True, "ready") if self.spec.key() else (False, f"{self.spec.key_env} is not set on the server")
+        if self.spec.key():
+            return True, "ready"
+        if _proxy_auth():
+            return True, "ready (auth injected by the Claude Code proxy)"
+        return False, f"{self.spec.key_env} is not set on the server"
 
     def generate(self, system: str, user: str, *, max_tokens: int = 1200, deadline: float | None = None) -> LLMResult:
         key = self.spec.key()
-        if not key:
+        if not key and not _proxy_auth():
             raise ProviderFailure(self.spec.name, "no_key", f"{self.spec.key_env} is not set on the server", False)
         model = self.spec.model()
         t0 = time.monotonic()
+        headers = {"Authorization": f"Bearer {key}"} if key else {}
         data = _post_json(
             self.spec.name, f"{self.spec.base_url}/chat/completions",
             {"model": model, "temperature": 0.2, "max_tokens": max_tokens,
              "response_format": {"type": "json_object"},
              "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]},
-            {"Authorization": f"Bearer {key}"}, 40.0, deadline)
+            headers, 40.0, deadline)
         choices = data.get("choices") or []
         text = ((choices[0] or {}).get("message") or {}).get("content") if choices else None
         if not text:
