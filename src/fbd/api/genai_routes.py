@@ -120,4 +120,11 @@ def attach(app) -> bool:
         return False
     app.include_router(router)
     log_event(LOG, "genai_routes_mounted", **settings.describe())
+    # The research assistant needs its own second opt-in (FBD_RESEARCH), and
+    # web search a third (FBD_RESEARCH_WEB): see research/settings.py.
+    from fbd.genai.research.settings import load as load_research
+    if load_research().enabled:
+        from fbd.genai.research.routes import router as research_router
+        app.include_router(research_router)
+        log_event(LOG, "research_routes_mounted", web=load_research().web)
     return True

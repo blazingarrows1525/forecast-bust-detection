@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ask · Forecast Bust Intelligence</title>
+<meta name="description" content="Ask about a reading, the method, or current public information, with every claim tied to a source." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2327407a'/%3E%3Cpath d='M5 3.5h6M5 3.5v9M5 8h4.5M5 12.5h6' stroke='%23f2f4f0' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/fbi.css" />
+<!--
+  The research assistant's workspace. It renders what the server sends and
+  nothing else: stages as they actually happen, one validated answer, and the
+  sources that answer may cite. Every link on this page is a URL the server
+  retrieved; the page never builds one from model text.
+
+  It is off by default (FBD_GENAI_ENABLED, FBD_RESEARCH, FBD_RESEARCH_WEB):
+  when the routes do not exist the page says so and how to turn them on.
+-->
+<style>
+  body{font-size:14.5px;line-height:1.55}
+  .top{background:var(--ground-2);border-bottom:1px solid var(--rule)}
+  .top header{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:8px 14px;max-width:1180px;margin:0 auto}
+  .top nav{margin-left:auto}
+  main{max-width:1180px;margin:0 auto;padding:18px 14px 0;display:grid;gap:18px;
+       grid-template-columns:minmax(0,1fr) 300px;align-items:start}
+  @media (max-width: 960px){ main{grid-template-columns:1fr} }
+  .off #composer,.off #trySection{display:none}
+  h1{font:600 20px/1.2 var(--font-sign);margin:0 0 4px;letter-spacing:.01em}
+  .lede{color:var(--ink-2);margin:0 0 14px;max-width:70ch}
+  .muted{color:var(--ink-3);font-size:12.5px}
+
+  /* context: the record the question is about, as validated fields */
+  #ctx{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:4px 6px 4px 10px;border:1px solid var(--rule-2);
+    border-radius:var(--r);background:var(--plate);font-size:13px}
+  .chip strong{font-family:var(--font-sign)}
+  .chip button{min-height:24px;padding:0 7px;font-size:12px}
+
+  #log{display:flex;flex-direction:column;gap:14px;min-height:120px;padding-bottom:12px}
+  .turn{border:1px solid var(--rule);border-radius:var(--r);background:var(--ground-2)}
+  .q{padding:10px 14px;border-bottom:1px solid var(--rule);color:var(--ink);font-weight:560;white-space:pre-wrap;overflow-wrap:anywhere}
+  .q .muted{font-weight:400}
+  .a{padding:12px 14px}
+  .stages{list-style:none;margin:0 0 10px;padding:0;display:flex;gap:4px 14px;flex-wrap:wrap;font:600 12px var(--font-sign);
+    color:var(--ink-3);letter-spacing:.03em}
+  .stages li{display:inline-flex;align-items:center;gap:6px}
+  .stages li::before{content:"";width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor}
+  .stages li.done{color:var(--ink-2)} .stages li.done::before{background:currentColor}
+  .stages li.now{color:var(--ink)} .stages li.now::before{background:var(--accent);border-color:var(--accent)}
+  .verdict{display:inline-block;margin:0 0 8px;padding:2px 8px;border-radius:var(--r);font:600 11.5px/1.6 var(--font-sign);
+    letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--rule-2);color:var(--ink-2)}
+  .verdict.completed{border-color:var(--accent);color:var(--ink)}
+  .verdict.unable_to_verify,.verdict.refused{border-color:var(--warn-rule);background:var(--warn-bg);color:var(--warn-ink)}
+  .md{max-width:72ch;overflow-wrap:anywhere}
+  .md p{margin:0 0 10px} .md ul{margin:0 0 10px;padding-left:20px} .md li{margin:0 0 4px}
+  .md blockquote{margin:0 0 10px;padding:2px 0 2px 12px;border-left:2px solid var(--rule-2);color:var(--ink-2)}
+  .md code{background:var(--plate);padding:1px 4px;border-radius:2px}
+  .cite{min-height:0;padding:0 4px;margin:0 1px;font:600 11.5px/1.5 var(--font-sign);vertical-align:1px;
+    border-radius:2px;box-shadow:none;color:var(--accent);background:var(--accent-wash);border:1px solid transparent}
+  .cite:hover,.cite.hot{border-color:var(--accent);transform:none}
+  .note{margin:10px 0 0;padding:8px 10px;border:1px solid var(--rule-2);border-radius:var(--r);font-size:13px;color:var(--ink-2)}
+  .note.safety{border-color:var(--warn-rule);background:var(--warn-bg);color:var(--warn-ink)}
+  .lims{margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px}
+  .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .acts button{font-size:12.5px}
+
+  .sources{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));margin-top:12px}
+  .src{position:relative;border:1px solid var(--rule-2);border-radius:var(--r);background:var(--plate);padding:9px 10px 8px;
+    font-size:12.5px;box-shadow:inset 0 1px 0 var(--edge-hi);transition:border-color var(--dur-1) ease,box-shadow var(--dur-1) ease}
+  .src.hot{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .src .id{font:600 12px var(--font-sign);color:var(--accent)}
+  .src .t{display:block;margin:2px 0 4px;color:var(--ink);font-weight:560;overflow-wrap:anywhere}
+  .src a.t{text-decoration:none} .src a.t:hover{text-decoration:underline}
+  .src .meta{color:var(--ink-3);line-height:1.45}
+  .src .ex{margin-top:5px;color:var(--ink-2)}
+  .src .flag{margin-top:5px;color:var(--warn-ink);background:var(--warn-bg);border-radius:2px;padding:2px 5px}
+  .tier{display:inline-block;margin-left:6px;padding:0 5px;border-radius:2px;font:600 10.5px/1.6 var(--font-sign);
+    letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--rule-2);color:var(--ink-2)}
+  .tier.official{border-color:var(--accent);color:var(--ink)}
+  .src .row{display:flex;gap:6px;align-items:center;margin-top:6px}
+  .src .row button{min-height:24px;padding:0 7px;font-size:11.5px}
+  details.how{margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+  details.how summary{cursor:pointer;font:600 12.5px var(--font-sign);color:var(--ink-2)}
+  details.how dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:6px 0 0}
+  details.how dt{color:var(--ink-3)} details.how dd{margin:0}
+  .claims{margin:6px 0 0;padding-left:18px}
+
+  /* the composer stays on screen, above the phone keyboard */
+  #composer{position:sticky;bottom:0;z-index:5;background:var(--ground);padding:10px 0 12px;border-top:1px solid var(--rule)}
+  #composer form{display:grid;grid-template-columns:1fr auto;gap:8px}
+  #composer textarea{width:100%;min-height:46px;max-height:200px;resize:vertical;padding:9px 10px;font:inherit;
+    color:var(--ink);background:var(--plate);border:1px solid var(--rule-2);border-radius:var(--r)}
+  #composer .side{display:flex;flex-direction:column;gap:6px}
+  #composer .bar{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-3)}
+  #jump{position:fixed;right:18px;bottom:120px;z-index:6}
+  #jump[hidden]{display:none}
+
+  #rail section{border:1px solid var(--rule);border-radius:var(--r);background:var(--ground-2);padding:12px 14px;margin-bottom:12px}
+  #rail h2{margin:0 0 8px;font:600 13px var(--font-sign);color:var(--ink-2);letter-spacing:.02em}
+  #suggest{display:flex;flex-direction:column;gap:6px}
+  #suggest button{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.35;padding:7px 9px}
+  #state dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:12.5px}
+  #state dt{color:var(--ink-3)} #state dd{margin:0}
+  #off{border:1px solid var(--warn-rule);background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:12px 14px}
+  #off[hidden]{display:none}
+  #off code{background:rgba(0,0,0,.12)}
+  @media (prefers-reduced-motion: reduce){ .src{transition:none} }
+</style>
+</head>
+<body>
+<a class="skip" href="#q">Skip to the question box</a>
+<div class="top">
+  <header>
+    <a class="wordmark" href="/landing.html" aria-label="Forecast Bust Intelligence, home">
+      <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
+      <span class="full">Forecast Bust Intelligence</span>
+    </a>
+    <button id="btnTheme" title="Light / dark">Theme</button>
+    <nav aria-label="Views">
+      <ul class="views">
+        <li><a href="/landing.html">Case</a></li>
+        <li><a data-carry="/" href="/">Map</a></li>
+        <li><a data-carry="/command.html" href="/command.html">Columns</a></li>
+        <li><a data-carry="/volume.html" href="/volume.html">Volume</a></li>
+        <li><a data-carry="/assistant.html" href="/assistant.html" aria-current="page">Ask</a></li>
+      </ul>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <div>
+    <h1>Ask the Forecast Research Assistant</h1>
+    <p class="lede">Ask about a reading, the method, or, where the operator has enabled web search,
+      current public information. Every claim is tied to a source you can open. It summarises
+      sources and the archive; it is not a warning service.</p>
+    <div id="off" hidden role="status"></div>
+    <div id="ctx"></div>
+    <div id="log" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversation"></div>
+    <div id="composer">
+      <form id="form">
+        <label class="sr-only" for="q">Your question</label>
+        <textarea id="q" rows="2" maxlength="2000" placeholder="Ask a question. Enter sends; Shift+Enter adds a line."></textarea>
+        <div class="side">
+          <button type="submit" class="btn primary" id="send">Ask</button>
+          <button type="button" id="stop" disabled>Stop</button>
+        </div>
+      </form>
+      <div class="bar">
+        <label for="web">Web search</label>
+        <select id="web" disabled>
+          <option value="auto">Auto</option><option value="on">Always</option><option value="off">Off</option>
+        </select>
+        <button type="button" id="clear">Clear conversation</button>
+        <span id="count" aria-live="off">0 / 2000</span>
+        <span>Not an emergency service. For warnings, follow IMD and your State Disaster Management Authority.</span>
+      </div>
+    </div>
+  </div>
+
+  <aside id="rail" aria-label="Help and status">
+    <section id="trySection">
+      <h2>Try</h2>
+      <div id="suggest"></div>
+    </section>
+    <section id="state">
+      <h2>This build</h2>
+      <dl id="stateList"><dt>Assistant</dt><dd>checking…</dd></dl>
+    </section>
+  </aside>
+</main>
+<button type="button" id="jump" hidden>Jump to latest</button>
+
+<script src="/fbi.js"></script>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const esc = FBI.esc;
+const STAGES = [["routing", "Understanding"], ["searching", "Searching"], ["reading", "Reading sources"],
+                ["checking", "Checking evidence"], ["writing", "Writing answer"]];
+const VERDICT = { completed: "Completed", partial: "Partial result", unable_to_verify: "Unable to verify",
+                  clarification: "Needs one detail", refused: "Not answered" };
+const TIER = { official: "Official source", primary_research: "Primary research", reference: "Reference",
+               project: "Project", secondary: "Secondary", unknown: "Unverified source" };
+let status = null, ctrl = null, ctx = null, regionName = null;
+let conversation = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+
+// ------------------------------------------------------------- theme
+(() => { let t = null; try { t = localStorage.getItem("fbd-theme"); } catch (e) {}
+         if (t) document.documentElement.setAttribute("data-theme", t); })();
+$("#btnTheme").onclick = () => {
+  const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("fbd-theme", next); } catch (e) {}
+};
+
+// ------------------------------------------------------------ context
+// The reading the user came from, as three validated fields. The page never
+// sends what is printed on another page, only the identifiers.
+function readContext() {
+  const s = FBI.read();
+  ctx = (s.region && s.date && s.lead) ? { region_id: s.region, init_date: s.date, lead_day: s.lead } : null;
+  renderContext();
+}
+function renderContext() {
+  const el = $("#ctx");
+  if (!ctx) { el.innerHTML = `<span class="muted">No reading attached. Open one from the map and choose Ask to explain it.</span>`; return; }
+  el.innerHTML = `<span class="chip">Asking about <strong>${esc(regionName || ctx.region_id)}</strong>,
+    Day ${ctx.lead_day}, issued ${esc(ctx.init_date)}
+    <button type="button" id="ctxClear" aria-label="Detach this reading">Detach</button></span>`;
+  $("#ctxClear").onclick = () => { ctx = null; FBI.write({ region: null }); renderContext(); renderSuggestions(); };
+}
+
+// -------------------------------------------------------- suggestions
+// Offered only when the build can actually do them.
+function renderSuggestions() {
+  const can = status && status.settings && status.settings.enabled;
+  const web = can && status.settings.web_search && status.search_ready && status.search_ready.ok;
+  const list = [];
+  if (ctx) {
+    list.push("Explain this flagged forecast");
+    list.push("Compare forecast and observation for this reading");
+  }
+  list.push("What does it mean when the system refuses to score a region?");
+  list.push("How is a forecast bust defined?");
+  list.push("How do I play through the lead days on the map?");
+  if (web) list.push(`Find the latest official rainfall advisory for ${regionName || "Assam"}`);
+  $("#suggest").innerHTML = list.map((t) => `<button type="button" ${can ? "" : "disabled"}>${esc(t)}</button>`).join("");
+  $("#suggest").querySelectorAll("button").forEach((b) => b.onclick = () => ask(b.textContent));
+}
+
+// ------------------------------------------------------------- status
+async function loadStatus() {
+  try {
+    const r = await fetch("/api/assistant/research/status");
+    if (r.status === 404) { status = { settings: { enabled: false } }; showOff(); return; }
+    status = await r.json();
+  } catch (e) { status = null; showOff("The server is unreachable."); return; }
+  const s = status.settings, dl = $("#stateList");
+  const llm = s.llm ? `${esc(s.llm.provider)} · ${esc(s.llm.model)} (${esc(s.llm.tier)})`
+                    : (s.llm_known === false ? "none" : "unknown");
+  dl.innerHTML =
+    `<dt>Assistant</dt><dd>on</dd>` +
+    `<dt>Model</dt><dd>${llm}${status.llm_ready.ok ? "" : `: <em>${esc(status.llm_ready.reason)}</em>`}</dd>` +
+    `<dt>Fallback</dt><dd>${s.fallback ? esc(s.fallback.provider) : "none configured"}</dd>` +
+    `<dt>Web search</dt><dd>${s.web_search ? (status.search_ready.ok ? "on" : esc(status.search_ready.reason)) : "off"}</dd>` +
+    `<dt>Limits</dt><dd>${s.budgets.per_client_per_minute}/min · ${s.budgets.per_client_per_day}/day per client</dd>` +
+    `<dt>History</dt><dd>${esc(s.history)}</dd>`;
+  $("#web").disabled = !s.web_search;
+  if (!s.web_search) $("#web").value = "off";
+  renderSuggestions();
+}
+function showOff(why) {
+  const el = $("#off");
+  el.hidden = false;
+  // Nothing to type into and nothing to try: the controls go, the reason stays.
+  document.body.classList.add("off");
+  el.innerHTML = `<strong>The assistant is off in this build.</strong> ${why ? esc(why) + " " : ""}` +
+    `The product serves offline by default, so these routes do not exist until an operator enables them: ` +
+    `<code>FBD_GENAI_ENABLED=1</code> and <code>FBD_RESEARCH=1</code>, plus <code>FBD_RESEARCH_WEB=1</code> ` +
+    `for web search. See docs/RESEARCH_ASSISTANT.md. Every other view works without it.`;
+  $("#stateList").innerHTML = `<dt>Assistant</dt><dd>off (offline default)</dd>`;
+  $("#send").disabled = true; $("#q").disabled = true;
+  renderSuggestions();
+}
+
+// ------------------------------------------------------ markdown, safely
+// Escape first, then a small, fixed set of forms. No raw HTML, no links from
+// model text: citations become buttons that point at retrieved sources.
+function md(text, turn) {
+  const lines = esc(text).split("\n");
+  const out = []; let list = false;
+  const inline = (s) => s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[(S\d{1,2})\]/g, (m, id) => turn.ids.has(id)
+      ? `<button type="button" class="cite" data-cite="${id}" aria-label="Source ${id.slice(1)}">${id.slice(1)}</button>` : "");
+  for (const ln of lines) {
+    const li = ln.match(/^\s*[-*]\s+(.*)$/);
+    if (li) { if (!list) { out.push("<ul>"); list = true; } out.push(`<li>${inline(li[1])}</li>`); continue; }
+    if (list) { out.push("</ul>"); list = false; }
+    if (/^&gt;\s?/.test(ln)) { out.push(`<blockquote>${inline(ln.replace(/^&gt;\s?/, ""))}</blockquote>`); continue; }
+    if (ln.trim()) out.push(`<p>${inline(ln)}</p>`);
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+
+const fmtTime = (iso) => { try { const d = new Date(iso);
+  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return iso; } };
+
+function sourceCard(s, n) {
+  const url = s.canonical_url || "";
+  const external = /^https?:\/\//.test(url);
+  const internal = url.startsWith("/api/");
+  const title = external || internal
+    ? `<a class="t" href="${esc(url)}" ${external ? 'target="_blank" rel="noopener noreferrer nofollow"' : ""}>${esc(s.title)}</a>`
+    : `<span class="t">${esc(s.title)}</span>`;
+  const pub = s.published_at ? `published ${esc(s.published_at.slice(0, 10))}` : "no publication date given";
+  return `<div class="src" id="src-${n}-${s.source_id}" data-src="${s.source_id}" tabindex="-1">
+    <span class="id">${esc(s.source_id.slice(1))}</span><span class="tier ${esc(s.trust_tier)}">${esc(TIER[s.trust_tier] || s.trust_tier)}</span>
+    ${title}
+    <div class="meta">${esc(s.publisher)} · ${pub}<br><span data-tip="Time the server read this source">retrieved ${esc(fmtTime(s.retrieved_at))}</span>
+      · ${esc(s.fetch_status.replace("_", " "))}</div>
+    ${s.excerpt ? `<div class="ex">${esc(s.excerpt.slice(0, 220))}${s.excerpt.length > 220 ? "…" : ""}</div>` : ""}
+    ${(s.flags || []).map((f) => `<div class="flag">${esc(f)}</div>`).join("")}
+    ${external || internal ? `<div class="row"><button type="button" data-copy="${esc(url)}">Copy link</button></div>` : ""}
+  </div>`;
+}
+
+// ------------------------------------------------------------- a turn
+let turnN = 0;
+function newTurn(question) {
+  const n = ++turnN;
+  const el = document.createElement("article");
+  el.className = "turn"; el.id = "turn-" + n;
+  el.innerHTML = `<div class="q">${esc(question)}${ctx ? ` <span class="muted">· about ${esc(regionName || ctx.region_id)}, Day ${ctx.lead_day}</span>` : ""}</div>
+    <div class="a"><ul class="stages" aria-label="Progress">${STAGES.map(([k, l]) => `<li data-stage="${k}">${l}</li>`).join("")}</ul>
+    <div class="body"></div></div>`;
+  $("#log").appendChild(el);
+  scrollLatest();
+  return { n, el, ids: new Set(), lastId: 0, question, seen: new Set() };
+}
+function markStage(turn, stage) {
+  const lis = turn.el.querySelectorAll(".stages li");
+  let past = true;
+  lis.forEach((li) => {
+    if (li.dataset.stage === stage) { li.className = "now"; past = false; }
+    else if (past && li.classList.contains("now")) li.className = "done";
+  });
+}
+function finishStages(turn) {
+  turn.el.querySelectorAll(".stages li").forEach((li) => {
+    if (li.classList.contains("now")) li.className = "done";
+    if (!li.className) li.remove();          // stages that did not run are not shown as done
+  });
+}
+function renderAnswer(turn, a, warnings) {
+  finishStages(turn);
+  turn.ids = new Set((a.citations || []).map((c) => c.source_id));
+  const body = turn.el.querySelector(".body");
+  const claims = (a.claims || []).filter((c) => c.source_ids && c.source_ids.length);
+  body.innerHTML =
+    `<span class="verdict ${esc(a.retrieval_status)}">${esc(VERDICT[a.retrieval_status] || a.retrieval_status)}</span>` +
+    (a.fallback_used ? ` <span class="muted">· written by the configured fallback model</span>` : "") +
+    `<div class="md">${md(a.answer_markdown, turn)}</div>` +
+    ((a.key_points || []).length ? `<ul class="lims">${a.key_points.map((k) => `<li>${md(k, turn).replace(/^<p>|<\/p>$/g, "")}</li>`).join("")}</ul>` : "") +
+    ((a.limitations || []).length ? `<div class="note"><strong>Limits of this answer.</strong><ul class="lims">${a.limitations.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>` : "") +
+    (warnings.length ? warnings.map((w) => `<div class="note">${esc(w.message)}</div>`).join("") : "") +
+    (a.safety_note ? `<div class="note safety">${esc(a.safety_note)}</div>` : "") +
+    ((a.citations || []).length ? `<div class="sources" aria-label="Sources">${a.citations.map((s) => sourceCard(s, turn.n)).join("")}</div>` : "") +
+    `<details class="how"><summary>What was searched, and how this was answered</summary><dl>
+      <dt>Question type</dt><dd>${esc(a.route.intent)} · ${esc(a.route.rationale)}</dd>
+      <dt>Searched</dt><dd>${a.searched.length ? a.searched.map(esc).join("<br>") : "nothing on the web"}</dd>
+      <dt>Model</dt><dd>${a.provider_id ? esc(a.provider_id + " · " + a.model_id) : "none: read from the archive or documents"}</dd>
+      <dt>Answered</dt><dd>${esc(fmtTime(a.created_at))} · ${a.latency_ms} ms</dd>
+      ${claims.length ? `<dt>Claims</dt><dd><ul class="claims">${claims.map((c) => `<li>${esc(c.claim_text)} → ${c.source_ids.map((i) => esc(i.slice(1))).join(", ")}</li>`).join("")}</ul></dd>`
+                      : `<dt>Claims</dt><dd>Sources are listed per answer; claim-by-claim attribution was not returned.</dd>`}
+    </dl></details>` +
+    `<div class="acts"><button type="button" data-act="copy">Copy answer</button><button type="button" data-act="retry">Ask again</button></div>`;
+  body.querySelector('[data-act="copy"]').onclick = (e) => copy(a.answer_markdown, e.target);
+  body.querySelector('[data-act="retry"]').onclick = () => ask(turn.question);
+  wire(turn);
+  FBI.tips(body);
+  scrollLatest();
+}
+function renderProblem(turn, title, message, retryable) {
+  finishStages(turn);
+  const body = turn.el.querySelector(".body");
+  body.innerHTML = `<span class="verdict unable_to_verify">${esc(title)}</span><div class="md"><p>${esc(message)}</p></div>` +
+    (retryable ? `<div class="acts"><button type="button" data-act="retry">Try again</button></div>` : "");
+  const b = body.querySelector('[data-act="retry"]');
+  if (b) b.onclick = () => ask(turn.question);
+  scrollLatest();
+}
+
+// Citation and card highlight each other, on hover and on keyboard focus.
+function wire(turn) {
+  const body = turn.el.querySelector(".body");
+  const hot = (id, on) => body.querySelectorAll(`[data-cite="${id}"],[data-src="${id}"]`).forEach((x) => x.classList.toggle("hot", on));
+  body.querySelectorAll(".cite").forEach((c) => {
+    const id = c.dataset.cite;
+    ["pointerenter", "focus"].forEach((t) => c.addEventListener(t, () => hot(id, true)));
+    ["pointerleave", "blur"].forEach((t) => c.addEventListener(t, () => hot(id, false)));
+    c.onclick = () => { const card = body.querySelector(`[data-src="${id}"]`);
+      if (card) { card.scrollIntoView({ block: "nearest", behavior: FBI.REDUCED.matches ? "auto" : "smooth" }); card.focus(); } };
+  });
+  body.querySelectorAll(".src").forEach((card) => {
+    const id = card.dataset.src;
+    card.addEventListener("pointerenter", () => hot(id, true));
+    card.addEventListener("pointerleave", () => hot(id, false));
+  });
+  body.querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => copy(b.dataset.copy.startsWith("/")
+    ? location.origin + b.dataset.copy : b.dataset.copy, b));
+}
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); btn.dataset.state = "done"; btn.textContent = "Copied"; }
+  catch (e) { btn.dataset.state = "error"; btn.textContent = "Copy failed"; }
+  setTimeout(() => { delete btn.dataset.state; btn.textContent = btn.dataset.copy ? "Copy link" : "Copy answer"; }, 1600);
+}
+
+// ------------------------------------------------------------ the request
+function setBusy(on) {
+  $("#send").disabled = on; $("#send").setAttribute("aria-busy", String(on));
+  $("#stop").disabled = !on;
+}
+async function ask(text) {
+  text = (text || "").trim();
+  if (!text || !status || !status.settings || !status.settings.enabled || ctrl) return;
+  $("#q").value = ""; updateCount();
+  const turn = newTurn(text);
+  ctrl = new AbortController();
+  setBusy(true);
+  const warnings = [];
+  let finished = false;
+  const timer = setTimeout(() => ctrl && ctrl.abort("timeout"), 90000);
+  try {
+    const r = await fetch("/api/assistant/research/chat", {
+      method: "POST", signal: ctrl.signal, headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, conversation_id: conversation, web_mode: $("#web").value,
+                             context_refs: ctx ? [ctx] : [], response_mode: "stream" }),
+    });
+    if (r.status === 429) {
+      const b = await r.json().catch(() => ({}));
+      renderProblem(turn, "Rate limited", (b.message || "Too many questions.") +
+        (b.retry_after ? ` Try again in about ${Math.ceil(b.retry_after / 60)} min.` : ""), false);
+      finished = true; return;
+    }
+    if (r.status === 422) { renderProblem(turn, "Not sent", "The question could not be sent as written (it may be too long).", false); finished = true; return; }
+    if (!r.ok || !r.body) { renderProblem(turn, "Server error", `The server answered ${r.status}.`, true); finished = true; return; }
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let cut;
+      while ((cut = buf.indexOf("\n\n")) >= 0) {
+        const block = buf.slice(0, cut); buf = buf.slice(cut + 2);
+        let id = 0, kind = "message", data = "";
+        block.split("\n").forEach((ln) => {
+          if (ln.startsWith("id:")) id = +ln.slice(3).trim();
+          else if (ln.startsWith("event:")) kind = ln.slice(6).trim();
+          else if (ln.startsWith("data:")) data += ln.slice(5).trim();
+        });
+        // Each event once: a duplicate id (proxy retry, replay) is dropped.
+        if (!id || turn.seen.has(id)) continue;
+        turn.seen.add(id);
+        let d = {}; try { d = JSON.parse(data); } catch (e) { continue; }
+        if (kind === "status") markStage(turn, d.stage);
+        else if (kind === "warning") warnings.push(d);
+        else if (kind === "done") { renderAnswer(turn, d.answer, warnings); finished = true; }
+        else if (kind === "error") { renderProblem(turn, "Unable to answer", d.message, d.retryable); finished = true; }
+      }
+    }
+    if (!finished) renderProblem(turn, "Interrupted", "The connection closed before an answer arrived. Nothing partial is shown.", true);
+  } catch (e) {
+    const why = ctrl && ctrl.signal.reason === "timeout" ? "No answer within 90 seconds."
+              : e.name === "AbortError" ? "Stopped. Nothing partial is shown." : "The server could not be reached.";
+    if (!finished) renderProblem(turn, e.name === "AbortError" ? "Stopped" : "Offline", why, true);
+  } finally {
+    clearTimeout(timer); ctrl = null; setBusy(false);
+  }
+}
+
+// ------------------------------------------------------------ composer
+function updateCount() { $("#count").textContent = `${$("#q").value.length} / 2000`; }
+$("#q").addEventListener("input", updateCount);
+$("#q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask($("#q").value); }
+});
+$("#form").onsubmit = (e) => { e.preventDefault(); ask($("#q").value); };
+$("#stop").onclick = () => { if (ctrl) ctrl.abort(); };
+$("#clear").onclick = () => {
+  if (ctrl) ctrl.abort();
+  $("#log").innerHTML = ""; turnN = 0;
+  conversation = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+  $("#q").focus();
+};
+
+// Follow the conversation only while the reader is at the bottom of it.
+let atBottom = true;
+window.addEventListener("scroll", () => {
+  atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 140;
+  $("#jump").hidden = atBottom || !$("#log").children.length;
+}, { passive: true });
+function scrollLatest() {
+  if (atBottom) window.scrollTo({ top: document.documentElement.scrollHeight, behavior: FBI.REDUCED.matches ? "auto" : "smooth" });
+  else $("#jump").hidden = false;
+}
+$("#jump").onclick = () => { atBottom = true; scrollLatest(); $("#jump").hidden = true; };
+
+// --------------------------------------------------------------- boot
+(async () => {
+  readContext();
+  if (ctx) {
+    try {
+      const rows = await (await fetch(`/api/bulletin/${encodeURIComponent(ctx.region_id)}?init_date=${ctx.init_date}&mode=replay`)).json();
+      regionName = Array.isArray(rows) && rows[0] ? rows[0].region : null;
+    } catch (e) { /* the id is shown instead */ }
+    renderContext();
+  }
+  renderSuggestions();
+  await loadStatus();
+})();
+</script>
+</body>
+</html>

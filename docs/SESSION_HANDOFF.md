@@ -1,7 +1,29 @@
 # SESSION HANDOFF: resume with the full logic intact
 
 **Written:** 2026-10-06, at the end of the session. It replaces the earlier
-2026-10-06 version.
+2026-10-06 version. **Updated 2026-10-18** with section 0 below; sections 1–7
+are unchanged and still true.
+
+## 0. Round of 2026-10-18: immersive frontend and research assistant
+
+Branch `live-path-pby8cg` (pushed; no PR opened). Full report:
+`docs/IMMERSIVE_FRONTEND_AND_ASSISTANT_REPORT.md`; decision D-038.
+
+| item | status |
+|---|---|
+| Tactile control states, lead timeline, live map/columns sync, "Why this number?", archive-replay badge | implemented & verified (browser runs, tests) |
+| Columns instancing: 344 draw calls to 7 | implemented & verified (`scripts/measure_scenes.py`) |
+| Landing: question-first hero, 3-D opening on chart paper, reduced-motion and no-WebGL paths | implemented & verified |
+| Research assistant (`/assistant.html`, `src/fbd/genai/research/`) | implemented & verified against mocks and the real store; **off by default** |
+| Real web search / hosted LLM | **blocked**: needs keys as environment secrets and the hosts allowed by the network policy; then `python scripts/evaluate_assistant.py --live` |
+| Atmospheric / Coriolis layer | **designed only**: the archive has no wind field |
+
+Tests: 482 passed, 4 skipped (full suite, no torch in that environment); CI's
+list 439 passed, 2 skipped. Every capture is clean at five viewports.
+
+**Needs you.** Add `GEMINI_API_KEY` and `TAVILY_API_KEY` as environment
+secrets if you want the live assistant; review the opening on the demo machine;
+decide whether to open a PR from `live-path-pby8cg`.
 
 **Purpose:** start a new session and continue exactly where this one
 stopped.

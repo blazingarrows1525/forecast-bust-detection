@@ -2471,3 +2471,42 @@ at Day 9.
 - `scripts/fetch_release_artifacts.py` pins both.
 - Store v0.2.0 is regenerable with `fit_combiner.py --base xgboost` and
   `generate_bulletins.py --base xgboost`.
+
+## D-038 — The landing opens on chart paper in 3-D; the research assistant ships opt-in, and archive facts never pass through a model — LOCKED
+
+**Context.** This round's brief asked for a dark globe landing and a
+web-grounded AI assistant. Both conflicted with standing decisions: the
+landing is chart paper in every OS scheme, and the product serves offline by
+default with narration off (D-019). Both were put to the owner before any code.
+
+**Decided.**
+- **Landing.** It stays on chart paper, and a skippable real-time opening is
+  drawn on that paper: India plotted north to south; every subdivision's
+  served probability rises from `/api/risk-cube`; refusals stand hatched at
+  full scale height. The labelled reading is the widest model-over-baseline
+  gap **among the leads that busted**, and the caption says so. The first
+  draft labelled the widest gap overall, which in store v0.3.0 is a forecast
+  that held: an answer to "which one will fail?" that did not fail.
+- **Assistant.** It needs `FBD_GENAI_ENABLED=1` and `FBD_RESEARCH=1`, and web
+  search a third opt-in, `FBD_RESEARCH_WEB=1`. With them off the routes do not
+  exist, so the air-gap job still holds.
+- **Archive facts are templates.** A reading's status, probability, tier,
+  reasons and forecast-minus-observed arithmetic are read from the store and
+  written from templates, with no model involved. This applies D-019's finding
+  (a model narrated a scored row as refused) to the new feature by
+  construction, rather than by a phrase list.
+- **The model only synthesises sources.** Web and documentation answers are
+  validated whole. Citation ids must be ones the server issued for the
+  request. Any number the cited sources do not contain, or any directive,
+  withholds the prose. The user then sees "Unable to verify" and the sources.
+
+**Not established.** No real web search or hosted-LLM call has been made (no
+key; hosts unreachable from the build container). The provider choice in
+`docs/assistant-provider-decision.md` is a default, not a measured winner.
+
+**Evidence.**
+- `docs/IMMERSIVE_FRONTEND_AND_ASSISTANT_REPORT.md`.
+- `tests/test_research_assistant.py`: 55 tests, including mutation-checked
+  injection and citation guards.
+- `scripts/evaluate_assistant.py`: 19/19 cases in mock mode.
+- Columns now draws in 7 calls instead of 344 (`scripts/measure_scenes.py`).
