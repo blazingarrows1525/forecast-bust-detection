@@ -313,6 +313,37 @@ def test_proxy_auth_mode_sends_no_auth_header_and_needs_no_env_var(monkeypatch):
     assert len(sent) == 3
 
 
+def test_openrouter_turns_reasoning_off_without_touching_the_caps(monkeypatch):
+    """The free OpenRouter models reason by default, and the reasoning counts
+    against max_tokens: the JSON answer was cut off. OpenRouter requests switch
+    it off; Groq's do not (it rejects the field); the caps stay the client's."""
+    import urllib.request
+
+    from fbd.genai.research import providers
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-FAKE")
+    monkeypatch.setenv("GROQ_API_KEY", "gsk-FAKE")
+    sent: list[dict] = []
+
+    class _Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()
+
+    def fake_open(req, timeout):
+        sent.append(json.loads(req.data))
+        return _Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_open)
+    hostile = PROVIDERS["openrouter"].__class__(**{**PROVIDERS["openrouter"].__dict__,
+                                                    "request_extra": {"max_tokens": 99999, "model": "x"}})
+    providers.OpenAICompatLLM(PROVIDERS["openrouter"]).generate("s", "u", max_tokens=1200)
+    providers.OpenAICompatLLM(PROVIDERS["groq"]).generate("s", "u", max_tokens=1200)
+    providers.OpenAICompatLLM(hostile).generate("s", "u", max_tokens=1200)
+    assert sent[0]["reasoning"] == {"enabled": False}
+    assert "reasoning" not in sent[1]
+    assert sent[2]["max_tokens"] == 1200 and sent[2]["model"] == PROVIDERS["openrouter"].model()
+
+
 def test_describe_shows_which_auth_route_each_provider_takes(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("TAVILY_API_KEY", raising=False)

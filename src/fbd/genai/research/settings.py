@@ -52,6 +52,9 @@ class ProviderSpec:
     #: summarised in the decision record. Shown on /status so an operator does
     #: not have to go looking for it.
     data_note: str
+    #: Provider-specific fields added to every chat request. They never override
+    #: the model, messages or token cap the client sets.
+    request_extra: dict = field(default_factory=dict, hash=False)
 
     def model(self) -> str:
         return os.environ.get(self.model_env, self.default_model)
@@ -60,18 +63,24 @@ class ProviderSpec:
         return os.environ.get(self.key_env) if self.key_env else None
 
 
-# The registry. Defaults checked 2026-10-18; see docs/assistant-provider-decision.md.
+# The registry. Defaults checked live 2026-10-18; see docs/assistant-provider-decision.md.
+# Gemini is pinned to the newest Flash text model rather than the -latest alias,
+# so a silent model swap cannot change answers or quota between runs.
 PROVIDERS: dict[str, ProviderSpec] = {
     "gemini": ProviderSpec(
         "gemini", "gemini", "https://generativelanguage.googleapis.com/v1beta",
-        "GEMINI_API_KEY", "FBD_GEMINI_MODEL", "gemini-flash-latest", "free",
+        "GEMINI_API_KEY", "FBD_GEMINI_MODEL", "gemini-3.8-flash", "free",
         "Free tier: Google states it may use prompts to improve its products. "
         "Paid tier: it does not. Do not send personal data on the free tier."),
     "openrouter": ProviderSpec(
         "openrouter", "openai_compat", "https://openrouter.ai/api/v1",
-        "OPENROUTER_API_KEY", "FBD_OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free", "free",
+        "OPENROUTER_API_KEY", "FBD_OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free", "free",
         "Routes to third-party hosts; data handling depends on the upstream "
-        "provider chosen per request. Check the model page before enabling."),
+        "provider chosen per request. Check the model page before enabling.",
+        # The free models are reasoning models whose hidden reasoning counts
+        # against max_tokens: with it on, answers were cut off mid-JSON and took
+        # 22-27 s; with it off, 2-4 s and whole (live run, 2026-10-18).
+        request_extra={"reasoning": {"enabled": False}}),
     "groq": ProviderSpec(
         "groq", "openai_compat", "https://api.groq.com/openai/v1",
         "GROQ_API_KEY", "FBD_GROQ_MODEL", "llama-3.3-70b-versatile", "free",

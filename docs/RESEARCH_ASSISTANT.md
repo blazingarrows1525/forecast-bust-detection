@@ -14,7 +14,7 @@ cannot send or publish anything, and every response carries
 |---|---|
 | Routing, archive answers, document answers, SSRF-safe fetching, citation and number validation, quotas, SSE streaming, the page | implemented and tested against mocks (57 tests in `tests/test_research_assistant.py` and `tests/test_assistant_eval.py`, run in CI) |
 | Archive and document answers against the real bulletin store | verified in a browser in this build, with the server started as in "Run it" below |
-| Real web search (Tavily) and hosted models (Gemini, OpenRouter, Groq) | **UNVERIFIED**: no key in the build environment and the hosts were unreachable from it. Wired, tested with mocks, never called for real. |
+| Real web search (Tavily) and hosted models (Gemini `gemini-3.8-flash`, OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`) | **verified live 2026-10-18** (`docs/assistant-provider-decision.md`, runs 1 and 2). Gemini's free tier allows 20 requests a day per model; the free OpenRouter fallback writes the rest. Groq has never been called. |
 
 ## How it answers
 

@@ -244,7 +244,7 @@ class OpenAICompatLLM:
         headers = {"Authorization": f"Bearer {key}"} if key else {}
         data = _post_json(
             self.spec.name, f"{self.spec.base_url}/chat/completions",
-            {"model": model, "temperature": 0.2, "max_tokens": max_tokens,
+            {**self.spec.request_extra, "model": model, "temperature": 0.2, "max_tokens": max_tokens,
              "response_format": {"type": "json_object"},
              "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]},
             headers, 40.0, deadline)
