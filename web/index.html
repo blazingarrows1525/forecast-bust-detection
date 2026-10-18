@@ -47,15 +47,12 @@
   .reading button{min-width:30px;padding:5px 8px}
   #dateSlider{width:110px}
   @media (max-width: 1380px){ #dateSlider{display:none} }
-  .seg{gap:0}
-  .seg button{border-radius:0;margin-left:-1px}
-  .seg button:first-child{border-radius:var(--r) 0 0 var(--r);margin-left:0}
-  .seg button:last-child{border-radius:0 var(--r) var(--r) 0}
-  .seg button.active{position:relative;z-index:1}
   .tools button{padding:5px 9px;color:var(--ink-2)}
   .tools button.active{color:var(--ink)}
   header nav{margin-left:auto}
-  #status{padding:0 14px 7px;color:var(--ink-3);font-size:12px}
+  .bar-row{display:contents}
+  #leadBar{padding:0 14px 8px}
+  #status{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:0 14px 7px;color:var(--ink-3);font-size:12px}
   #banner{display:none;background:var(--warn-bg);border-top:1px solid var(--warn-rule);
           color:var(--warn-ink);padding:7px 14px;font-size:13px;font-weight:500}
   #imageryNote{display:none;padding:5px 14px;font-size:12px;color:var(--ink-2);
@@ -109,7 +106,7 @@
   table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
   th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:12px}
-  td.r,th.r{text-align:right}
+  td.r,th.r{text-align:right;white-space:nowrap}
   td.code{font-family:var(--font-sign);font-weight:600}
   #queue tbody tr{cursor:pointer}
   #queue tbody tr:hover{background:var(--accent-wash)}
@@ -151,6 +148,26 @@
     #dock{left:8px;bottom:8px;padding:7px 9px}
     #dock p{display:none}
   }
+  /* Phones: the map is the point of the page (audit, this round). The header
+     packs into three short rows and the tool row scrolls sideways inside
+     itself rather than stacking four rows of buttons above the map. */
+  @media (max-width: 640px){
+    header{padding:6px 10px;gap:6px 8px}
+    .wordmark{order:-2}
+    header nav{order:-1;width:auto;margin-left:auto}
+    .views a{padding:6px 7px}
+    .wordmark span.full{display:none}
+    .grp.reading{width:100%;flex-wrap:nowrap}
+    .grp.reading select{flex:1;min-width:0}
+    .grp.seg,.grp.tools{flex-wrap:nowrap}
+    .bar-row{display:flex;gap:6px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .bar-row::-webkit-scrollbar{display:none}
+    #leadBar{padding:0 10px 8px}
+    #leadBar .steps{flex:1 1 100%}
+    #leadBar .steps button{flex:1;min-width:0;padding:4px 0}
+    #status{padding:0 10px 7px;flex-wrap:nowrap}
+    #statusText{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  }
 </style>
 </head>
 <body>
@@ -158,9 +175,9 @@
 <div id="app">
   <div id="top">
     <header>
-      <a class="wordmark" href="/landing.html">
+      <a class="wordmark" href="/landing.html" aria-label="Forecast Bust Intelligence, home">
         <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
-        Forecast Bust Intelligence
+        <span class="full">Forecast Bust Intelligence</span>
       </a>
       <div class="grp reading" role="group" aria-label="Which reading">
         <label for="datePick">Issued</label>
@@ -168,19 +185,19 @@
         <select id="datePick"></select>
         <button id="dateNext" aria-label="Next issue date" title="Next issue date (down arrow)"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 1.5 7 5 3.5 8.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <input type="range" id="dateSlider" min="0" max="0" value="0" aria-label="Issue date" />
-        <label for="leadPick">Lead</label>
-        <select id="leadPick"></select>
       </div>
-      <div class="grp seg" role="group" aria-label="What the map shows">
-        <button id="btnModel" class="active" title="Served probability, model + ensemble (m)">Served</button>
-        <button id="btnBaseline" title="Ensemble-spread baseline (b)">Spread baseline</button>
-        <button id="btnTruth" title="What happened (v)">Observed</button>
-      </div>
-      <div class="grp tools">
-        <button id="btnPlay" title="Scrub Day 10 to Day 1 (space)">Scrub</button>
-        <button id="btnImagery" title="Date-matched satellite basemap (i)">Imagery</button>
-        <button id="btnTheme" title="Light / dark (t)">Theme</button>
-        <button id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+      <div class="bar-row">
+        <div class="grp seg" role="group" aria-label="What the map shows">
+          <button id="btnModel" class="active" title="Served probability, model + ensemble (m)">Served</button>
+          <button id="btnBaseline" title="Ensemble-spread baseline (b)">Spread baseline</button>
+          <button id="btnTruth" title="What happened (v)">Observed</button>
+        </div>
+        <div class="grp tools">
+          <button id="btnImagery" title="Date-matched satellite basemap (i)">Imagery</button>
+          <button id="btnTheme" title="Light / dark (t)">Theme</button>
+          <a class="btn" href="/assistant.html" data-carry="/assistant.html" title="Ask questions about a reading, with sources">Ask</a>
+          <button id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+        </div>
       </div>
       <nav aria-label="Views">
         <ul class="views">
@@ -191,7 +208,8 @@
         </ul>
       </nav>
     </header>
-    <div id="status" aria-live="polite">Loading the archive.</div>
+    <div id="leadBar"></div>
+    <div id="status"><span class="mode" id="mode">Archive replay</span><span id="statusText" aria-live="polite">Loading the archive.</span></div>
     <div id="banner"></div>
     <div id="imageryNote"></div>
   </div>
@@ -295,7 +313,7 @@
     <table>
       <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>lead day</td></tr>
       <tr><td><kbd>&uarr;</kbd> <kbd>&darr;</kbd></td><td>issue date</td></tr>
-      <tr><td><kbd>space</kbd></td><td>lead scrub, Day 10 &rarr; Day 1</td></tr>
+      <tr><td><kbd>space</kbd></td><td>play / pause the lead days</td></tr>
       <tr><td><kbd>m</kbd> / <kbd>b</kbd></td><td>served / spread baseline</td></tr>
       <tr><td><kbd>v</kbd></td><td>observed outcome</td></tr>
       <tr><td><kbd>t</kbd></td><td>light / dark</td></tr>
@@ -315,6 +333,8 @@
 const API = "";
 let map, layer, geo=null, dates=[], cur={init:null, lead:4, view:"model", truth:false, selected:null};
 let rows=[], byRegion={};
+let TL = null, served = null;   // the lead timeline; /api/metrics "served" block for provenance
+const setStatus = t => { document.getElementById("statusText").textContent = t; };
 
 // The documented case: Assam & Meghalaya floods, June 2022, issued on this date.
 // The first screen opens on it unless the URL names another reading (audit F4);
@@ -409,9 +429,10 @@ async function boot(){
   const want = FBI.read();
   if(want.lead) cur.lead = want.lead;
   if(want.region) cur.selected = want.region;
-  const lp=document.getElementById("leadPick");
-  for(let L=1;L<=10;L++){const o=document.createElement("option");o.value=L;o.textContent="Day "+L;
-    if(L===cur.lead)o.selected=true;lp.appendChild(o);}
+  FBI.mode(document.getElementById("mode"), dates[0], dates[dates.length-1]);
+  TL = FBI.timeline(document.getElementById("leadBar"), {
+    get: () => cur.lead, set: L => setLead(L), validDate: L => validFor(L),
+  });
 
   let idx = want.date ? dates.indexOf(want.date) : -1;
   if(idx < 0) idx = dates.indexOf(CASE_STUDY);
@@ -419,7 +440,6 @@ async function boot(){
   sl.value=idx; dp.value=idx;
   sl.oninput = e => {dp.value=e.target.value; load(dates[+e.target.value]);};
   dp.onchange = e => {sl.value=e.target.value; load(dates[+e.target.value]);};
-  lp.onchange = e => {stopScrub(); setLead(+e.target.value);};
   document.getElementById("datePrev").onclick = () => stepDate(-1);
   document.getElementById("dateNext").onclick = () => stepDate(1);
   document.getElementById("btnModel").onclick = ()=>setView("model");
@@ -427,7 +447,6 @@ async function boot(){
   document.getElementById("btnTruth").onclick = ()=>{cur.truth=!cur.truth;
     document.getElementById("btnTruth").classList.toggle("active",cur.truth); render();};
 
-  document.getElementById("btnPlay").onclick = toggleScrub;
   document.getElementById("btnImagery").onclick = () => setImagery(!IMAGERY.enabled);
   document.getElementById("btnTheme").onclick = toggleTheme;
   document.getElementById("btnHelp").onclick = () => toggleHelp(true);
@@ -440,9 +459,26 @@ async function boot(){
 
   bindKeys();
 
+  // Another open view changed the reading: follow it. Each branch is a no-op
+  // when the value already matches, so two views settle instead of echoing.
+  FBI.onRemote(s => {
+    if(s.date && s.date !== cur.init && dates.includes(s.date)){
+      const i = dates.indexOf(s.date);
+      document.getElementById("dateSlider").value = i; document.getElementById("datePick").value = i;
+      cur.lead = s.lead || cur.lead; cur.selected = s.region;
+      load(s.date);
+      return;
+    }
+    if(s.lead && s.lead !== cur.lead){ TL.stop(); setLead(s.lead); }
+    if(s.region && s.region !== cur.selected){ select(s.region); ensureVisible(s.region); }
+    else if(!s.region && cur.selected) clearSelection();
+  });
+
   loadMetrics();
   await load(dates[idx]);
 }
+
+const validFor = L => { const r = rows.find(x => x.lead_day === L); return r ? r.valid_date : null; };
 
 // ---------------------------------------------------------------- imagery
 // The ONLY external origin this product may contact, and only when the
@@ -628,36 +664,19 @@ function toggleTheme(){
   if(cur.selected) select(cur.selected);
 }
 
-// ------------------------------------------------------------- lead scrub
-// Day 10 -> Day 1 on one already-loaded bulletin: no request per frame, and
-// it shows the thing a static map cannot -- where risk builds as the event
-// approaches.
-let scrubTimer = null;
-function toggleScrub(){
-  if(scrubTimer){ stopScrub(); return; }
-  document.getElementById("btnPlay").classList.add("active");
-  document.getElementById("btnPlay").textContent = "Stop";
-  let L = 10;
-  const step = () => {
-    setLead(L);
-    L -= 1;
-    if(L < 1){ stopScrub(); return; }
-    scrubTimer = setTimeout(step, 620);
-  };
-  step();
-}
-function stopScrub(){
-  clearTimeout(scrubTimer); scrubTimer = null;
-  const b = document.getElementById("btnPlay");
-  b.classList.remove("active"); b.textContent = "Scrub";
-}
+// ------------------------------------------------------------ lead playback
+// Lead days in exact steps on one already-loaded bulletin (fbi.js timeline):
+// no request per frame, and it shows the thing a static map cannot -- where
+// risk builds as the event approaches.
+const stopScrub = () => { if(TL) TL.stop(); };
 function setLead(L){
   cur.lead = Math.max(1, Math.min(10, L));
-  document.getElementById("leadPick").value = cur.lead;
   FBI.write({lead: cur.lead});
   render();
   if(cur.selected) select(cur.selected);
   if(IMAGERY.enabled) addImagery();   // the valid date moved with the lead
+  if(TL) TL.refresh();
+  writeStatus();
 }
 function stepDate(delta){
   const sl = document.getElementById("dateSlider");
@@ -684,7 +703,7 @@ function bindKeys(){
       case "ArrowRight": stopScrub(); setLead(cur.lead + 1); break;
       case "ArrowUp":    stopScrub(); stepDate(-1); break;
       case "ArrowDown":  stopScrub(); stepDate(1); break;
-      case " ":          toggleScrub(); break;
+      case " ":          if(TL) TL.toggle(); break;
       case "m": setView("model"); break;
       case "b": setView("baseline"); break;
       case "v": document.getElementById("btnTruth").click(); break;
@@ -715,21 +734,30 @@ function setView(v){
 async function load(init){
   cur.init=init;
   FBI.write({date: init, lead: cur.lead});
-  const r = await fetch(`${API}/api/bulletin?init_date=${init}&mode=replay`);
-  if(!r.ok){document.getElementById("status").textContent="No data for "+init+".";return;}
+  let r;
+  try { r = await fetch(`${API}/api/bulletin?init_date=${init}&mode=replay`); }
+  catch(e){ setStatus("The API is unreachable. Start the server, then reload."); return; }
+  if(!r.ok){ setStatus("No data for "+init+"."); return; }
   const b = await r.json();
   rows = b.predictions;
+  bulletinMeta = b;
   const banner=document.getElementById("banner");
   if(b.banner){banner.style.display="block";banner.textContent=b.banner;}
   else banner.style.display="none";
-  const vd = validDateForLead();
-  document.getElementById("status").textContent =
-    `${b.n_regions} subdivisions · issued ${init}` + (vd ? ` · ${code(cur.lead)} valid ${vd}` : "") +
-    ` · data ${b.data_quality} · input age ${b.input_age_hours??"?"} h` +
-    (init === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : "");
+  writeStatus();
   render(); loadQueue(); fillRegionPick();
+  if(TL) TL.refresh();
   if(cur.selected) select(cur.selected);
   if(IMAGERY.enabled) addImagery();
+}
+let bulletinMeta = null;
+function writeStatus(){
+  const b = bulletinMeta; if(!b) return;
+  const vd = validDateForLead();
+  setStatus(
+    `${b.n_regions} subdivisions · issued ${b.init_date}` + (vd ? ` · ${code(cur.lead)} valid ${vd}` : "") +
+    ` · data ${b.data_quality} · input age ${b.input_age_hours??"?"} h` +
+    (b.init_date === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : ""));
 }
 
 function render(){
@@ -879,7 +907,11 @@ async function select(rid){
     if(r.actual_bust!=null) html += ` · <b>${r.actual_bust? "BUSTED":"did not bust"}</b>`;
     html += "</div>";
   }
+  html += FBI.provenance(r, {served, mode: "replay",
+    source: `/api/bulletin?init_date=${r.init_date}&mode=replay`});
+  const wasOpen = document.querySelector("#selReasons details.prov")?.open;
   document.getElementById("selReasons").innerHTML = html;
+  if(wasOpen) document.querySelector("#selReasons details.prov").open = true;
 
   const rc=document.getElementById("regimeCard");
   if(r.regime){
@@ -911,7 +943,7 @@ async function loadQueue(){
     tr.setAttribute("aria-label", `${q.region}, ${code(q.lead_day)}, ${pct(q.bust_probability)}`);
     tr.innerHTML=`<td>${q.rank}</td><td>${esc(q.region)}</td><td class="code">${code(q.lead_day)}</td>
       <td class="r"><span class="chip" style="background:${colour(q.bust_probability,"OK")}"></span><span class="reading-v">${pct(q.bust_probability)}</span></td>`;
-    const open = ()=>{stopScrub(); cur.lead=q.lead_day; document.getElementById("leadPick").value=q.lead_day;
+    const open = ()=>{stopScrub(); cur.lead=q.lead_day; if(TL) TL.refresh();
                       FBI.write({lead: cur.lead}); render(); select(q.region_id); ensureVisible(q.region_id);};
     tr.onclick = open;
     tr.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); open(); } };
@@ -927,6 +959,8 @@ function markQueue(){
 async function loadMetrics(){
   try{
     const m = await (await fetch(API+"/api/metrics")).json();
+    served = m.served || null;
+    if(cur.selected && byRegion[cur.selected]) select(cur.selected);
     const band = m.decision_band || [];
     let h="<table><thead><tr><th>Predictor</th><th class='r'>AUROC</th><th class='r'>Brier</th></tr></thead><tbody>";
     band.slice().sort((a,b)=>b.auroc-a.auroc).forEach(r=>{
@@ -936,7 +970,12 @@ async function loadMetrics(){
   }catch(e){ document.getElementById("metrics").textContent="Metrics unavailable."; }
 }
 
-boot();
+// A failed start says what failed and what to do; it never leaves a blank map
+// that could be read as "nothing to review".
+boot().catch(e => {
+  setStatus("Could not load the archive (" + e.message + "). Run scripts/fetch_release_artifacts.py, start the server, then reload.");
+  console.error(e);
+});
 </script>
 </body>
 </html>

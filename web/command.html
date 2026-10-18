@@ -39,14 +39,16 @@
   .reading button{min-width:30px;padding:5px 8px}
   #dateSlider{width:110px}
   @media (max-width: 1380px){ #dateSlider{display:none} }
-  .seg{gap:0}
-  .seg button{border-radius:0;margin-left:-1px}
-  .seg button:first-child{border-radius:var(--r) 0 0 var(--r);margin-left:0}
-  .seg button:last-child{border-radius:0 var(--r) var(--r) 0}
-  .seg button.active{position:relative;z-index:1}
   .tools button{color:var(--ink-2)}
+  .tools select{font-size:12.5px}
   header nav{margin-left:auto}
-  #status{padding:0 14px 7px;color:var(--ink-3);font-size:12px}
+  .bar-row{display:contents}
+  #leadBar{padding:0 14px 8px}
+  #status{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:0 14px 7px;color:var(--ink-3);font-size:12px}
+  #nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+  #nogl[hidden]{display:none}
+  #nogl div{max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+  #perf{margin-top:8px;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   #banner{display:none;background:var(--warn-bg);border-top:1px solid var(--warn-rule);
           color:var(--warn-ink);padding:7px 14px;font-size:12.5px;font-weight:500}
 
@@ -71,7 +73,7 @@
   table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
   th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:12px}
-  td.r,th.r{text-align:right}
+  td.r,th.r{text-align:right;white-space:nowrap}
   td.code{font-family:var(--font-sign);font-weight:600}
   td.bust{color:var(--ink);font-weight:700}
   tbody tr[tabindex]{cursor:pointer}
@@ -95,6 +97,23 @@
     #axis .long{display:none}
     #hint{right:12px}
   }
+  @media (max-width: 640px){
+    header{padding:6px 10px;gap:6px 8px}
+    .wordmark{order:-2}
+    header nav{order:-1;width:auto;margin-left:auto}
+    .views a{padding:6px 7px}
+    .wordmark span.full{display:none}
+    .grp.reading{width:100%;flex-wrap:nowrap}
+    .grp.reading select{flex:1;min-width:0}
+    .grp.seg,.grp.tools{flex-wrap:nowrap}
+    .bar-row{display:flex;gap:6px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+    .bar-row::-webkit-scrollbar{display:none}
+    #leadBar{padding:0 10px 8px}
+    #leadBar .steps{flex:1 1 100%}
+    #leadBar .steps button{flex:1;min-width:0;padding:4px 0}
+    #status{padding:0 10px 7px;flex-wrap:nowrap}
+    #statusText{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  }
 </style>
 </head>
 <body>
@@ -102,9 +121,9 @@
 <div id="app">
   <div id="top">
     <header>
-      <a class="wordmark" href="/landing.html">
+      <a class="wordmark" href="/landing.html" aria-label="Forecast Bust Intelligence, home">
         <svg width="14" height="20" viewBox="0 0 14 20" aria-hidden="true"><rect width="14" height="20" rx="2" style="fill:var(--accent)"/><path d="M4 4h6M4 4v12M4 10h4.5M4 16h6" style="stroke:var(--ground);fill:none" stroke-width="2"/></svg>
-        Forecast Bust Intelligence
+        <span class="full">Forecast Bust Intelligence</span>
       </a>
       <div class="grp reading" role="group" aria-label="Which reading">
         <label for="datePick">Issued</label>
@@ -112,9 +131,8 @@
         <select id="datePick"></select>
         <button id="dateNext" aria-label="Next issue date" title="Next issue date (down arrow)"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3.5 1.5 7 5 3.5 8.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <input type="range" id="dateSlider" min="0" max="0" value="0" aria-label="Issue date" />
-        <label for="leadPick">Highlight</label>
-        <select id="leadPick"></select>
       </div>
+      <div class="bar-row">
       <div class="grp seg" role="group" aria-label="What the columns show">
         <button id="btnModel" class="active" title="Served probability, model + ensemble">Served</button>
         <button id="btnBaseline" title="Ensemble-spread baseline">Baseline</button>
@@ -122,6 +140,17 @@
       </div>
       <div class="grp tools">
         <button id="btnReset" title="Reset the camera (r)">Reset view</button>
+        <button id="btnFocus" title="Bring the top review-queue column to the centre (f)">Focus review</button>
+        <label class="sr-only" for="quality">Render quality</label>
+        <select id="quality" title="Render quality: pixel density and antialiasing">
+          <option value="auto">Quality: auto</option>
+          <option value="high">Quality: high</option>
+          <option value="balanced">Quality: balanced</option>
+          <option value="low">Quality: low</option>
+          <option value="2d">2-D map only</option>
+        </select>
+        <a class="btn" data-carry="/assistant.html" href="/assistant.html" title="Ask questions about a reading, with sources">Ask</a>
+      </div>
       </div>
       <nav aria-label="Views">
         <ul class="views">
@@ -132,11 +161,18 @@
         </ul>
       </nav>
     </header>
-    <div id="status" aria-live="polite">Loading the archive.</div>
+    <div id="leadBar"></div>
+    <div id="status"><span class="mode" id="mode">Archive replay</span><span id="statusText" aria-live="polite">Loading the archive.</span></div>
     <div id="banner"></div>
   </div>
   <main id="stage" tabindex="-1">
     <h1 class="sr-only">Bust risk columns: every lead day over India</h1>
+    <div id="nogl" hidden><div>
+      <p><strong>This view needs WebGL, and this browser could not start it.</strong></p>
+      <p class="muted">Every value drawn here is also on the 2-D map, with the same queue
+        and reasons.</p>
+      <a class="btn primary" data-carry="/" href="/">Open the map</a>
+    </div></div>
     <div id="axis" class="over"><b>Height is lead day</b>: D01 at the ground, D10 at the top<span class="long"><br>
       colour is P(forecast busts); the staff on the west edge reads D01 to D10</span></div>
     <div id="hint" class="over">drag to orbit · wheel or pinch to zoom · right-drag to pan · click a column · ← → lead · ↑ ↓ date</div>
@@ -183,6 +219,7 @@
         Cells under 5% are drawn faint so the map shows through them; every other
         band, and every refusal, is drawn at full presence.
       </div>
+      <div id="perf" aria-live="off"></div>
     </section>
   </aside>
 </div>
@@ -246,6 +283,44 @@ function colourFor(p, status){
 const proj = (lon,lat) => [ (lon-lonMid)*DEG, -(lat-latMid)*DEG ];  // -> x, z
 
 // ------------------------------------------------------------------- setup
+// ---------------------------------------------------------------- quality
+// Pixel density is the cost that scales with the screen, so it is the one the
+// tier controls. "auto" picks from what the device reports; nothing is
+// measured behind the user's back. "2d" hands over to the map.
+const QUALITY = {
+  high:     {dpr: 2,   aa: true},
+  balanced: {dpr: 1.5, aa: true},
+  low:      {dpr: 1,   aa: false},
+};
+function qualityTier(){
+  let q = "auto";
+  try { q = localStorage.getItem("fbd-quality") || "auto"; } catch(e) {}
+  if(q !== "auto" && QUALITY[q]) return q;
+  const mem = navigator.deviceMemory || 8, cores = navigator.hardwareConcurrency || 8;
+  if(mem <= 2 || cores <= 2) return "low";
+  if(mem <= 4 || cores <= 4 || window.matchMedia("(max-width: 900px)").matches) return "balanced";
+  return "high";
+}
+function applyQuality(){
+  const tier = QUALITY[qualityTier()];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier.dpr));
+  resize();
+}
+
+// WebGL can be missing (old browser, blocked GPU, driver blocklist). The view
+// says so and hands over to the map, which shows every value drawn here.
+function webglAvailable(){
+  try {
+    const c = document.createElement("canvas");
+    return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
+  } catch(e) { return false; }
+}
+function noGL(){
+  document.getElementById("nogl").hidden = false;
+  ["axis", "hint"].forEach(id => document.getElementById(id).hidden = true);
+  document.getElementById("statusText").textContent = "WebGL unavailable: use the map.";
+}
+
 function initGL(){
   const stage = document.getElementById("stage");
   scene = new THREE.Scene();
@@ -253,8 +328,8 @@ function initGL(){
   scene.fog = new THREE.Fog(getCSS("--scene"), 70, 140);
 
   camera = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer = new THREE.WebGLRenderer({antialias: QUALITY[qualityTier()].aa});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, QUALITY[qualityTier()].dpr));
   stage.appendChild(renderer.domElement);
   renderer.domElement.setAttribute("aria-label",
     "Columns of bust probability over India, one stacked cell per lead day. The queue and lead profile in the panel list the same values.");
@@ -360,9 +435,34 @@ function bindControls(dom){
 // ------------------------------------------------------------- hover readout
 // What is under the cursor, in words: the region, the lead and the value the
 // column is showing, or that it was refused. Raycast at most once per frame.
-let hoverAt = null;
+let hoverAt = null, hoverEdges = null;
 function queueHover(e){ hoverAt = e; invalidate(); }
-function hideTip(){ const t = document.getElementById("tip"); if(t) t.hidden = true; }
+function hideTip(){
+  const t = document.getElementById("tip"); if(t) t.hidden = true;
+  if(hoverEdges && hoverEdges.visible){ hoverEdges.visible = false; invalidate(); }
+}
+// The cell a ray hit: instanced columns carry their cells in userData.cells.
+function cellOf(hit){
+  if(!hit) return null;
+  const cells = hit.object.userData.cells;
+  return cells && hit.instanceId != null ? cells[hit.instanceId] : null;
+}
+// One outline, built once and moved: hovering allocates nothing.
+function outlineCell(u){
+  if(!hoverEdges){
+    const box = new THREE.BoxGeometry(COL_W*1.6, LEAD_H*0.9, COL_W*1.6);
+    hoverEdges = new THREE.LineSegments(new THREE.EdgesGeometry(box),
+      new THREE.LineBasicMaterial({color: new THREE.Color(getCSS("--ink"))}));
+    box.dispose();
+    hoverEdges.visible = false;
+    scene.add(hoverEdges);
+  }
+  if(!u){ hoverEdges.visible = false; return; }
+  const r = cube.regions.find(x=>x.region_id===u.region_id);
+  const [x, z] = proj(r.lon, r.lat);
+  hoverEdges.position.set(x, (u.lead-0.5)*LEAD_H, z);
+  hoverEdges.visible = true;
+}
 function updateHover(){
   if(!hoverAt || !cube) return;
   const e = hoverAt; hoverAt = null;
@@ -370,10 +470,11 @@ function updateHover(){
   pointer.x = ((e.clientX-rect.left)/rect.width)*2 - 1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hit = raycaster.intersectObjects(colGroup.children, false)[0];
+  const u = cellOf(raycaster.intersectObjects(colGroup.children, false)[0]);
   const tip = document.getElementById("tip");
-  if(!hit){ tip.hidden = true; renderer.domElement.style.cursor = ""; return; }
-  const u = hit.object.userData, r = cube.regions.find(x=>x.region_id===u.region_id);
+  outlineCell(u);
+  if(!u){ tip.hidden = true; renderer.domElement.style.cursor = ""; return; }
+  const r = cube.regions.find(x=>x.region_id===u.region_id);
   const i = u.idx;
   let reading;
   if(cur.view === "truth") reading = r.actual[i]==null ? "no observation" : (r.actual[i] ? "busted" : "held");
@@ -530,24 +631,62 @@ function buildStaff(){
   invalidate();
 }
 
-// Built once and shared by all 340 cells, so a lead or view change allocates
-// nothing on the GPU (each rebuild used to leak 340 geometries and materials).
-let GEO = null;
-const MATS = new Map();
-function material(key, make){
-  if(!MATS.has(key)) MATS.set(key, make());
-  return MATS.get(key);
-}
-
-function buildColumns(){
-  if(!GEO) GEO = {
+// The 340 cells are drawn as five instanced buckets, one per way a cell can
+// look: scored, scored-but-faint (<5%), refused, and the highlighted lead's
+// scored and refused cells (wider). Each bucket is allocated once at full
+// capacity and refilled in place on every lead or view change, so a change
+// costs a buffer upload, not 340 new meshes; and the scene draws in five calls
+// instead of 340 (measured: scripts/measure_scenes.py).
+//
+// Colour rides on the instance (instanceColor) and multiplies a white
+// material; refusal is still the stripe texture, never a hue.
+let GEO = null, BUCKETS = null;
+const MAX_CELLS = 64 * 10;
+function makeBuckets(){
+  GEO = {
     normal: new THREE.BoxGeometry(COL_W, LEAD_H*0.84, COL_W),
     emph:   new THREE.BoxGeometry(COL_W*1.35, LEAD_H*0.84, COL_W*1.35),
   };
-  colGroup.clear();
+  const lambert = (o) => new THREE.MeshLambertMaterial({color: 0xffffff, transparent: true, ...o});
+  const spec = {
+    scored:     [GEO.normal, lambert({opacity: 0.86})],
+    quiet:      [GEO.normal, lambert({opacity: 0.32, depthWrite: false})],
+    refused:    [GEO.normal, lambert({opacity: 0.92, map: refusalTexture()})],
+    emph:       [GEO.emph,   lambert({opacity: 1.0})],
+    emphRefused:[GEO.emph,   lambert({opacity: 1.0, map: refusalTexture()})],
+  };
+  BUCKETS = {};
+  const white = new THREE.Color(0xffffff);
+  for(const [k, [g, m]] of Object.entries(spec)){
+    const mesh = new THREE.InstancedMesh(g, m, MAX_CELLS);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    for(let i = 0; i < MAX_CELLS; i++) mesh.setColorAt(i, white);   // allocates instanceColor once
+    mesh.count = 0;
+    // The geometry's bounding sphere sits at the origin, not around the
+    // instances; culling against it would drop whole buckets off-centre.
+    mesh.frustumCulled = false;
+    mesh.userData = {kind: "col", bucket: k, cells: []};
+    BUCKETS[k] = mesh;
+    colGroup.add(mesh);
+  }
+}
+
+const _m4 = new THREE.Matrix4(), _col = new THREE.Color();
+function buildColumns(){
+  if(!BUCKETS) makeBuckets();
   invalidate();
-  if(!cube) return;
+  Object.values(BUCKETS).forEach(b => { b.count = 0; b.userData.cells = []; });
+  if(!cube){ Object.values(BUCKETS).forEach(b => b.instanceMatrix.needsUpdate = true); return; }
   const leads = cube.lead_days;
+  const put = (key, x, y, z, colour, cell) => {
+    const b = BUCKETS[key], n = b.count;
+    if(n >= MAX_CELLS) return;
+    _m4.makeTranslation(x, y, z);
+    b.setMatrixAt(n, _m4);
+    b.setColorAt(n, _col.set(colour));
+    b.userData.cells[n] = cell;
+    b.count = n + 1;
+  };
   cube.regions.forEach(r=>{
     if(!isFinite(r.lon) || !isFinite(r.lat)) return;
     const [x,z] = proj(r.lon, r.lat);
@@ -568,25 +707,18 @@ function buildColumns(){
       // The lowest band is drawn faint so a tall quiet column does not hide the
       // map it stands on. Every other band, and every refusal, is at full presence.
       const quiet = cur.view !== "truth" && !isOOD && value != null && value < 0.05;
-      const geom = emphasise ? GEO.emph : GEO.normal;
       // Refused: an achromatic stripe at full presence -- never a hue, never a
       // wireframe (which read as "less there" than a solid low-risk column).
-      const opacity = (isOOD && cur.view !== "truth") ? (emphasise ? 1.0 : 0.92)
-                    : (emphasise ? 1.0 : (quiet ? 0.32 : 0.86));
-      const mat = (isOOD && cur.view !== "truth")
-        ? material(`ood|${opacity}`, () => new THREE.MeshLambertMaterial({ map: refusalTexture(), transparent: true,
-                                          opacity }))
-        : material(`${colour}|${opacity}|${quiet}`, () => new THREE.MeshLambertMaterial({
-            color: new THREE.Color(colour),
-            transparent: true,
-            opacity,
-            depthWrite: !quiet
-          }));
-      const box = new THREE.Mesh(geom, mat);
-      box.position.set(x, (L-0.5)*LEAD_H, z);
-      box.userData = {region_id:r.region_id, region:r.region, lead:L, idx:i, kind:"col"};
-      colGroup.add(box);
+      const refused = isOOD && cur.view !== "truth";
+      const key = refused ? (emphasise ? "emphRefused" : "refused")
+                : emphasise ? "emph" : quiet ? "quiet" : "scored";
+      put(key, x, (L-0.5)*LEAD_H, z, refused ? "#ffffff" : colour,
+          {region_id:r.region_id, region:r.region, lead:L, idx:i, kind:"col"});
     });
+  });
+  Object.values(BUCKETS).forEach(b => {
+    b.instanceMatrix.needsUpdate = true;
+    if(b.instanceColor) b.instanceColor.needsUpdate = true;
   });
 }
 
@@ -596,9 +728,9 @@ function pick(e){
   pointer.x = ((e.clientX-rect.left)/rect.width)*2 - 1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(colGroup.children, false);
-  if(hits.length){
-    const u = hits[0].object.userData;
+  const u = cellOf(raycaster.intersectObjects(colGroup.children, false)[0]);
+  if(u){
+    if(TL) TL.stop();
     setLead(u.lead, false);
     select(u.region_id, u.lead);
   }
@@ -606,10 +738,17 @@ function pick(e){
 
 function setLead(L, reselect = true){
   cur.lead = Math.max(1, Math.min(10, L));
-  document.getElementById("leadPick").value = cur.lead;
   FBI.write({lead: cur.lead});
   buildColumns(); buildStaff(); markQueue();
+  if(TL) TL.refresh();
   if(reselect && cur.sel) select(cur.sel, cur.lead);
+}
+// Every region shares one valid date per lead in a cube; read it off the rows.
+function validFor(L){
+  if(!cube) return null;
+  const i = cube.lead_days.indexOf(L);
+  const r = cube.regions.find(x => x.valid_date && x.valid_date[i]);
+  return r ? r.valid_date[i] : null;
 }
 
 function clearSelection(){
@@ -708,7 +847,14 @@ async function select(rid, lead){
         if(row.actual_bust!=null) html += ` · <b>${row.actual_bust?"BUSTED":"did not bust"}</b>`;
         html += "</div>";
       }
+      if(row) html += FBI.provenance(row, {served, mode: "replay",
+        source: `/api/bulletin/${rid}?init_date=${cube.init_date}&mode=replay`});
+      // A late answer for a reading the user has already left is dropped.
+      if(cur.sel !== rid || cur.lead !== lead) return;
+      const wasOpen = document.querySelector("#selReasons details.prov")?.open;
       document.getElementById("selReasons").innerHTML = html;
+      if(wasOpen && document.querySelector("#selReasons details.prov"))
+        document.querySelector("#selReasons details.prov").open = true;
     }
   }catch(_){ /* panel simply stays empty offline */ }
 }
@@ -747,17 +893,19 @@ async function loadCube(init){
   cur.init = init;
   FBI.write({date: init, lead: cur.lead});
   const r = await fetch(`/api/risk-cube?init_date=${init}&mode=replay`);
-  if(!r.ok){ document.getElementById("status").textContent = "No data for "+init+"."; return; }
+  if(!r.ok){ document.getElementById("statusText").textContent = "No data for "+init+"."; return; }
   cube = await r.json();
   const b = document.getElementById("banner");
   if(cube.banner){ b.style.display="block"; b.textContent=cube.banner; } else b.style.display="none";
-  document.getElementById("status").textContent =
+  document.getElementById("statusText").textContent =
     `${cube.n_regions} subdivisions × ${cube.lead_days.length} lead days = `+
     `${cube.n_regions*cube.lead_days.length} cells · issued ${init}` +
     (init === CASE_STUDY ? " · case study: Assam & Meghalaya floods, June 2022" : "");
   buildColumns(); fillQueue();
+  if(TL) TL.refresh();
   if(cur.sel) select(cur.sel, cur.lead);
 }
+let TL = null, served = null;
 
 function setView(v){
   cur.view=v;
@@ -782,11 +930,13 @@ function bindKeys(){
     }
     if(e.metaKey || e.ctrlKey || e.altKey) return;
     switch(e.key){
-      case "ArrowLeft":  setLead(cur.lead - 1); break;
-      case "ArrowRight": setLead(cur.lead + 1); break;
+      case "ArrowLeft":  if(TL) TL.stop(); setLead(cur.lead - 1); break;
+      case "ArrowRight": if(TL) TL.stop(); setLead(cur.lead + 1); break;
       case "ArrowUp":    stepDate(-1); break;
       case "ArrowDown":  stepDate(1); break;
+      case " ":          if(TL) TL.toggle(); break;
       case "r": document.getElementById("btnReset").click(); break;
+      case "f": document.getElementById("btnFocus").click(); break;
       case "Escape": clearSelection(); break;
       default: return;
     }
@@ -795,7 +945,15 @@ function bindKeys(){
 }
 
 async function boot(){
-  initGL();
+  const sel = document.getElementById("quality");
+  try { sel.value = localStorage.getItem("fbd-quality") || "auto"; } catch(e) {}
+  sel.onchange = () => {
+    if(sel.value === "2d"){ location.href = "/" + FBI.query(FBI.state); return; }
+    try { localStorage.setItem("fbd-quality", sel.value); } catch(e) {}
+    if(renderer) applyQuality();
+  };
+  if(!webglAvailable()){ noGL(); return; }
+  try { initGL(); } catch(e){ noGL(); return; }
   orbit.r = fitR();
   geo = await (await fetch("/api/regions")).json();
 
@@ -822,9 +980,10 @@ async function boot(){
   const dp=document.getElementById("datePick"), sl=document.getElementById("dateSlider");
   dates.forEach((x,i)=>{const o=document.createElement("option");o.value=i;o.textContent=x;dp.appendChild(o);});
   sl.max=dates.length-1;
-  const lp=document.getElementById("leadPick");
-  for(let L=1;L<=10;L++){const o=document.createElement("option");o.value=L;o.textContent="Day "+L;
-    if(L===cur.lead)o.selected=true;lp.appendChild(o);}
+  FBI.mode(document.getElementById("mode"), dates[0], dates[dates.length-1]);
+  TL = FBI.timeline(document.getElementById("leadBar"), {
+    get: () => cur.lead, set: L => setLead(L), validDate: L => validFor(L),
+  });
 
   // Open on the reading the URL names, else the documented case study rather
   // than an arbitrary date: a quiet day renders an almost uniform field, which
@@ -837,7 +996,6 @@ async function boot(){
   sl.value=idx; dp.value=idx; cur.init=dates[idx];
   sl.oninput = e=>{dp.value=e.target.value; loadCube(dates[+e.target.value]);};
   dp.onchange= e=>{sl.value=e.target.value; loadCube(dates[+e.target.value]);};
-  lp.onchange= e=>setLead(+e.target.value);
   document.getElementById("datePrev").onclick = () => stepDate(-1);
   document.getElementById("dateNext").onclick = () => stepDate(1);
   document.getElementById("btnModel").onclick   = ()=>setView("model");
@@ -846,8 +1004,31 @@ async function boot(){
   document.getElementById("btnReset").onclick   = ()=>{
     orbit.theta=Math.PI/2; orbit.phi=0.95; orbit.r=fitR(); orbit.target.set(0,4,0); focusGoal = null;
   };
+  document.getElementById("btnFocus").onclick = () => {
+    const top = document.querySelector("#queue tbody tr[data-rid]");
+    if(top) top.click();
+  };
   bindKeys();
   buildStaff();
+
+  // Another open view changed the reading: follow it, without echoing it back.
+  FBI.onRemote(s => {
+    if(s.date && s.date !== cur.init && dates.includes(s.date)){
+      const i = dates.indexOf(s.date);
+      sl.value = i; dp.value = i;
+      if(s.lead) cur.lead = s.lead;
+      cur.sel = s.region;
+      loadCube(s.date).then(() => { if(cur.sel) focusRegion(cur.sel); });
+      return;
+    }
+    if(s.lead && s.lead !== cur.lead){ TL.stop(); setLead(s.lead); }
+    if(s.region && s.region !== cur.sel){ select(s.region, cur.lead); focusRegion(s.region); }
+    else if(!s.region && cur.sel) clearSelection();
+  });
+  fetch("/api/metrics").then(r => r.ok ? r.json() : null).then(m => {
+    served = (m && m.served) || null;
+    if(cur.sel) select(cur.sel, cur.lead);
+  }).catch(() => {});
 
   if(want.region) cur.sel = want.region;
   await loadCube(cur.init);
@@ -857,6 +1038,9 @@ async function boot(){
   animate();
 }
 
+// One loop, rendering only when something changed. The browser stops calling
+// requestAnimationFrame for a hidden tab, so a background tab draws nothing.
+let perfShown = "";
 function animate(){
   requestAnimationFrame(animate);
   if(focusGoal){
@@ -871,10 +1055,13 @@ function animate(){
   applyCamera();
   updateHover();
   renderer.render(scene, camera);
+  const p = `${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles.toLocaleString()} triangles · ` +
+            `pixel ratio ${renderer.getPixelRatio()} (${qualityTier()})`;
+  if(p !== perfShown){ perfShown = p; document.getElementById("perf").textContent = p; }
 }
 
 boot().catch(e=>{
-  document.getElementById("status").textContent = "Failed to start: "+e.message;
+  document.getElementById("statusText").textContent = "Failed to start: "+e.message;
   console.error(e);
 });
 </script>
