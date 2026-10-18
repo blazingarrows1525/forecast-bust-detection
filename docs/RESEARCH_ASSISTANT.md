@@ -59,6 +59,8 @@ Rules that hold on every path:
 ## Run it
 
 The assistant is off by default and the routes do not exist until enabled.
+On Render, see `docs/DEPLOY.md`, "The research assistant on Render", for the
+variables and the image to use.
 
 ```bash
 # the Claude Code cloud environment -- keys in Network secrets, nothing in code
@@ -196,4 +198,7 @@ archive explanations, including a refused row that must never be called low.
 | `circuit_open` errors | three consecutive provider failures; the provider is skipped for 60 s |
 | Answers are excerpts, not prose | no model configured (`FBD_ASSISTANT_LLM=none`), or the model failed and no fallback is set |
 | "did not pass verification" | the model wrote a number its sources do not contain, or a directive; read the sources directly |
-| 429 | per-client or global quota; see `Retry-After` |
+| 429 | per-client or global quota; see `Retry-After`. Behind a proxy (Render), set `FORWARDED_ALLOW_IPS=*`, or every visitor shares one per-client quota |
+| Every method or how-to question says "Nothing in the project's documents matches" in a container | the image predates the documents being copied into it; deploy a newer image |
+| "The primary model failed (http_429)" on every answer | Gemini's free 20 requests a day are spent; the fallback writes until the allowance resets |
+| Answers list sources with "No summary could be written" | both models' free allowances are spent, or both providers failed |

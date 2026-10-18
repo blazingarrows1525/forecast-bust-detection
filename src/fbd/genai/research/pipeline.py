@@ -469,19 +469,27 @@ def _synthesise(run: Run, route: RouteDecision) -> Iterator[dict]:
             llm=result, fallback=fallback, flags=[v[:160] for v in checked.violations]).model_dump(mode="json"))
         return
     out = checked.output
-    if out.needs_clarification:
+    # A cited answer that passed every check is shown even when the model also
+    # asks for a detail: stale or partial evidence is a limitation, not a reason
+    # to drop what the sources do say (live run 3). Only a reply that cites
+    # nothing becomes a question back.
+    if out.needs_clarification and not checked.cited_ids:
         MEMORY.put(run.req.conversation_id, {"question": run.req.message, "intent": route.intent.value})
         yield _ev("done", answer=_answer(run, route, out.clarification_question or out.answer, "clarification",
                                          llm=result, fallback=fallback, clarify=True).model_dump(mode="json"))
         return
+    limitations = list(out.limitations)
+    if out.needs_clarification:
+        limitations.append(f"Open question: {out.clarification_question[:300]}" if out.clarification_question
+                           else "The model asked for one more detail; this answer may be incomplete.")
     web = route.intent in (Intent.CURRENT_WEB_RESEARCH, Intent.SAFETY_CRITICAL)
     status = "completed"
     if not checked.cited_ids and web:
         status = "unable_to_verify"
-    elif checked.removed_citations or any(c.support_level != "cited" for c in checked.claims) or out.limitations:
+    elif checked.removed_citations or any(c.support_level != "cited" for c in checked.claims) or limitations:
         status = "partial"
     yield _ev("done", answer=_answer(run, route, out.answer, status, claims=checked.claims,
-                                     key_points=out.key_points, limitations=out.limitations, llm=result,
+                                     key_points=out.key_points, limitations=limitations, llm=result,
                                      fallback=fallback).model_dump(mode="json"))
 
 

@@ -286,6 +286,42 @@ changed here.
 One reply in four diagnostic calls was not valid JSON and was withheld as
 unparseable. That is model variance; the next identical call parsed.
 
+### Fixed after run 3, before deploying
+
+1. **Clarification.** Rule 7 of the prompt (version `research-2026-10-18.2`)
+   now says to answer what the sources do say, list stale or missing evidence
+   in `limitations`, and set `needs_clarification` only for an ambiguous
+   question. The pipeline also keeps any cited answer that passed every check,
+   shows it as partial, and adds the model's question as "Open question: …".
+   Only an uncited reply becomes a question back. Eval case
+   `stale-sources-answered`.
+2. **Safety search domains.** `pib.gov.in`, the government press office, is
+   out of `SAFETY_DOMAINS`. With it, the news search for an Assam rainfall
+   warning returned unrelated press notes in two runs. Without it, six of six
+   searches (three questions, twice each) returned only IMD pages, including
+   that day's bulletin. PIB stays `official` wherever it is found.
+3. **Grouped citations.** "[S1, S2]" is split into "[S1][S2]" before the
+   citation check. Before, it reached the page as plain text, unchecked.
+4. **The image.** It now carries the eight documents the assistant answers
+   from (`Dockerfile`, `.dockerignore`, `publish.yml` paths, and
+   `tests/test_image_contents.py`). Before, every method or how-to question in
+   a deployed container answered "Nothing in the project's documents matches".
+   This was reproduced in a built image, then fixed.
+
+**Render-like check of the fixed image** (built locally, run with the Render
+variables in `docs/DEPLOY.md`, its own start command, as its unprivileged
+user):
+* The how-to question was answered from `docs/USING_THE_VIEWS.md`.
+* The archive question was answered with no model.
+* The streamed safety question returned 12 events with increasing ids.
+* A foreign origin got 403.
+* On the page, the Assam question gave "Partial result" in 8.4 s from IMD's
+  bulletin issued 2026-10-18, with claim-by-claim attribution and a clean
+  console.
+
+All of these answers were written by the free fallback, because Gemini's
+allowance was spent.
+
 ## Evaluation still owed
 
 `scripts/evaluate_assistant.py` runs the versioned question set in

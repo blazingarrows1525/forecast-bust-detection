@@ -43,7 +43,10 @@ REFERENCE = (
     "worldbank.org", "britannica.com", "ametsoc.org", "rmets.org",
 )
 # Official sources to try first for safety-critical questions (Tavily include_domains).
-SAFETY_DOMAINS = ["mausam.imd.gov.in", "imd.gov.in", "ndma.gov.in", "cwc.gov.in", "incois.gov.in", "pib.gov.in"]
+# Warning agencies only. pib.gov.in (the government press office) was here; with
+# it, Tavily's news search answered "heavy rainfall warning for Assam" with
+# unrelated press notes in live runs (2026-10-18). PIB stays OFFICIAL when found.
+SAFETY_DOMAINS = ["mausam.imd.gov.in", "imd.gov.in", "ndma.gov.in", "cwc.gov.in", "incois.gov.in"]
 
 AUTHORITY = {TrustTier.OFFICIAL: 4.0, TrustTier.PRIMARY_RESEARCH: 3.0, TrustTier.REFERENCE: 2.0,
              TrustTier.PROJECT: 4.0, TrustTier.SECONDARY: 1.0, TrustTier.UNKNOWN: 0.5}

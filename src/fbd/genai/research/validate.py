@@ -30,6 +30,13 @@ from fbd.genai.guardrails import check_authority, check_numeric_grounding
 from fbd.genai.research.schemas import ClaimEvidence, ModelOutput
 
 CITE_RE = re.compile(r"\[(S\d{1,2})\]")
+# Models also write "[S1, S2]". Split it into "[S1][S2]" before the citation
+# check, so each id is checked against the packet and shown as its own link.
+GROUP_RE = re.compile(r"\[(S\d{1,2}(?:\s*[,;]\s*S\d{1,2})+)\]")
+
+
+def _split_groups(s: str) -> str:
+    return GROUP_RE.sub(lambda m: "".join(f"[{x.strip()}]" for x in re.split(r"[,;]", m.group(1))), s)
 
 # Dates. Models state today's date and a source's date ("issued 18 October
 # 2026") as a matter of course, and the day is often not in the source text,
@@ -131,8 +138,8 @@ def check(text: str, valid_ids: set[str], source_numbers: list[float], dates=())
             return ""
         return CITE_RE.sub(keep, s)
 
-    out.answer = strip_unknown(out.answer)
-    out.key_points = [strip_unknown(k) for k in out.key_points]
+    out.answer = strip_unknown(_split_groups(out.answer))
+    out.key_points = [strip_unknown(_split_groups(k)) for k in out.key_points]
 
     claims: list[ClaimEvidence] = []
     for i, c in enumerate(out.claims):

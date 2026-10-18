@@ -171,6 +171,13 @@ def test_fabricated_citation_ids_are_removed_and_counted():
     assert out.claims[0].support_level == "unsupported"
 
 
+def test_grouped_citations_are_split_and_each_id_is_checked():
+    """Live, "[S1, S2]" reached the page as plain text, unchecked and unlinked."""
+    out = validate.check(answer_json("Rain is likely [S1, S2]; see also [S1; S9]."), {"S1", "S2"}, [])
+    assert out.ok and "[S1][S2]" in out.output.answer and "[S9]" not in out.output.answer
+    assert out.cited_ids == ["S1", "S2"] and out.removed_citations == ["S9"]
+
+
 def test_a_number_no_source_contains_withholds_the_answer():
     out = validate.check(answer_json("Expect 250 mm of rain [S1]."), {"S1"}, [18.0, 17.0])
     assert not out.ok and any("ungrounded" in v for v in out.violations)
@@ -210,6 +217,35 @@ def test_the_pipeline_grounds_todays_date_from_the_prompt():
         lambda s, u: answer_json("As of 18 October 2026, REFUSE means unknown risk, not low risk [S1].",
                                  [{"text": "REFUSE is unknown risk", "source_ids": ["S1"]}])))
     assert ans["retrieval_status"] == "completed", ans["answer_markdown"]
+
+
+def test_safety_searches_are_limited_to_warning_agencies():
+    """With the press office in the filter, live searches for a rainfall warning
+    returned its unrelated press notes, ranked official (decision record, run 3)."""
+    assert "pib.gov.in" not in ev.SAFETY_DOMAINS
+    assert {"mausam.imd.gov.in", "imd.gov.in", "cwc.gov.in"} <= set(ev.SAFETY_DOMAINS)
+    assert ev.tier_for("pib.gov.in") == TrustTier.OFFICIAL, "still official when it is found"
+
+
+def test_a_cited_answer_is_shown_even_when_the_model_asks_for_a_detail():
+    """Live, a good cited answer about a stale warning was replaced by its own
+    follow-up question (decision record, run 3). It is now shown, partial, with
+    the question as a limitation."""
+    _e, ans = collect(ChatRequest(message="What does REFUSE mean?"), d=deps(
+        lambda s, u: answer_json("REFUSE means unknown risk, not low risk [S1].",
+                                 [{"text": "REFUSE is unknown risk", "source_ids": ["S1"]}],
+                                 needs_clarification=True, clarification_question="Which region do you mean?")))
+    assert ans["retrieval_status"] == "partial" and "unknown risk" in ans["answer_markdown"]
+    assert "Open question: Which region do you mean?" in ans["limitations"]
+    assert ans["needs_clarification"] is False
+
+
+def test_an_uncited_request_for_a_detail_is_still_a_question_back():
+    _e, ans = collect(ChatRequest(message="What does REFUSE mean?"), d=deps(
+        lambda s, u: answer_json("I need more detail.", needs_clarification=True,
+                                 clarification_question="Which region do you mean?")))
+    assert ans["retrieval_status"] == "clarification"
+    assert ans["answer_markdown"] == "Which region do you mean?"
 
 
 def test_a_directive_withholds_the_answer():

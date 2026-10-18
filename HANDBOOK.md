@@ -11167,6 +11167,59 @@ the override returns 403.
 * 750 free instance hours a month is enough for one service running all month.
 * The filesystem is ephemeral, which does not matter for a read-only store.
 
+##### The research assistant on Render (`/assistant.html`)
+
+The image carries the assistant, off by default. **It needs an image built from
+`live-path-pby8cg` at or after the commit that added the project documents to the
+image** (or from `master` once that branch is merged). Older images answer every
+method question with "Nothing in the project's documents matches". `:latest` is
+built from `master` only. To deploy the branch before a merge, run **Actions →
+Publish image → Run workflow** on `live-path-pby8cg`, then use the image
+`ghcr.io/blazingarrows1525/forecast-bust-detection:live-path-pby8cg`.
+
+Add these environment variables to the service, with the keys as values Render
+keeps secret:
+
+| variable | value | why |
+|---|---|---|
+| `FBD_GENAI_ENABLED` | `1` | master switch; without it the routes do not exist |
+| `FBD_RESEARCH` | `1` | mounts the research assistant |
+| `FBD_RESEARCH_WEB` | `1` | allows web search and page reads |
+| `FBD_ASSISTANT_LLM` | `gemini` | primary model, `gemini-3.8-flash` (free tier: 20 requests a day) |
+| `FBD_ASSISTANT_FALLBACK` | `openrouter` | writes the answer when Gemini's allowance is spent |
+| `GEMINI_API_KEY`, `TAVILY_API_KEY`, `OPENROUTER_API_KEY` | your keys | never in the image, a URL or a commit |
+| `FORWARDED_ALLOW_IPS` | `*` | see below |
+
+Do **not** set `FBD_ASSISTANT_PROXY_AUTH`; that is for Claude Code's Network
+secrets, not Render.
+
+**`FORWARDED_ALLOW_IPS`.** Render's proxy sits in front of the container, so
+without this variable uvicorn sees every visitor as the proxy. The per-client
+limits (6 questions a minute, 60 a day) then apply to the whole site. With it,
+uvicorn takes each visitor's address from `X-Forwarded-For`. A visitor can
+forge that header to get a fresh per-client allowance, but the global daily cap
+(`FBD_RESEARCH_GLOBAL_RPD`, 400) still holds, and so do the providers' own
+limits.
+
+**After deploying:**
+1. Open `/api/assistant/research/status`. Expect `"enabled": true`,
+   `llm_ready.ok` and `search_ready.ok` true, and `auth: "local-env"`.
+2. Ask one question on `/assistant.html`. These keys answer "ready" without
+   making a call, so only a real question proves they work.
+
+**Free allowances.** Gemini allows 20 requests a day, the OpenRouter free
+models 50 a day (under 10 credits purchased), and Tavily 1,000 searches a
+month. When both models are spent, an answer lists its sources without prose
+("No summary could be written"). That is the designed behaviour, not an outage.
+
+Verified 2026-10-18 by building this image and running it with exactly these
+variables, with its own start command, as its unprivileged user. That covered
+status, a how-to answer from the bundled documents, an archive answer, a
+streamed safety answer, a 403 for a foreign origin, and the page in headless
+Chromium. It was not verified on Render itself. Two things differ there:
+outbound DNS reaches the IMD sites, so official pages should be read in full
+rather than as snippets, and the proxy sets `X-Forwarded-For`.
+
 ##### Other hosts, and why not
 
 * **Hugging Face Spaces:** Docker Spaces now need a paid plan. The free Gradio
@@ -11183,6 +11236,10 @@ gcloud run deploy fbd   --image ghcr.io/blazingarrows1525/forecast-bust-detectio
 ---
 
 #### 4. The assistant layer (optional, off by default)
+
+The research assistant (`/assistant.html`) is configured separately: see
+"The research assistant on Render" above and `docs/RESEARCH_ASSISTANT.md`. This
+section covers the earlier narration layer.
 
 The GenAI assistant is opt-in and defaults to a **local** model, so it needs no
 account and no spend (D-019).
@@ -11394,6 +11451,8 @@ Rules that hold on every path:
 #### Run it
 
 The assistant is off by default and the routes do not exist until enabled.
+On Render, see `docs/DEPLOY.md`, "The research assistant on Render", for the
+variables and the image to use.
 
 ```bash
 # the Claude Code cloud environment -- keys in Network secrets, nothing in code
@@ -11531,7 +11590,10 @@ archive explanations, including a refused row that must never be called low.
 | `circuit_open` errors | three consecutive provider failures; the provider is skipped for 60 s |
 | Answers are excerpts, not prose | no model configured (`FBD_ASSISTANT_LLM=none`), or the model failed and no fallback is set |
 | "did not pass verification" | the model wrote a number its sources do not contain, or a directive; read the sources directly |
-| 429 | per-client or global quota; see `Retry-After` |
+| 429 | per-client or global quota; see `Retry-After`. Behind a proxy (Render), set `FORWARDED_ALLOW_IPS=*`, or every visitor shares one per-client quota |
+| Every method or how-to question says "Nothing in the project's documents matches" in a container | the image predates the documents being copied into it; deploy a newer image |
+| "The primary model failed (http_429)" on every answer | Gemini's free 20 requests a day are spent; the fallback writes until the allowance resets |
+| Answers list sources with "No summary could be written" | both models' free allowances are spent, or both providers failed |
 
 ---
 
@@ -11826,6 +11888,42 @@ changed here.
 
 One reply in four diagnostic calls was not valid JSON and was withheld as
 unparseable. That is model variance; the next identical call parsed.
+
+##### Fixed after run 3, before deploying
+
+1. **Clarification.** Rule 7 of the prompt (version `research-2026-10-18.2`)
+   now says to answer what the sources do say, list stale or missing evidence
+   in `limitations`, and set `needs_clarification` only for an ambiguous
+   question. The pipeline also keeps any cited answer that passed every check,
+   shows it as partial, and adds the model's question as "Open question: …".
+   Only an uncited reply becomes a question back. Eval case
+   `stale-sources-answered`.
+2. **Safety search domains.** `pib.gov.in`, the government press office, is
+   out of `SAFETY_DOMAINS`. With it, the news search for an Assam rainfall
+   warning returned unrelated press notes in two runs. Without it, six of six
+   searches (three questions, twice each) returned only IMD pages, including
+   that day's bulletin. PIB stays `official` wherever it is found.
+3. **Grouped citations.** "[S1, S2]" is split into "[S1][S2]" before the
+   citation check. Before, it reached the page as plain text, unchecked.
+4. **The image.** It now carries the eight documents the assistant answers
+   from (`Dockerfile`, `.dockerignore`, `publish.yml` paths, and
+   `tests/test_image_contents.py`). Before, every method or how-to question in
+   a deployed container answered "Nothing in the project's documents matches".
+   This was reproduced in a built image, then fixed.
+
+**Render-like check of the fixed image** (built locally, run with the Render
+variables in `docs/DEPLOY.md`, its own start command, as its unprivileged
+user):
+* The how-to question was answered from `docs/USING_THE_VIEWS.md`.
+* The archive question was answered with no model.
+* The streamed safety question returned 12 events with increasing ids.
+* A foreign origin got 403.
+* On the page, the Assam question gave "Partial result" in 8.4 s from IMD's
+  bulletin issued 2026-10-18, with claim-by-claim attribution and a clean
+  console.
+
+All of these answers were written by the free fallback, because Gemini's
+allowance was spent.
 
 #### Evaluation still owed
 
@@ -12338,10 +12436,11 @@ list 439 passed, 2 skipped. Every capture is clean at five viewports.
 
 **Needs you.** Review the opening on the demo machine; decide whether to open a
 PR from `live-path-pby8cg`. For the assistant: Gemini's 20 free requests a day
-are enough (no paid tier), and dates the model was given now count as grounded.
-Re-run the live eval once Gemini's daily allowance resets, and decide whether
-stale sources should give an answer with limitations instead of a clarification
-question (decision record, run 3).
+are enough (no paid tier); dates the model was given count as grounded; stale
+sources give an answer with limitations, not a clarification question. To
+deploy on Render, follow `docs/DEPLOY.md`, "The research assistant on Render":
+an image from this branch (or `master` after a merge), plus the listed
+variables. Re-run the live eval once Gemini's daily allowance resets.
 
 **Purpose:** start a new session and continue exactly where this one
 stopped.

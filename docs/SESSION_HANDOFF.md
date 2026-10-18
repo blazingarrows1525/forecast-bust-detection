@@ -23,10 +23,11 @@ list 439 passed, 2 skipped. Every capture is clean at five viewports.
 
 **Needs you.** Review the opening on the demo machine; decide whether to open a
 PR from `live-path-pby8cg`. For the assistant: Gemini's 20 free requests a day
-are enough (no paid tier), and dates the model was given now count as grounded.
-Re-run the live eval once Gemini's daily allowance resets, and decide whether
-stale sources should give an answer with limitations instead of a clarification
-question (decision record, run 3).
+are enough (no paid tier); dates the model was given count as grounded; stale
+sources give an answer with limitations, not a clarification question. To
+deploy on Render, follow `docs/DEPLOY.md`, "The research assistant on Render":
+an image from this branch (or `master` after a merge), plus the listed
+variables. Re-run the live eval once Gemini's daily allowance resets.
 
 **Purpose:** start a new session and continue exactly where this one
 stopped.

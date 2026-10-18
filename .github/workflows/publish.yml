@@ -34,6 +34,14 @@ on:
       - "scripts/precompute_geo_assets.py"
       - "scripts/precompute_voxel_grid.py"
       - "scripts/fetch_release_artifacts.py"
+      - "README.md"
+      - "LOGIC.md"
+      - "FRONTEND_LOGIC.md"
+      - "DECISIONS.md"
+      - "PRODUCT.md"
+      - "docs/PROJECT_GUIDE.md"
+      - "docs/USING_THE_VIEWS.md"
+      - "docs/RESEARCH_ASSISTANT.md"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
 

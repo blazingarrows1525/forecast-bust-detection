@@ -45,13 +45,17 @@ def _copied(path: str, sources: list[str]) -> bool:
 
 
 def _ignored(path: str) -> bool:
+    # Docker's rule: the last matching line wins, and "!" re-includes.
+    ignored = False
     for line in DOCKERIGNORE.read_text(encoding="utf-8").splitlines():
         pat = line.strip()
-        if not pat or pat.startswith("#") or pat.startswith("!"):
+        if not pat or pat.startswith("#"):
             continue
+        keep = pat.startswith("!")
+        pat = pat.lstrip("!")
         if fnmatch.fnmatch(path, pat) or path.startswith(pat.rstrip("/") + "/"):
-            return True
-    return False
+            ignored = not keep
+    return ignored
 
 
 def test_the_scan_finds_the_served_files():
@@ -70,6 +74,16 @@ def test_every_served_file_is_copied_into_the_image():
 def test_no_served_file_is_dockerignored():
     ignored = [f for f in _served_files() if _ignored(f)]
     assert not ignored, f"read by the API but excluded by .dockerignore: {ignored}"
+
+
+def test_every_document_the_assistant_reads_is_in_the_image():
+    # The research assistant reads these from the app root. None were in the
+    # image, so every method or how-to question found nothing once deployed.
+    from fbd.genai.research.pipeline import _DOC_FILES
+    sources = _copy_sources()
+    missing = [f for f in _DOC_FILES if not _copied(f, sources) or _ignored(f)]
+    assert not missing, f"read by the assistant but not in the image: {missing}"
+    assert all((ROOT / f).exists() for f in _DOC_FILES)
 
 
 def _publish_paths() -> list[str]:
