@@ -22,9 +22,11 @@ Tests: 482 passed, 4 skipped (full suite, no torch in that environment); CI's
 list 439 passed, 2 skipped. Every capture is clean at five viewports.
 
 **Needs you.** Review the opening on the demo machine; decide whether to open a
-PR from `live-path-pby8cg`. For the assistant, decide whether dates should count
-as grounded in the number check, and re-run the live eval once Gemini's daily
-free allowance resets (see the decision record).
+PR from `live-path-pby8cg`. For the assistant: Gemini's 20 free requests a day
+are enough (no paid tier), and dates the model was given now count as grounded.
+Re-run the live eval once Gemini's daily allowance resets, and decide whether
+stale sources should give an answer with limitations instead of a clarification
+question (decision record, run 3).
 
 **Purpose:** start a new session and continue exactly where this one
 stopped.

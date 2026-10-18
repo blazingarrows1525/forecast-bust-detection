@@ -118,6 +118,12 @@ def packet(docs: list[SourceDocument], max_chars_each: int = 3500) -> str:
     return "\n\n".join(blocks) if blocks else "(no usable sources)"
 
 
+def header_dates(docs: list[SourceDocument]) -> list[str]:
+    """The published and retrieved times each packet header states: dates an answer may restate."""
+    return [t for d in docs if not any(f.startswith("injection") for f in d.flags)
+            for t in (d.published_at, d.retrieved_at) if t]
+
+
 def numbers_in(docs: list[SourceDocument]) -> list[float]:
     """Every number any usable source contains: what an answer may restate."""
     out: list[float] = []

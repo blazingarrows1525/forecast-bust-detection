@@ -425,8 +425,9 @@ def _synthesise(run: Run, route: RouteDecision) -> Iterator[dict]:
         yield from _no_model(run, route, "No language model is configured on the server.")
         return
     yield _ev("status", stage="writing", label="Writing answer", request_id=run.request_id)
+    today = run.deps.clock()[:10]
     user = prompt.user_message(run.req.message, route.intent.value, route.required_geo_scope, route.time_scope,
-                               ev.packet(usable), run.deps.clock()[:10])
+                               ev.packet(usable), today)
     result, fallback = None, False
     try:
         result = llm.generate(prompt.SYSTEM, user, max_tokens=run.settings.max_output_tokens, deadline=run.deadline)
@@ -452,7 +453,7 @@ def _synthesise(run: Run, route: RouteDecision) -> Iterator[dict]:
             return
     yield _ev("status", stage="checking", label="Checking evidence", request_id=run.request_id)
     ids = {d.source_id for d in usable}
-    checked = validate.check(result.text, ids, ev.numbers_in(usable))
+    checked = validate.check(result.text, ids, ev.numbers_in(usable), [today, *ev.header_dates(usable)])
     if checked.removed_citations:
         REGISTRY.counter("fbd_research_citation_rejections_total", "Citations removed as not in the packet",
                          by=len(checked.removed_citations))

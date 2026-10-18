@@ -176,6 +176,42 @@ def test_a_number_no_source_contains_withholds_the_answer():
     assert not out.ok and any("ungrounded" in v for v in out.violations)
 
 
+GIVEN = ["2026-10-18", "Sun, 17 Oct 2026 03:00:00 GMT", FIXED]
+
+
+@pytest.mark.parametrize("prose", [
+    "Heavy rain is likely today, 18 October 2026 [S1].",
+    "Heavy rain is likely today (18 October 2026) [S1].",   # the narrow spaces a live model wrote
+    "The bulletin was issued on 17th Oct [S1].",
+    "The bulletin was issued on October 17, 2026 [S1].",
+    "The bulletin is dated 17-10-2026 [S1].",
+    "The bulletin is dated 2026-10-17 [S1].",
+])
+def test_a_date_the_model_was_given_is_grounded(prose):
+    """Today's date and a source's header date may be restated; live, a correct
+    answer was withheld for writing "18 October 2026" (decision record, run 2)."""
+    assert validate.check(answer_json(prose), {"S1"}, [], GIVEN).ok
+    assert not validate.check(answer_json(prose), {"S1"}, []).ok, "without the given dates it stays withheld"
+
+
+@pytest.mark.parametrize("prose", [
+    "The bulletin was issued on 25 October 2026 [S1].",     # a date nobody gave it
+    "The bulletin was issued on 18 October 2025 [S1].",     # right day, wrong year
+    "Expect 18 mm of rain on 18 October [S1].",             # the date is grounded; "18 mm" is not
+    "Expect 17 mm of rain [S1].",
+])
+def test_a_given_date_grounds_only_itself(prose):
+    out = validate.check(answer_json(prose), {"S1"}, [], GIVEN)
+    assert not out.ok and any("ungrounded" in v for v in out.violations)
+
+
+def test_the_pipeline_grounds_todays_date_from_the_prompt():
+    _e, ans = collect(ChatRequest(message="What does REFUSE mean?"), d=deps(
+        lambda s, u: answer_json("As of 18 October 2026, REFUSE means unknown risk, not low risk [S1].",
+                                 [{"text": "REFUSE is unknown risk", "source_ids": ["S1"]}])))
+    assert ans["retrieval_status"] == "completed", ans["answer_markdown"]
+
+
 def test_a_directive_withholds_the_answer():
     out = validate.check(answer_json("Residents should evacuate now [S1]."), {"S1"}, [])
     assert not out.ok

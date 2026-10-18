@@ -44,7 +44,9 @@ Rules that hold on every path:
 * **No number the sources do not contain.** The existing numeric-grounding
   guardrail runs on the answer against the numbers in the cited sources. One
   invented number withholds the whole answer; the user sees the sources and
-  "Unable to verify".
+  "Unable to verify". A date the model was given (today's date, or a source's
+  published or retrieved date) may be restated; any other date is checked like
+  a number.
 * **No directives.** The non-interference guardrail (LOGIC.md 1.3) runs on
   every answer. "Residents should evacuate" is withheld even when a source says
   it; the answer points to the official agency instead.
@@ -173,7 +175,7 @@ made. (urllib cannot abort a request mid-flight; this is the honest limit.)
 
 ```bash
 PYTHONPATH=src python -m pytest tests/test_research_assistant.py tests/test_assistant_eval.py -q
-python scripts/evaluate_assistant.py            # 19 cases, mocks, what CI runs
+python scripts/evaluate_assistant.py            # 21 cases, mocks, what CI runs
 python scripts/evaluate_assistant.py --live     # the configured providers; writes artifacts/eval/live.json
 ```
 

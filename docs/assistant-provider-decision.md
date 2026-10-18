@@ -6,7 +6,9 @@ shipped, found the default fallback model gone and the model answering only part
 of the time. The defaults are now free models: Gemini `gemini-3.8-flash`, the
 newest Flash, as primary, and OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`
 as fallback, with its reasoning switched off. In run 2 a model wrote every answer
-that needs one. Gemini's free tier allows only 20 requests a day per model.
+that needs one. Gemini's free tier allows only 20 requests a day per model;
+the operator judged that enough. Since run 3, dates the model was given count
+as grounded in the number check.
 
 Provider pages change. Re-check every row below before a deployment, and update
 the date. Model ids live in one place, `src/fbd/genai/research/settings.py`
@@ -63,8 +65,9 @@ How each fact below was obtained, so nobody mistakes a summary for a check:
 
 1. **Default: Gemini `gemini-3.8-flash` (free tier) for writing, Tavily (free
    tier) for search.** Both need no card and are reached only from the server.
-   Gemini's free allowance is 20 requests a day: enough for development, not
-   for a demo on its own.
+   Gemini's free allowance is 20 requests a day; the operator decided on
+   2026-10-18 that this is enough, so no paid tier. Past 20, the free fallback
+   writes the answers.
 2. **Fallback: none in code; the free OpenRouter Nemotron model in practice.**
    With `FBD_ASSISTANT_FALLBACK=openrouter` (as in the live runs), it answers
    when Gemini's daily allowance is spent. An operator may instead set
@@ -224,12 +227,12 @@ sources rather than inventing a warning.
    validation: every answer that needs a model was written, none timed out,
    and nothing unsupported was shown.
 2. **Gemini's free tier is 20 requests a day per model.** That is about 20
-   questions, fewer when retries also count. For a demo, either accept the
-   fallback writing most answers or move Gemini to a paid tier.
+   questions, fewer when retries also count. *Decided:* 20 is enough; no paid
+   tier.
 3. **The number check counts dates.** A model that states today's date has its
    answer withheld, because the date is in the prompt but not in the source
-   text. Whether dates from the prompt and the source metadata should count as
-   grounded is a validator decision, not changed here.
+   text. *Decided:* dates the model was given count as grounded. Implemented
+   before run 3.
 4. **Search quality varies between runs.** The same safety question returned IMD
    bulletins in some runs and unrelated government press notes in another, all
    ranked "official" by domain. Restricting safety searches to IMD and SDMA
@@ -239,6 +242,49 @@ sources rather than inventing a warning.
 6. **Still open from run 1:** a primary that hangs (rather than failing fast)
    still leaves the fallback no time budget, and the page says the fallback
    "was used" even when it also failed.
+
+## Live run 3, 2026-10-18: dates the model was given are grounded
+
+**What changed.** `validate.check` now takes the dates the model was handed:
+today's date from the prompt, and each usable source's `published` and
+`retrieved` from its packet header (`evidence.header_dates`).
+* A date in the answer that names one of them is taken out before the number
+  check. Accepted forms: `18 October 2026`, `18th Oct`, `October 18, 2026`,
+  `2026-10-18`, and `18-10-2026` or `18/10/2026`, day first or month first.
+* Only whole date expressions are exempt; their numbers do not join the
+  grounded set. So "18 mm" stays ungrounded even when today is the 18th, and
+  an invented date or a wrong year still withholds the answer.
+* Unit tests cover both directions. Two eval cases were added:
+  `date-today-grounded` fails without the change, and `date-invented` must keep
+  holding. Mock mode passes 21 of 21.
+
+**`--live`** (Gemini's allowance still spent, so the free fallback wrote every
+model-path answer): **15 of 21**. Route accuracy, citation validity and schema
+validity 1.0, unsupported claims 0.0, status accuracy 0.810, latency p50 / p95
+12.4 / 24.1 s. No case hit the time budget.
+* `fabricated-citation` now ends partial with the answer shown.
+* In a diagnostic run, an answer stating "today, 2026-10-18" passed the check.
+* The two new cases fail live by design: they script the model's answer.
+* `current-no-results` fails only on its fixture-only `no_citations` check.
+
+**What run 3 showed: the remaining losses are clarifications, not checks.**
+`safety-official`, `injected-page`, `ssrf-result-dropped` and `date-invented`
+ended in a clarification question. In a captured example, the fallback's
+answer was good:
+* it cited S1;
+* it said the latest IMD warning for Assam found was from 2 November 2025;
+* its limitations said nothing current for 18 October 2026 was in the sources.
+
+It also set `needs_clarification`, so the page showed only the question and
+dropped the answer. The prompt asks for this. Rule 7 says to "set
+needs_clarification or list the gap in limitations" when sources are stale,
+and the pipeline treats `needs_clarification` as "replace the answer with a
+question". The likely fix is to reserve `needs_clarification` for ambiguous
+questions and send stale or missing evidence to `limitations`. That is not
+changed here.
+
+One reply in four diagnostic calls was not valid JSON and was withheld as
+unparseable. That is model variance; the next identical call parsed.
 
 ## Evaluation still owed
 
